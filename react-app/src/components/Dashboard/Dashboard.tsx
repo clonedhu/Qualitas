@@ -9,6 +9,7 @@ import { useOBS } from '../../context/OBSContext';
 import { useContractors, Contractor } from '../../context/ContractorsContext';
 import { DashboardFilterProvider, useDashboardFilter } from '../../context/DashboardFilterContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useFollowUp } from '../../context/FollowUpContext';
 import { useMemo, useState } from 'react';
 import ITPGaugeChart from './ITPGaugeChart';
 import ITPStatsCard from './ITPStatsCard';
@@ -50,6 +51,41 @@ const DashboardContent: React.FC<{
   const { itrList } = useITR();
   const { pqpList } = usePQP();
   const { obsList } = useOBS();
+  const { followUpList } = useFollowUp();
+
+  // Upcoming Tasks Calculation
+  const upcomingTasks = useMemo(() => {
+    const today = new Date();
+    const next7Days = new Date();
+    next7Days.setDate(today.getDate() + 7);
+
+    const todayStr = today.toISOString().split('T')[0];
+    const next7DaysStr = next7Days.toISOString().split('T')[0];
+
+    const upcomingNcrs = ncrList
+      .filter(n => n.status.toLowerCase() !== 'closed' && n.dueDate && n.dueDate >= todayStr && n.dueDate <= next7DaysStr)
+      .map(n => ({
+        id: n.id,
+        type: 'NCR',
+        title: n.documentNumber,
+        dueDate: n.dueDate!,
+        vendor: n.vendor,
+        link: '/ncr'
+      }));
+
+    const upcomingFollowUps = followUpList
+      .filter(f => f.status.toLowerCase() !== 'closed' && f.dueDate && f.dueDate >= todayStr && f.dueDate <= next7DaysStr)
+      .map(f => ({
+        id: f.id,
+        type: 'Follow-up',
+        title: f.title || f.issueNo,
+        dueDate: f.dueDate,
+        vendor: f.vendor || f.assignedTo,
+        link: '/followup'
+      }));
+
+    return [...upcomingNcrs, ...upcomingFollowUps].sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  }, [ncrList, followUpList]);
 
   // 計算統計數據
   const statistics = useMemo(() => {
@@ -201,6 +237,31 @@ const DashboardContent: React.FC<{
       <p className={styles.subtitle}>
         {t('dashboard.subtitle') || 'Overview of PQP, ITP, OBS, NCR, NOI and ITR. Filter by contractor to see module statistics.'}
       </p>
+
+      {/* Upcoming Tasks Section */}
+      {upcomingTasks.length > 0 && (
+        <div className={styles.upcomingSection}>
+          <h2 className={styles.sectionTitle}>
+            🔔 {t('dashboard.upcomingTasks') || 'Upcoming Tasks'}
+            <span className={styles.badge}>{upcomingTasks.length}</span>
+          </h2>
+          <div className={styles.upcomingGrid}>
+            {upcomingTasks.map(task => (
+              <div key={`${task.type}-${task.id}`} className={styles.upcomingCard} onClick={() => navigate(task.link)}>
+                <div className={styles.upcomingBadge}>{task.type}</div>
+                <div className={styles.upcomingContent}>
+                  <div className={styles.upcomingTitle}>{task.title}</div>
+                  <div className={styles.upcomingVenue}>{task.vendor}</div>
+                </div>
+                <div className={styles.upcomingDate}>
+                  <span className={styles.dateLabel}>{t('common.dueDate') || 'Due Date'}</span>
+                  <span className={styles.dateValue}>{task.dueDate}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* KPI 卡片區域 */}
       <div className={styles.kpiSection}>

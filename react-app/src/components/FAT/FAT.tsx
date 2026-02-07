@@ -3,26 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useContractors } from '../../context/ContractorsContext';
 import { checkFATReferences, generateDeleteMessage } from '../../utils/cascadeDelete';
+import { DataTable } from '@/components/Shared/DataTable/DataTable';
+import { createColumns, FATItem } from './columns';
 import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './FAT.module.css';
 
+// ... (keep constants and interfaces that are NOT FATItem if any, or move them)
+// FATDetailItem is used in FAT.tsx. Keep it.
+
 const STORAGE_KEY_FAT_LIST = 'qualitas_fat_list';
 const STORAGE_KEY_FAT_DETAILS = 'qualitas_fat_details';
-
-interface FATItem {
-  id: string;
-  equipment: string;
-  supplier: string;
-  procedure: string;
-  location: string;
-  startDate: string;
-  endDate: string;
-  deliveryFrom: string;
-  deliveryTo: string;
-  siteReadiness: string;
-  moveInDate: string;
-  hasDetails?: boolean;
-}
 
 interface FATDetailItem {
   id: string;
@@ -99,7 +89,8 @@ const FAT: React.FC = () => {
   const { getActiveContractors } = useContractors();
   const [fatList, setFatList] = useState<FATItem[]>(loadFatListFromStorage);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [vendorFilter, setVendorFilter] = useState<string>('all');
+  // Vendor filter removed (handled by DataTable)
+
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isDetailsEditModalOpen, setIsDetailsEditModalOpen] = useState(false);
@@ -124,12 +115,9 @@ const FAT: React.FC = () => {
     } catch (_) { }
   }, [fatDetails]);
 
+  // Only handle Global Search here. Column filters are handled by DataTable.
   const filteredFatList = useMemo(() => {
     let filtered = fatList;
-
-    if (vendorFilter !== 'all') {
-      filtered = filtered.filter(item => item.supplier === vendorFilter);
-    }
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
@@ -145,7 +133,7 @@ const FAT: React.FC = () => {
     }
 
     return filtered;
-  }, [fatList, searchQuery, vendorFilter]);
+  }, [fatList, searchQuery]);
 
   const statistics = useMemo(() => {
     const total = fatList.length;
@@ -189,7 +177,8 @@ const FAT: React.FC = () => {
           deliveryTo: updates.deliveryTo || '',
           siteReadiness: updates.siteReadiness || '',
           moveInDate: updates.moveInDate || '',
-        };
+          hasDetails: false, // Default
+        } as FATItem; // Cast because 'hasDetails' might be missing in updates
         setFatList(prevList => [...prevList, newItem]);
         setFatDetails(prev => ({ ...prev, [currentFatId]: [] }));
       }
@@ -252,28 +241,6 @@ const FAT: React.FC = () => {
           <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
             ← {t('common.back')}
           </button>
-          <h1>{t('fat.title')}</h1>
-        </div>
-        <div className={styles.headerRight}>
-          <select
-            className={styles.vendorFilter}
-            value={vendorFilter}
-            onChange={(e) => setVendorFilter(e.target.value)}
-          >
-            <option value="all">{t('pqp.allContractors') || 'All Contractors'}</option>
-            {getActiveContractors().map((contractor) => (
-              <option key={contractor.id} value={contractor.name}>
-                {contractor.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            className={styles.searchInput}
-            placeholder={t('fat.searchPlaceholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
         </div>
       </div>
 
@@ -321,101 +288,30 @@ const FAT: React.FC = () => {
       </div>
 
       <div className={styles.content}>
-        <div className={styles.listHeader}>
-          <h2 className={styles.listTitle}>{t('fat.listTitle')}</h2>
-          <button
-            className={styles.addNewButton}
-            onClick={handleAddNew}
-          >
-            + {t('fat.addNew')}
-          </button>
-        </div>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>{t('fat.equipment')}</th>
-              <th>{t('fat.supplier')}</th>
-              <th>{t('fat.procedure')}</th>
-              <th>{t('fat.location')}</th>
-              <th>{t('fat.startDate')}</th>
-              <th>{t('fat.endDate')}</th>
-              <th>{t('fat.deliveryFrom')}</th>
-              <th>{t('fat.deliveryTo')}</th>
-              <th>{t('fat.siteReadiness')}</th>
-              <th>{t('fat.moveInDate')}</th>
-              <th>{t('common.operations')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredFatList.map((fat, index) => {
-              return (
-                <tr
-                  key={fat.id}
-                  className={styles.normalRow}
-                >
-                  <td>{index + 1}</td>
-                  <td><span>{fat.equipment}</span></td>
-                  <td><span>{fat.supplier}</span></td>
-                  <td><span>{fat.procedure}</span></td>
-                  <td><span>{fat.location}</span></td>
-                  <td><span>{fat.startDate}</span></td>
-                  <td><span>{fat.endDate}</span></td>
-                  <td><span>{fat.deliveryFrom}</span></td>
-                  <td><span>{fat.deliveryTo}</span></td>
-                  <td><span>{fat.siteReadiness}</span></td>
-                  <td><span>{fat.moveInDate}</span></td>
-                  <td>
-                    <div className={styles.buttonGroup}>
-                      <button
-                        className={`${styles.actionBtn} ${styles.editBtn}`}
-                        onClick={() => handleEdit(fat.id)}
-                        title={t('fat.tooltip.edit')}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                      </button>
-                      <button
-                        className={`${styles.actionBtn} ${styles.detailsBtn}`}
-                        onClick={() => handleViewDetails(fat.id)}
-                        title={t('fat.tooltip.details')}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      </button>
-                      <button
-                        className={`${styles.actionBtn} ${styles.addDetailsBtn}`}
-                        onClick={() => handleAddDetails(fat.id)}
-                        title={t('fat.tooltip.addDetails')}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                          <polyline points="14 2 14 8 20 8"></polyline>
-                          <line x1="12" y1="18" x2="12" y2="12"></line>
-                          <line x1="9" y1="15" x2="15" y2="15"></line>
-                        </svg>
-                      </button>
-                      <button
-                        className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                        onClick={() => handleDeleteClick(fat.id)}
-                        title={t('fat.tooltip.delete')}
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <DataTable
+          title={t('fat.listTitle')}
+          actions={
+            <button
+              className={styles.addNewButton}
+              onClick={handleAddNew}
+            >
+              + {t('fat.addNew')}
+            </button>
+          }
+          topRightContent={
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder={t('fat.searchPlaceholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          }
+          columns={createColumns(handleEdit, handleViewDetails, handleAddDetails, handleDeleteClick, t, getActiveContractors())}
+          data={filteredFatList}
+          searchKey=""
+          getRowId={(row) => row.id}
+        />
       </div>
 
       {isEditModalOpen && currentFatId && (

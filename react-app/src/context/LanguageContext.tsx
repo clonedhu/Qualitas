@@ -157,6 +157,8 @@ const translations: Record<Language, Record<string, string>> = {
     'pqp.reviewITP': 'Review ITP',
     'pqp.relatedNOI': 'Related NOI',
     'pqp.confirmDeleteMessage': 'Are you sure you want to delete this quality plan? This action cannot be undone.',
+    'pqp.statTotal': 'Total',
+    'pqp.activeRate': 'Approved Rate',
 
 
     // NOI
@@ -701,6 +703,8 @@ const translations: Record<Language, Record<string, string>> = {
     'pqp.reviewITP': '審核 ITP',
     'pqp.relatedNOI': '相關 NOI',
     'pqp.confirmDeleteMessage': '確定要刪除此品質計劃嗎？此操作無法復原。',
+    'pqp.statTotal': '總數',
+    'pqp.activeRate': '合格率',
 
 
     // NOI

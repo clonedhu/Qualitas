@@ -28,6 +28,7 @@ export interface NCRItem {
   defectPhotos?: string[];
   improvementPhotos?: string[];
   noiNumber?: string;
+  dueDate?: string;
 }
 
 function normalizeItem(item: unknown): NCRItem {

@@ -1,55 +1,19 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useContractors } from '../../context/ContractorsContext';
+import { useAudit, AuditItem } from '../../context/AuditContext';
 import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './Audit.module.css';
-
-const STORAGE_KEY_AUDIT_LIST = 'qualitas_audit_list';
-
-interface AuditItem {
-    id: string;
-    auditNo: string;
-    title: string;
-    date: string;
-    auditor: string;
-    status: string;
-    location: string;
-    findings: string;
-    contractor?: string;
-}
-
-const defaultAuditList: AuditItem[] = [
-    {
-        id: '1',
-        auditNo: 'AUD-2026-001',
-        title: 'Internal Quality Audit Q1',
-        date: '2026-03-15',
-        auditor: 'John Doe',
-        status: 'Planned',
-        location: 'Site Office',
-        findings: '',
-        contractor: 'Sample Contractor',
-    },
-];
-
-function loadAuditListFromStorage(): AuditItem[] {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY_AUDIT_LIST);
-        if (raw) {
-            const parsed = JSON.parse(raw) as AuditItem[];
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-    } catch (_) { }
-    return defaultAuditList;
-}
+import { DataTable } from '@/components/Shared/DataTable/DataTable';
+import { createColumns } from './columns';
+import { AuditEditModal } from './AuditModals';
 
 const Audit: React.FC = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
-    const [auditList, setAuditList] = useState<AuditItem[]>(loadAuditListFromStorage);
+    const { auditList, loading, error, addAudit, updateAudit, deleteAudit } = useAudit();
     const [searchQuery, setSearchQuery] = useState<string>('');
-    const [statusFilter, setStatusFilter] = useState<string>('all');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [currentAuditId, setCurrentAuditId] = useState<string | null>(null);
     const { getActiveContractors } = useContractors();
@@ -59,9 +23,10 @@ const Audit: React.FC = () => {
     const activeContractors = useMemo(() => getActiveContractors(), [getActiveContractors]);
 
     // Compute vendor stats and schedule
-    const { vendorStats, sortedAudits } = useMemo(() => {
+    // Note: This logic for the "Matrix" and "Vendor Panel" ignores Table filtering/sorting
+    // enabling "View" consistency even when Table is filtered.
+    const { vendorStats } = useMemo(() => {
         const stats: Record<string, number> = {};
-        const sorted = [...auditList].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         auditList.forEach(audit => {
             if (audit.contractor) {
@@ -69,7 +34,7 @@ const Audit: React.FC = () => {
             }
         });
 
-        return { vendorStats: stats, sortedAudits: sorted };
+        return { vendorStats: stats };
     }, [auditList]);
 
     const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null; message: string }>({
@@ -78,60 +43,11 @@ const Audit: React.FC = () => {
         message: '',
     });
 
-    useEffect(() => {
-        try {
-            localStorage.setItem(STORAGE_KEY_AUDIT_LIST, JSON.stringify(auditList));
-        } catch (_) { }
-    }, [auditList]);
-
     // Calendar logic
     const [viewDate, setViewDate] = useState(new Date());
 
-    const calendarDays = useMemo(() => {
-        const year = viewDate.getFullYear();
-        const month = viewDate.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-
-        const days = [];
-
-        // Prev month padding
-        const startPadding = firstDay.getDay();
-        const prevMonthLastDay = new Date(year, month, 0).getDate();
-        for (let i = startPadding - 1; i >= 0; i--) {
-            days.push({
-                date: new Date(year, month - 1, prevMonthLastDay - i),
-                isCurrentMonth: false
-            });
-        }
-
-        // Current month
-        for (let i = 1; i <= lastDay.getDate(); i++) {
-            days.push({
-                date: new Date(year, month, i),
-                isCurrentMonth: true
-            });
-        }
-
-        // Next month padding
-        const endPadding = 42 - days.length;
-        for (let i = 1; i <= endPadding; i++) {
-            days.push({
-                date: new Date(year, month + 1, i),
-                isCurrentMonth: false
-            });
-        }
-
-        return days;
-    }, [viewDate]);
-
     const changeMonth = (offset: number) => {
         setViewDate(prev => new Date(prev.getFullYear(), prev.getMonth() + offset, 1));
-    };
-
-    const getAuditsForDate = (date: Date) => {
-        const dateStr = date.toISOString().split('T')[0];
-        return auditList.filter(a => a.date === dateStr);
     };
 
     const maxAudits = useMemo(() => {
@@ -139,43 +55,60 @@ const Audit: React.FC = () => {
         return counts.length > 0 ? Math.max(...counts) : 1;
     }, [vendorStats]);
 
-    const filteredList = useMemo(() => {
-        let filtered = auditList;
-
-        if (statusFilter !== 'all') {
-            filtered = filtered.filter(item => item.status === statusFilter);
-        }
+    // Prepare Base Data for Table
+    // If Searching: Include all (filtered by vendor if selected)
+    // If Not Searching: Include current Month only (filtered by vendor if selected)
+    const tableBaseData = useMemo(() => {
+        let data = auditList;
 
         if (selectedVendorFilter) {
-            filtered = filtered.filter(item => item.contractor === selectedVendorFilter);
+            data = data.filter(item => item.contractor === selectedVendorFilter);
         }
 
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(item =>
-                item.auditNo.toLowerCase().includes(query) ||
-                item.title.toLowerCase().includes(query) ||
-                item.auditor.toLowerCase().includes(query) ||
-                item.location.toLowerCase().includes(query) ||
-                item.date.includes(query) || // Date search support
-                (item.contractor || '').toLowerCase().includes(query)
+            data = data.filter(item =>
+                (item.auditNo && item.auditNo.toLowerCase().includes(query)) ||
+                (item.title && item.title.toLowerCase().includes(query)) ||
+                (item.auditor && item.auditor.toLowerCase().includes(query)) ||
+                (item.location && item.location.toLowerCase().includes(query)) ||
+                (item.date && item.date.toLowerCase().includes(query)) ||
+                (item.contractor && item.contractor.toLowerCase().includes(query)) ||
+                (item.status && item.status.toLowerCase().includes(query))
             );
         } else {
             // Default: filter by current month/year if no search query
-            filtered = filtered.filter(item => {
+            data = data.filter(item => {
                 const dateObj = new Date(item.date);
                 return dateObj.getMonth() === viewDate.getMonth() &&
                     dateObj.getFullYear() === viewDate.getFullYear();
             });
         }
 
-        return filtered;
-    }, [auditList, searchQuery, statusFilter, selectedVendorFilter, viewDate]);
+        return data;
+    }, [auditList, searchQuery, selectedVendorFilter, viewDate]);
 
-    // Matrix Logic
+    // Matrix Logic (Filtered for Matrix View - which respects Search and Vendor, but crucially Month)
+    // Actually, Matrix view is explicitly a Month View.
+    // It should probably respect Vendor Filter.
+    // It should separate from Table Search?
+    // The original code used `filteredList` for Matrix, which INCLUDED SearchQuery.
+    // I will replicate that behavior by creating a specific list for Matrix.
+    const matrixList = useMemo(() => {
+        // Matrix should ALWAYS be the viewDate month, filtered by Vendor.
+        // If Search is active, should it limit the Matrix?
+        // Original code: filteredList included date filter (if no search) OR search filter.
+        // If I search "John", I might see items from other months. The Matrix would break/be weird if it tried to show them?
+        // The Matrix Headers are derived from `matrixDates`, which comes from `filteredList`.
+        // If `filteredList` has dates outside the month (due to search), the Matrix grows horizontally.
+        // It seems safer to use `tableBaseData` for consistency, as `tableBaseData` mimics previous behavior.
+
+        return tableBaseData;
+    }, [tableBaseData]);
+
     const matrixDates = useMemo(() => {
         // Extract unique dates from the FILTERED list to show only relevant columns
-        const uniqueDates = Array.from(new Set(filteredList.map(a => a.date)))
+        const uniqueDates = Array.from(new Set(matrixList.map(a => a.date)))
             .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
         return uniqueDates.map(dateStr => {
@@ -188,7 +121,7 @@ const Audit: React.FC = () => {
                 dateLabel: `${date.getMonth() + 1}/${date.getDate()}`
             };
         });
-    }, [filteredList]);
+    }, [matrixList]);
 
     const getAuditForMatrix = (vendorName: string, date: Date) => {
         const dateStr = date.toISOString().split('T')[0];
@@ -201,18 +134,15 @@ const Audit: React.FC = () => {
         setIsEditModalOpen(true);
     };
 
-    const handleSaveAudit = (updates: Partial<AuditItem>) => {
+    const handleSaveAudit = async (updates: Partial<AuditItem>) => {
         if (currentAuditId) {
             const existingItem = auditList.find(item => item.id === currentAuditId);
             if (existingItem) {
-                setAuditList(prevList =>
-                    prevList.map(item =>
-                        item.id === currentAuditId ? { ...item, ...updates } : item
-                    )
-                );
+                // 更新現有項目
+                await updateAudit(currentAuditId, updates);
             } else {
-                const newItem: AuditItem = {
-                    id: currentAuditId,
+                // 新增項目
+                const newItem: Omit<AuditItem, 'id'> = {
                     auditNo: updates.auditNo || `AUD-${new Date().getFullYear()}-${String(auditList.length + 1).padStart(3, '0')}`,
                     title: updates.title || '',
                     date: updates.date || '',
@@ -222,7 +152,7 @@ const Audit: React.FC = () => {
                     findings: updates.findings || '',
                     contractor: updates.contractor || '',
                 };
-                setAuditList(prevList => [...prevList, newItem]);
+                await addAudit(newItem);
             }
         }
     };
@@ -236,9 +166,9 @@ const Audit: React.FC = () => {
         setDeleteModal({ isOpen: true, id, message: t('audit.confirmDelete') || 'Are you sure you want to delete this audit?' });
     };
 
-    const handleDeleteConfirm = () => {
+    const handleDeleteConfirm = async () => {
         if (deleteModal.id) {
-            setAuditList(prevList => prevList.filter(item => item.id !== deleteModal.id));
+            await deleteAudit(deleteModal.id);
             setDeleteModal({ isOpen: false, id: null, message: '' });
         }
     };
@@ -253,25 +183,8 @@ const Audit: React.FC = () => {
                     <h1>{t('audit.title') || 'Internal Audit'}</h1>
                 </div>
                 <div className={styles.headerRight}>
-                    <select
-                        className={styles.filterSelect}
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                    >
-                        <option value="all">{t('common.allStatus') || 'All Status'}</option>
-                        <option value="Planned">Planned</option>
-                        <option value="In Progress">In Progress</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Closed">Closed</option>
-                    </select>
+                    {/* Status filter moved to TableHeader, visual vendor filter remains. */}
                     <div className={styles.searchContainer}>
-                        <input
-                            type="date"
-                            className={styles.datePicker}
-                            value={viewDate.toISOString().split('T')[0]}
-                            onChange={(e) => setViewDate(new Date(e.target.value))}
-                            title="Jump to date"
-                        />
                         <input
                             type="text"
                             className={styles.searchInput}
@@ -429,78 +342,22 @@ const Audit: React.FC = () => {
             </div>
 
             <div className={styles.content}>
-                <div className={styles.listHeader}>
-                    <h2 className={styles.listTitle}>{t('audit.listTitle') || 'Audit List'}</h2>
-                    <button
-                        className={styles.addNewButton}
-                        onClick={handleAddNew}
-                    >
-                        + {t('audit.addNew') || 'Add Audit'}
-                    </button>
-                </div>
-                <table className={styles.table}>
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>{t('audit.auditNo') || 'Audit No.'}</th>
-                            <th>{t('audit.auditTitle') || 'Title'}</th>
-                            <th>{t('audit.date') || 'Date'}</th>
-                            <th>{t('common.contractor') || 'Vendor'}</th>
-                            <th>{t('audit.location') || 'Location'}</th>
-                            <th>{t('audit.auditor') || 'Auditor'}</th>
-                            <th>{t('common.status')}</th>
-                            <th>{t('common.operations')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredList.map((item, index) => (
-                            <tr key={item.id} className={styles.normalRow}>
-                                <td>{index + 1}</td>
-                                <td>{item.auditNo}</td>
-                                <td>{item.title}</td>
-                                <td>{item.date}</td>
-                                <td>{item.contractor || '-'}</td>
-                                <td>{item.location}</td>
-                                <td>{item.auditor}</td>
-                                <td>
-                                    <span style={{
-                                        padding: '4px 8px',
-                                        borderRadius: '4px',
-                                        fontSize: '12px',
-                                        backgroundColor: item.status === 'Closed' ? '#d1fae5' : '#f3f4f6',
-                                        color: item.status === 'Closed' ? '#065f46' : '#374151'
-                                    }}>
-                                        {item.status}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div className={styles.buttonGroup}>
-                                        <button
-                                            className={`${styles.actionBtn} ${styles.editBtn}`}
-                                            onClick={() => handleEdit(item.id)}
-                                            title={t('common.edit')}
-                                        >
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                            </svg>
-                                        </button>
-                                        <button
-                                            className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                                            onClick={() => handleDeleteClick(item.id)}
-                                            title={t('common.delete')}
-                                        >
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <polyline points="3 6 5 6 21 6"></polyline>
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                <DataTable
+                    title={t('audit.listTitle') || 'Audit List'}
+                    actions={
+                        <button
+                            className={styles.addNewButton}
+                            onClick={handleAddNew}
+                        >
+                            + {t('audit.addNew') || 'Add Audit'}
+                        </button>
+                    }
+                    columns={createColumns(handleEdit, handleDeleteClick, t, activeContractors)}
+                    data={tableBaseData}
+                    searchKey=""
+                    getRowClassName={() => styles.normalRow}
+                    getRowId={(row) => row.id}
+                />
             </div>
 
             {
@@ -527,150 +384,6 @@ const Audit: React.FC = () => {
                 cancelText={t('common.cancel')}
             />
         </div >
-    );
-};
-
-interface AuditEditModalProps {
-    auditId: string;
-    existingItem?: AuditItem;
-    onSave: (updates: Partial<AuditItem>) => void;
-    onClose: () => void;
-}
-
-const AuditEditModal: React.FC<AuditEditModalProps> = ({ auditId, existingItem, onSave, onClose }) => {
-    const { t } = useLanguage();
-    const { getActiveContractors } = useContractors();
-    const activeContractors = getActiveContractors();
-
-    const [formData, setFormData] = useState<Partial<AuditItem>>({
-        auditNo: existingItem?.auditNo || '',
-        title: existingItem?.title || '',
-        date: existingItem?.date || '',
-        auditor: existingItem?.auditor || '',
-        status: existingItem?.status || 'Planned',
-        location: existingItem?.location || '',
-        findings: existingItem?.findings || '',
-        contractor: existingItem?.contractor || '',
-    });
-
-    const handleFieldChange = (field: keyof AuditItem, value: string) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-    };
-
-    const handleSave = () => {
-        onSave(formData);
-        onClose();
-    };
-
-    return (
-        <div className={styles.modalOverlay}>
-            <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-                <div className={styles.modalHeader}>
-                    <h2>{existingItem ? (t('audit.editTitle') || 'Edit Audit') : (t('audit.addTitle') || 'New Audit')}</h2>
-                    <button className={styles.closeButton} onClick={onClose}>×</button>
-                </div>
-                <div className={styles.modalBody}>
-                    <div className={styles.formSections}>
-                        <div className={styles.formSection}>
-                            <h3 className={styles.sectionTitle}>{t('common.baseInfo')}</h3>
-                            <div className={styles.formGrid}>
-                                <div className={styles.formGroup}>
-                                    <label>{t('audit.auditNo') || 'Audit No.'}</label>
-                                    <input
-                                        type="text"
-                                        className={styles.formInput}
-                                        value={formData.auditNo}
-                                        readOnly
-                                        disabled
-                                        placeholder={t('form.autoGenerated')}
-                                        style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
-                                    />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label>{t('common.contractor') || 'Vendor'}</label>
-                                    <select
-                                        className={styles.formSelect}
-                                        value={formData.contractor}
-                                        onChange={(e) => handleFieldChange('contractor', e.target.value)}
-                                    >
-                                        <option value="">{t('common.selectPlaceholder') || 'Select Vendor'}</option>
-                                        {activeContractors.map(vendor => (
-                                            <option key={vendor.id} value={vendor.name}>{vendor.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label>{t('audit.auditTitle') || 'Title'}</label>
-                                    <input
-                                        type="text"
-                                        className={styles.formInput}
-                                        value={formData.title}
-                                        onChange={(e) => handleFieldChange('title', e.target.value)}
-                                    />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label>{t('audit.date') || 'Date'}</label>
-                                    <input
-                                        type="date"
-                                        className={styles.formInput}
-                                        value={formData.date}
-                                        onChange={(e) => handleFieldChange('date', e.target.value)}
-                                    />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label>{t('audit.location') || 'Location'}</label>
-                                    <input
-                                        type="text"
-                                        className={styles.formInput}
-                                        value={formData.location}
-                                        onChange={(e) => handleFieldChange('location', e.target.value)}
-                                    />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label>{t('audit.auditor') || 'Auditor'}</label>
-                                    <input
-                                        type="text"
-                                        className={styles.formInput}
-                                        value={formData.auditor}
-                                        onChange={(e) => handleFieldChange('auditor', e.target.value)}
-                                    />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label>{t('common.status')}</label>
-                                    <select
-                                        className={styles.formSelect}
-                                        value={formData.status}
-                                        onChange={(e) => handleFieldChange('status', e.target.value)}
-                                    >
-                                        <option value="Planned">Planned</option>
-                                        <option value="In Progress">In Progress</option>
-                                        <option value="Completed">Completed</option>
-                                        <option value="Closed">Closed</option>
-                                    </select>
-                                </div>
-                                <div className={styles.formGroupFull}>
-                                    <label className={styles.optionalLabel}>{t('audit.findings') || 'Findings / Remarks'}</label>
-                                    <textarea
-                                        className={styles.formTextarea}
-                                        value={formData.findings}
-                                        onChange={(e) => handleFieldChange('findings', e.target.value)}
-                                        rows={4}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div className={styles.modalActions}>
-                    <button className={styles.saveButton} onClick={handleSave}>
-                        {t('common.save')}
-                    </button>
-                    <button className={styles.cancelButton} onClick={onClose}>
-                        {t('common.cancel')}
-                    </button>
-                </div>
-            </div>
-        </div>
     );
 };
 

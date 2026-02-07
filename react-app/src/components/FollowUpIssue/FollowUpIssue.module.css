@@ -45,6 +45,47 @@
   color: #9ca3af;
 }
 
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sourceFilter,
+.statusFilter {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  color: #1f2937;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.sourceFilter:focus,
+.statusFilter:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.dateInput {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  color: #1f2937;
+}
+
+.dateInput:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+
 .backButton {
   padding: 8px 16px;
   background: #11998e;
@@ -712,4 +753,124 @@
 
 .printButton:active {
   background: #1e40af;
+}
+
+/* Source Module Badges */
+.sourceBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.sourceBadge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+  filter: brightness(1.1);
+}
+
+.manualBadge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+  letter-spacing: 0.5px;
+}
+
+.linkText {
+  color: #3b82f6;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.linkText:hover {
+  color: #1d4ed8;
+}
+
+/* Action Button Styles */
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.actionBtn:hover {
+  transform: translateY(-1px);
+}
+
+.editBtn {
+  color: #10b981;
+}
+
+.editBtn:hover {
+  background: rgba(16, 185, 129, 0.1);
+  color: #059669;
+}
+
+.detailsBtn {
+  color: #3b82f6;
+}
+
+.detailsBtn:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+.deleteBtn {
+  color: #ef4444;
+}
+
+.deleteBtn:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.linkBtn {
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.linkBtn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  color: #7c3aed;
+}
+
+/* Sortable Headers */
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.sortableHeader:hover {
+  background: #1e40af;
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.sortIcon {
+  font-size: 12px;
+  opacity: 0.8;
 }

@@ -8,6 +8,9 @@ import { useNCR } from '../../context/NCRContext';
 import { useITR, ITRItem } from '../../context/ITRContext';
 import { useITP } from '../../context/ITPContext';
 import { validateStatusTransition, ITRStatusTransitions } from '../../utils/statusValidation';
+import { DataTable } from '@/components/Shared/DataTable/DataTable';
+import { createColumns } from './columns';
+import { RowSelectionState } from '@tanstack/react-table';
 import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './ITR.module.css';
 
@@ -18,7 +21,6 @@ const ITR: React.FC = () => {
   const { itrList, loading, error, refetch, addITR, updateITR, deleteITR } = useITR();
   const [itrDetails, setItrDetails] = useState<{ [key: string]: ITRDetailData }>({});
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [vendorFilter, setVendorFilter] = useState<string>('all');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [currentItrId, setCurrentItrId] = useState<string | null>(null);
@@ -28,35 +30,26 @@ const ITR: React.FC = () => {
     id: null,
     message: '',
   });
-  const [selectedItrIds, setSelectedItrIds] = useState<Set<string>>(new Set());
-  const [batchPrintData, setBatchPrintData] = useState<ITRItem[] | null>(null);
 
+  // Filter logic (replacing useTable)
   const filteredItrList = useMemo(() => {
-    let filtered = itrList;
-
-    // 廠商過濾
-    if (vendorFilter !== 'all') {
-      filtered = filtered.filter(item => item.vendor === vendorFilter);
-    }
-
-    // 搜尋過濾
-    if (searchQuery.trim()) {
+    let data = [...itrList];
+    if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(item =>
-        item.vendor.toLowerCase().includes(query) ||
-        item.documentNumber.toLowerCase().includes(query) ||
-        item.description.toLowerCase().includes(query) ||
-        item.subject?.toLowerCase().includes(query) ||
-        item.status.toLowerCase().includes(query) ||
-        item.type?.toLowerCase().includes(query) ||
-        item.ncrNumber?.toLowerCase().includes(query) ||
-        item.foundLocation?.toLowerCase().includes(query) ||
-        item.noiNumber?.toLowerCase().includes(query)
+      data = data.filter(item =>
+        (item.vendor?.toLowerCase().includes(query)) ||
+        (item.documentNumber?.toLowerCase().includes(query)) ||
+        (item.description?.toLowerCase().includes(query)) ||
+        (item.subject?.toLowerCase().includes(query)) ||
+        (item.status?.toLowerCase().includes(query)) ||
+        (item.type?.toLowerCase().includes(query)) ||
+        (item.ncrNumber?.toLowerCase().includes(query)) ||
+        (item.foundLocation?.toLowerCase().includes(query)) ||
+        (item.noiNumber?.toLowerCase().includes(query))
       );
     }
-
-    return filtered;
-  }, [itrList, searchQuery, vendorFilter]);
+    return data;
+  }, [itrList, searchQuery]);
 
   const statistics = useMemo(() => {
     const statusCounts = {
@@ -169,27 +162,21 @@ const ITR: React.FC = () => {
     }
   };
 
-  const toggleSelect = (id: string) => {
-    setSelectedItrIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  // DataTable selection state
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [batchPrintData, setBatchPrintData] = useState<ITRItem[] | null>(null);
 
-  const toggleSelectAll = () => {
-    if (selectedItrIds.size === filteredItrList.length && filteredItrList.length > 0) {
-      setSelectedItrIds(new Set());
-    } else {
-      setSelectedItrIds(new Set(filteredItrList.map(item => item.id)));
-    }
-  };
+  // Derive selected items from rowSelection (keys are IDs)
+  const selectedItems = useMemo(() => {
+    return Object.keys(rowSelection)
+      .filter((id) => rowSelection[id])
+      .map((id) => itrList.find((item) => item.id === id))
+      .filter((item): item is ITRItem => item !== undefined);
+  }, [rowSelection, itrList]);
 
   const handleBatchPrint = () => {
-    const items = itrList.filter(item => selectedItrIds.has(item.id));
-    if (items.length === 0) return;
-    setBatchPrintData(items);
+    if (selectedItems.length === 0) return;
+    setBatchPrintData(selectedItems);
   };
 
   const handleSinglePrint = (item: ITRItem) => {
@@ -233,18 +220,6 @@ const ITR: React.FC = () => {
           <h1>{t('itr.title')}</h1>
         </div>
         <div className={styles.headerRight}>
-          <select
-            className={styles.vendorFilter}
-            value={vendorFilter}
-            onChange={(e) => setVendorFilter(e.target.value)}
-          >
-            <option value="all">{t('common.allContractors')}</option>
-            {getActiveContractors().map((contractor) => (
-              <option key={contractor.id} value={contractor.name}>
-                {contractor.name}
-              </option>
-            ))}
-          </select>
           <input
             type="text"
             className={styles.searchInput}
@@ -319,152 +294,37 @@ const ITR: React.FC = () => {
         )}
         {!loading && !error && (
           <>
-            <div className={styles.listHeader}>
-              <h2 className={styles.listTitle}>{t('itr.listTitle')}</h2>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  className={styles.addNewButton}
-                  onClick={handleAddNew}
-                >
-                  + {t('itr.addNew')}
-                </button>
-                <button
-                  className={styles.printButton}
-                  onClick={handleBatchPrint}
-                  disabled={selectedItrIds.size === 0}
-                  title={selectedItrIds.size === 0 ? t('itr.tooltip.print') : t('itr.tooltip.printCount', { count: selectedItrIds.size })}
-                >
-                  {t('itr.batchPrint') || 'Batch Print'}
-                </button>
-              </div>
-            </div>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th className={styles.checkboxColumn}>
-                    <input
-                      type="checkbox"
-                      checked={filteredItrList.length > 0 && selectedItrIds.size === filteredItrList.length}
-                      onChange={toggleSelectAll}
-                      title={t('common.all')}
-                    />
-                  </th>
-                  <th>#</th>
-                  <th>{t('common.referenceNo')}</th>
-                  <th>{t('common.status')}</th>
-                  <th>{t('common.contractor')}</th>
-                  <th>{t('noi.package')}</th>
-                  <th>{t('itr.noiNo')}</th>
-                  <th>{t('itr.inspectionDate')}</th>
-                  <th>{t('itr.ncrNo')}</th>
-                  <th>{t('itr.closeoutDate')}</th>
-                  <th>{t('common.version')}</th>
-                  <th>{t('common.operations')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItrList.map((itr, index) => {
-                  // Check row color based on status
-                  const isApprovedRow = itr.status === 'Approved';
-                  const isRejectRow = itr.status === 'Reject';
-
-                  let rowClassName = styles.normalRow;
-                  if (isApprovedRow) {
-                    rowClassName = styles.greenRow;
-                  } else if (isRejectRow) {
-                    rowClassName = styles.pinkRow;
-                  }
-
-                  return (
-                    <tr
-                      key={itr.id}
-                      className={rowClassName}
-                    >
-                      <td className={styles.checkboxColumn}>
-                        <input
-                          type="checkbox"
-                          checked={selectedItrIds.has(itr.id)}
-                          onChange={() => toggleSelect(itr.id)}
-                        />
-                      </td>
-                      <td>{index + 1}</td>
-                      <td><span>{itr.documentNumber}</span></td>
-                      <td><span>{getLocalizedStatus(itr.status, t)}</span></td>
-                      <td><span>{itr.vendor}</span></td>
-                      <td><span>{itr.subject || itr.description || '-'}</span></td>
-                      <td><span>{itr.noiNumber || '-'}</span></td>
-                      <td><span>{itr.raiseDate || '-'}</span></td>
-                      <td><span>{itr.ncrNumber || '-'}</span></td>
-                      <td><span>{itr.closeoutDate || '-'}</span></td>
-                      <td><span>{itr.type || '-'}</span></td>
-                      <td>
-                        <div className={styles.buttonGroup}>
-                          <button
-                            className={`${styles.actionBtn} ${styles.editBtn}`}
-                            onClick={() => handleEdit(itr.id)}
-                            title={t('itr.tooltip.edit')}
-                          >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                          </button>
-                          <button
-                            className={`${styles.actionBtn} ${styles.detailsBtn}`}
-                            onClick={() => handleViewDetails(itr.id)}
-                            title={t('itr.tooltip.details')}
-                          >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                              <circle cx="12" cy="12" r="3"></circle>
-                            </svg>
-                          </button>
-                          {itr.noiNumber && (
-                            <button
-                              className={`${styles.actionBtn} ${styles.detailsBtn}`}
-                              onClick={() => navigate('/noi')}
-                              title={t('itr.tooltip.viewRelatedNOI')}
-                            >
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
-                              </svg>
-                            </button>
-                          )}
-                          {itr.ncrNumber && (
-                            <button
-                              className={`${styles.actionBtn} ${styles.deleteBtn}`} /* Using red for NCR related */
-                              onClick={() => navigate('/ncr')}
-                              title={t('itr.tooltip.viewRelatedNCR')}
-                              style={{ color: '#ef4444', background: 'rgba(239, 68, 68, 0.1)' }}
-                            >
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                                <line x1="12" y1="9" x2="12" y2="13"></line>
-                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                              </svg>
-                            </button>
-                          )}
-                          <button
-                            className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                            onClick={() => handleDeleteClick(itr.id)}
-                            title={t('itr.tooltip.delete')}
-                          >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="3 6 5 6 21 6"></polyline>
-                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <DataTable
+              title={t('itr.listTitle')}
+              actions={
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    className={styles.addNewButton}
+                    onClick={handleAddNew}
+                  >
+                    + {t('itr.addNew')}
+                  </button>
+                  <button
+                    className={styles.printButton}
+                    onClick={handleBatchPrint}
+                    disabled={selectedItems.length === 0}
+                    title={selectedItems.length === 0 ? t('itr.tooltip.print') : t('itr.tooltip.printCount', { count: selectedItems.length })}
+                  >
+                    {t('itr.batchPrint') || 'Batch Print'}
+                  </button>
+                </div>
+              }
+              columns={createColumns(handleEdit, handleViewDetails, handleDeleteClick, navigate, t)}
+              data={filteredItrList}
+              searchKey=""
+              getRowClassName={(row) =>
+                row.status === 'Approved' ? 'bg-emerald-100/50 text-gray-500 hover:bg-emerald-200/50' :
+                  row.status === 'Reject' ? 'bg-pink-100/50 text-gray-500 hover:bg-pink-200/50' : ''
+              }
+              rowSelection={rowSelection}
+              onRowSelectionChange={setRowSelection}
+              getRowId={(row) => row.id}
+            />
           </>
         )}
       </div>

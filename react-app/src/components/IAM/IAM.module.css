@@ -11,31 +11,50 @@
   margin-bottom: 24px;
 }
 
-.backButton {
-  padding: 8px 16px;
-  background: #11998e;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  align-self: flex-start;
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .backButton:hover {
   background: #0d7a72;
 }
 
-.backButton:hover {
-  background: #4b5563;
-}
+
 
 .header h1 {
   font-size: 32px;
   font-weight: 700;
   color: #1f2937;
   margin: 0;
+}
+
+.searchInput {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 250px;
+  background: white;
+  color: #1f2937;
+  transition: border-color 0.2s;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.searchInput::placeholder {
+  color: #9ca3af;
 }
 
 .tabs {

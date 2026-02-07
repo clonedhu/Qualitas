@@ -18,6 +18,8 @@ import { useITP } from '../../context/ITPContext';
 import { useOBS } from '../../context/OBSContext';
 import { useNCR } from '../../context/NCRContext';
 import styles from './KPI.module.css';
+import { DataTable } from '@/components/Shared/DataTable/DataTable';
+import { createColumns, KPIItem } from './columns';
 
 const VENDOR_COLORS = [
   '#3b82f6', '#f97316', '#6b7280', '#eab308', '#22d3ee', '#10b981',
@@ -171,7 +173,7 @@ const KPI: React.FC = () => {
   };
 
   const contractors = getActiveContractors();
-  const tableRows = useMemo(() => {
+  const tableRows: KPIItem[] = useMemo(() => {
     return vendorKeys.map((vendor, idx) => {
       const lastMonthVal = chartData.length >= 2 ? chartData[chartData.length - 2][vendor] : null;
       const thisMonthVal = chartData.length >= 1 ? chartData[chartData.length - 1][vendor] : null;
@@ -200,6 +202,19 @@ const KPI: React.FC = () => {
     });
   }, [chartData, vendorKeys, sortedMonths, vendorRates, contractors]);
 
+  /* Search Logic */
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  const filteredTableRows = useMemo(() => {
+    if (!searchQuery.trim()) return tableRows;
+    const query = searchQuery.toLowerCase();
+    return tableRows.filter(row =>
+      row.vendor.toLowerCase().includes(query) ||
+      (row.scope && row.scope.toLowerCase().includes(query))
+    );
+  }, [tableRows, searchQuery]);
+
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -212,6 +227,13 @@ const KPI: React.FC = () => {
           </h1>
         </div>
         <div className={styles.headerRight}>
+          <input
+            type="text"
+            className={styles.searchInput}
+            placeholder={t('common.search') || "Search..."}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
           <label className={styles.vendorLabel}>
             {language === 'en' ? 'Contractor' : '廠商'}
             <select
@@ -360,59 +382,31 @@ const KPI: React.FC = () => {
       </div>
 
       {/* KPI 表格：放在趨勢圖之下 */}
-      <div className={styles.tableSection}>
-        <h2 className={styles.tableTitle}>
-          {language === 'en' ? 'KPI by Contractor' : 'KPI 依廠商'}
-        </h2>
-        <div className={styles.tableWrapper}>
-          <table className={styles.kpiTable}>
-            <thead>
-              <tr>
-                <th className={styles.thIndex}>#</th>
-                <th>{language === 'en' ? 'Contractor' : '廠商'}</th>
-                <th>{language === 'en' ? 'Scope' : 'Scope'}</th>
-                <th>OBS</th>
-                <th>NCR</th>
-                <th>{language === 'en' ? 'Last Month' : '上月'}</th>
-                <th>{language === 'en' ? 'This Month' : '本月'}</th>
-                <th>{language === 'en' ? 'Trend' : '趨勢'}</th>
-                <th>{language === 'en' ? 'Variance' : '差異'}</th>
-                {sortedMonths.map((m) => (
-                  <th key={m} className={styles.thMonth}>{m}</th>
+      <div className={styles.tableWrapper}>
+        <DataTable
+          title={language === 'en' ? 'KPI by Contractor' : 'KPI 依廠商'}
+          actions={
+            <label className={styles.vendorLabel}>
+              {language === 'en' ? 'Contractor' : '廠商'}
+              <select
+                className={styles.vendorSelect}
+                value={selectedVendor}
+                onChange={(e) => setSelectedVendor(e.target.value)}
+              >
+                <option value="all">{language === 'en' ? 'All Contractors' : '全部廠商'}</option>
+                {getActiveContractors().map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {tableRows.map((row) => (
-                <tr key={row.vendor} className={styles.tableRow}>
-                  <td className={styles.tdIndex}>{row.index}</td>
-                  <td>{row.vendor}</td>
-                  <td>{row.scope}</td>
-                  <td>{row.obsPct != null ? `${row.obsPct}%` : '—'}</td>
-                  <td>{row.ncrPct != null ? `${row.ncrPct}%` : '—'}</td>
-                  <td>{row.lastMonth != null ? `${row.lastMonth}%` : '—'}</td>
-                  <td>{row.thisMonth != null ? `${row.thisMonth}%` : '—'}</td>
-                  <td className={styles.tdTrend}>
-                    {row.trend === 'up' && <span className={styles.trendUp} title="↑">↑</span>}
-                    {row.trend === 'down' && <span className={styles.trendDown} title="↓">↓</span>}
-                    {row.trend === 'flat' && <span className={styles.trendFlat} title="—">—</span>}
-                  </td>
-                  <td>{row.variance !== 0 ? `${row.variance > 0 ? '+' : ''}${row.variance.toFixed(1)}%` : '0.0%'}</td>
-                  {sortedMonths.map((m) => (
-                    <td key={m} className={styles.tdMonth}>
-                      {row.monthly[m] != null ? `${row.monthly[m]}%` : '—'}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {tableRows.length === 0 && (
-          <p className={styles.tableNoData}>
-            {language === 'en' ? 'No contractor data.' : '尚無廠商資料。'}
-          </p>
-        )}
+              </select>
+            </label>
+          }
+          columns={createColumns(sortedMonths, t, language)}
+          data={filteredTableRows}
+          searchKey=""
+          getRowId={(row) => row.vendor}
+        />
       </div>
     </div>
   );

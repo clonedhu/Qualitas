@@ -6,6 +6,8 @@ import { useOBS } from '../../context/OBSContext';
 import type { OBSItem as ContextOBSItem } from '../../context/OBSContext';
 import styles from './OBS.module.css';
 import ConfirmModal from '../Shared/ConfirmModal';
+import { DataTable } from '@/components/Shared/DataTable/DataTable';
+import { createColumns } from './columns';
 
 interface OBSItem {
   id: string;
@@ -49,14 +51,9 @@ const OBS: React.FC = () => {
   const { getActiveContractors } = useContractors();
   const { obsList, loading, error, addOBS, updateOBS, deleteOBS } = useOBS();
 
-  // Search & Filter States
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [vendorFilter, setVendorFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<{ start: string; end: string }>({ start: '', end: '' });
 
-  // Sort State
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'documentNumber', direction: 'asc' });
+  // Search & Filter States
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Modal States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -71,68 +68,27 @@ const OBS: React.FC = () => {
     message: '',
   });
 
-  const handleSort = (key: SortKey) => {
-    setSortConfig(current => ({
-      key,
-      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
-    }));
-  };
+  // Filter by Date Range and Global Search
+  const filteredList = useMemo(() => {
+    let result = [...obsList];
 
-  const filteredObsList = useMemo(() => {
-    let filtered = [...obsList];
 
-    // Filter by Vendor
-    if (vendorFilter !== 'all') {
-      filtered = filtered.filter(item => item.vendor === vendorFilter);
-    }
-
-    // Filter by Status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(item => (item.status || 'Open') === statusFilter);
-    }
-
-    // Filter by Date (Raise Date)
-    if (dateFilter.start) {
-      filtered = filtered.filter(item => item.raiseDate ? item.raiseDate >= dateFilter.start : true);
-    }
-    if (dateFilter.end) {
-      filtered = filtered.filter(item => item.raiseDate ? item.raiseDate <= dateFilter.end : true);
-    }
-
-    // Search
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(item =>
-        (item.vendor || '').toLowerCase().includes(query) ||
-        (item.documentNumber || '').toLowerCase().includes(query) ||
-        (item.description || '').toLowerCase().includes(query) ||
-        (item.subject || '').toLowerCase().includes(query) ||
-        (item.status || '').toLowerCase().includes(query) ||
-        (item.type || '').toLowerCase().includes(query) ||
-        (item.foundBy || '').toLowerCase().includes(query) ||
-        (item.raisedBy || '').toLowerCase().includes(query) ||
-        (item.foundLocation || '').toLowerCase().includes(query)
+    // Global Search
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      result = result.filter(item =>
+        (item.documentNumber && item.documentNumber.toLowerCase().includes(lowerQuery)) ||
+        (item.vendor && item.vendor.toLowerCase().includes(lowerQuery)) ||
+        (item.description && item.description.toLowerCase().includes(lowerQuery)) ||
+        (item.status && item.status.toLowerCase().includes(lowerQuery)) ||
+        (item.subject && item.subject.toLowerCase().includes(lowerQuery))
       );
     }
 
-    // Sort
-    filtered.sort((a, b) => {
-      const aValue = a[sortConfig.key] || '';
-      const bValue = b[sortConfig.key] || '';
+    return result;
+  }, [obsList, searchQuery]);
 
-      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    return filtered;
-  }, [obsList, searchQuery, vendorFilter, statusFilter, dateFilter, sortConfig]);
-
-  const renderSortIcon = (key: SortKey) => {
-    if (sortConfig.key !== key) return <span className={styles.sortIcon}>↕</span>;
-    return sortConfig.direction === 'asc' ? <span className={styles.sortIcon}>↑</span> : <span className={styles.sortIcon}>↓</span>;
-  };
-
+  // ... (statistics logic)
   const statistics = useMemo(() => {
     const statusCounts = {
       opening: 0,
@@ -158,6 +114,7 @@ const OBS: React.FC = () => {
     };
   }, [obsList]);
 
+  // ... (handlers)
   const handleAdd = (id: string) => {
     navigate(`/obs/${id}`);
   };
@@ -234,6 +191,7 @@ const OBS: React.FC = () => {
     }
   };
 
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -244,44 +202,6 @@ const OBS: React.FC = () => {
           <h1>{t('home.obs.description') || 'OBS'}</h1>
         </div>
         <div className={styles.headerRight}>
-          <div className={styles.filterGroup}>
-            <select
-              className={styles.vendorFilter}
-              value={vendorFilter}
-              onChange={(e) => setVendorFilter(e.target.value)}
-            >
-              <option value="all">{t('obs.allContractors')}</option>
-              {getActiveContractors().map((contractor) => (
-                <option key={contractor.id} value={contractor.name}>
-                  {contractor.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className={styles.statusFilter}
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">{t('obs.allStatus')}</option>
-              <option value="Open">{t('status.open')}</option>
-              <option value="Closed">{t('status.closed')}</option>
-            </select>
-            <input
-              type="date"
-              className={styles.dateInput}
-              value={dateFilter.start}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
-              placeholder={t('obs.startDatePlaceholder')}
-            />
-            <span style={{ color: '#6b7280' }}>-</span>
-            <input
-              type="date"
-              className={styles.dateInput}
-              value={dateFilter.end}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
-              placeholder={t('obs.endDatePlaceholder')}
-            />
-          </div>
           <input
             type="text"
             className={styles.searchInput}
@@ -356,137 +276,26 @@ const OBS: React.FC = () => {
       </div>
 
       <div className={styles.content}>
-        <div className={styles.listHeader}>
-          <h2 className={styles.listTitle}>{t('obs.listTitle')}</h2>
-          <button
-            className={styles.addNewButton}
-            onClick={handleAddNew}
-          >
-            {t('obs.addNew')}
-          </button>
-        </div>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th onClick={() => handleSort('documentNumber')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('obs.refNo')} {renderSortIcon('documentNumber')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('status')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('obs.status')} {renderSortIcon('status')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('vendor')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('obs.contractor')} {renderSortIcon('vendor')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('type')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('obs.type')} {renderSortIcon('type')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('subject')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('obs.subject')} {renderSortIcon('subject')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('raiseDate')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('obs.raiseDate')} {renderSortIcon('raiseDate')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('closeoutDate')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('obs.closeoutDate')} {renderSortIcon('closeoutDate')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('foundBy')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('obs.foundBy')} {renderSortIcon('foundBy')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('raisedBy')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('obs.raisedBy')} {renderSortIcon('raisedBy')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('productDisposition')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('obs.productDisposition')} {renderSortIcon('productDisposition')}
-                </div>
-              </th>
-              <th>{t('common.operations')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredObsList.map((obs, index) => {
-              // Check if each cell should be highlighted in pink individually
-              const isProductDispositionPink = obs.productDisposition === 'Use As Is';
-
-              // Check if row should be green (Status is Closed)
-              const isClosedRow = (obs.status || '').toLowerCase() === 'closed';
-
-              return (
-                <tr
-                  key={obs.id}
-                  className={isClosedRow ? styles.greenRow : styles.normalRow}
-                >
-                  <td>{index + 1}</td>
-                  <td><span>{obs.documentNumber}</span></td>
-                  <td><span>{obs.status}</span></td>
-                  <td><span>{obs.vendor}</span></td>
-                  <td><span>{obs.type || '-'}</span></td>
-                  <td><span>{obs.subject || obs.description || '-'}</span></td>
-                  <td><span>{obs.raiseDate || '-'}</span></td>
-                  <td><span>{obs.closeoutDate || '-'}</span></td>
-                  <td><span>{obs.foundBy || '-'}</span></td>
-                  <td><span>{obs.raisedBy || '-'}</span></td>
-                  <td className={isProductDispositionPink ? styles.pinkCell : ''}>
-                    <span>{obs.productDisposition || '-'}</span>
-                  </td>
-                  <td>
-                    <div className={styles.buttonGroup}>
-                      <button
-                        className={`${styles.actionBtn} ${styles.editBtn}`}
-                        onClick={() => handleEdit(obs.id)}
-                        title="Edit"
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                      </button>
-                      <button
-                        className={`${styles.actionBtn} ${styles.detailsBtn}`}
-                        onClick={() => handleViewDetails(obs.id)}
-                        title="Details"
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                          <circle cx="12" cy="12" r="3"></circle>
-                        </svg>
-                      </button>
-                      <button
-                        className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                        onClick={() => confirmDelete(obs.id)}
-                        title="Delete"
-                      >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3 6 5 6 21 6"></polyline>
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <DataTable
+          title={t('obs.listTitle')}
+          actions={
+            <button
+              className={styles.addNewButton}
+              onClick={handleAddNew}
+            >
+              {t('obs.addNew')}
+            </button>
+          }
+          columns={createColumns(handleEdit, handleViewDetails, confirmDelete, t, getActiveContractors)}
+          data={filteredList}
+          searchKey=""
+          searchPlaceholder={t('obs.searchPlaceholder')}
+          getRowClassName={(row) =>
+            (row.status || '').toLowerCase() === 'closed'
+              ? 'bg-emerald-100/50 text-gray-500 hover:bg-emerald-200/50'
+              : ''
+          }
+        />
       </div>
 
       <ConfirmModal

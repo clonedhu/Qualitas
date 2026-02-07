@@ -5,6 +5,8 @@ import { usePQP } from '../../context/PQPContext';
 import { useLanguage } from '../../context/LanguageContext';
 import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './PQP.module.css';
+import { DataTable } from '@/components/Shared/DataTable/DataTable';
+import { createColumns } from './columns';
 
 interface PQPItem {
   id: string;
@@ -41,14 +43,9 @@ const PQP: React.FC = () => {
   const { getActiveContractors } = useContractors();
   const { pqpList, addPQP, updatePQP, deletePQP } = usePQP();
 
-  // Search & Filter States
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [vendorFilter, setVendorFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<{ start: string; end: string }>({ start: '', end: '' });
 
-  // Sort State
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'createdAt', direction: 'desc' });
+  // Search & Filter States
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Modal States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -62,58 +59,24 @@ const PQP: React.FC = () => {
     id: null,
   });
 
-  const handleSort = (key: SortKey) => {
-    setSortConfig(current => ({
-      key,
-      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
-    }));
-  };
+  // Filter by Date Range and Global Search
+  const filteredList = useMemo(() => {
+    let result = [...pqpList];
 
-  const filteredPqpList = useMemo(() => {
-    let filtered = [...pqpList];
 
-    // Filter by Vendor
-    if (vendorFilter !== 'all') {
-      filtered = filtered.filter(item => item.vendor === vendorFilter);
-    }
-
-    // Filter by Status
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(item => item.status === statusFilter);
-    }
-
-    // Filter by Date Range (Created At)
-    if (dateFilter.start) {
-      filtered = filtered.filter(item => item.createdAt >= dateFilter.start);
-    }
-    if (dateFilter.end) {
-      filtered = filtered.filter(item => item.createdAt <= dateFilter.end);
-    }
-
-    // Search
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(pqp =>
-        pqp.pqpNo.toLowerCase().includes(query) ||
-        pqp.title.toLowerCase().includes(query) ||
-        pqp.description.toLowerCase().includes(query) ||
-        pqp.vendor.toLowerCase().includes(query) ||
-        pqp.status.toLowerCase().includes(query)
+    // Global Search
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      result = result.filter(item =>
+        (item.pqpNo && item.pqpNo.toLowerCase().includes(lowerQuery)) ||
+        (item.title && item.title.toLowerCase().includes(lowerQuery)) ||
+        (item.vendor && item.vendor.toLowerCase().includes(lowerQuery)) ||
+        (item.status && item.status.toLowerCase().includes(lowerQuery))
       );
     }
 
-    // Sort
-    filtered.sort((a, b) => {
-      const aValue = a[sortConfig.key] || '';
-      const bValue = b[sortConfig.key] || '';
-
-      if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    return filtered;
-  }, [pqpList, searchQuery, vendorFilter, statusFilter, dateFilter, sortConfig]);
+    return result;
+  }, [pqpList, searchQuery]);
 
   const statistics = useMemo(() => {
     const statusCounts = {
@@ -191,11 +154,6 @@ const PQP: React.FC = () => {
     }
   };
 
-  const renderSortIcon = (key: SortKey) => {
-    if (sortConfig.key !== key) return <span className={styles.sortIcon}>↕</span>;
-    return sortConfig.direction === 'asc' ? <span className={styles.sortIcon}>↑</span> : <span className={styles.sortIcon}>↓</span>;
-  };
-
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -206,46 +164,6 @@ const PQP: React.FC = () => {
           <h1>{t('pqp.titleShort')}</h1>
         </div>
         <div className={styles.headerRight}>
-          <div className={styles.filterGroup}>
-            <select
-              className={styles.vendorFilter}
-              value={vendorFilter}
-              onChange={(e) => setVendorFilter(e.target.value)}
-            >
-              <option value="all">{t('pqp.allContractors')}</option>
-              {getActiveContractors().map((contractor) => (
-                <option key={contractor.id} value={contractor.name}>
-                  {contractor.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className={styles.statusFilter}
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="all">{t('pqp.allStatus')}</option>
-              <option value="Not Submit">{t('pqp.status.notSubmit')}</option>
-              <option value="Under Review">{t('pqp.status.underReview')}</option>
-              <option value="Approved">{t('pqp.status.approved')}</option>
-              <option value="Reject">{t('pqp.status.reject')}</option>
-            </select>
-            <input
-              type="date"
-              className={styles.dateInput}
-              value={dateFilter.start}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value }))}
-              placeholder={t('pqp.startDate')}
-            />
-            <span style={{ color: '#6b7280' }}>-</span>
-            <input
-              type="date"
-              className={styles.dateInput}
-              value={dateFilter.end}
-              onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value }))}
-              placeholder={t('pqp.endDate')}
-            />
-          </div>
           <input
             type="text"
             className={styles.searchInput}
@@ -257,14 +175,13 @@ const PQP: React.FC = () => {
       </div>
 
       <div className={styles.summarySection}>
-        <h2 className={styles.summaryTitle}>{t('pqp.statusStats')}</h2>
+        <h2 className={styles.summaryTitle}>{t('pqp.statsTitle')}</h2>
         <div className={styles.statsContainer}>
           <div className={styles.statusStatsGrid}>
             <div className={styles.statItem}>
               <div className={`${styles.statIcon} ${styles.blueIcon}`}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 6v6l4 2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <div className={styles.statContent}>
@@ -273,7 +190,7 @@ const PQP: React.FC = () => {
               </div>
             </div>
             <div className={styles.statItem}>
-              <div className={`${styles.statIcon} ${styles.grayIcon}`}>
+              <div className={`${styles.statIcon} ${styles.orangeIcon}`}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -291,7 +208,7 @@ const PQP: React.FC = () => {
                 </svg>
               </div>
               <div className={styles.statContent}>
-                <div className={styles.statLabel}>{t('pqp.total')}</div>
+                <div className={styles.statLabel}>{t('pqp.statTotal') || 'Total'}</div>
                 <div className={styles.statValue}>{statistics.total}</div>
               </div>
             </div>
@@ -302,8 +219,8 @@ const PQP: React.FC = () => {
                 </svg>
               </div>
               <div className={styles.statContent}>
-                <div className={styles.statLabel}>{t('pqp.approvedRate')}</div>
-                <div className={styles.statValue}>{statistics.activeRate}%</div>
+                <div className={styles.statLabel}>{t('pqp.activeRate')}</div>
+                <div className={styles.statValue}>{statistics.approved} ({statistics.activeRate}%)</div>
               </div>
             </div>
           </div>
@@ -311,130 +228,27 @@ const PQP: React.FC = () => {
       </div>
 
       <div className={styles.content}>
-        <div className={styles.listHeader}>
-          <h2 className={styles.listTitle}>{t('pqp.title')}</h2>
-          <button
-            type="button"
-            className={styles.addNewButton}
-            onClick={handleAddNew}
-          >
-            + {t('pqp.addNew')}
-          </button>
-        </div>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th onClick={() => handleSort('pqpNo')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('pqp.referenceNo')} {renderSortIcon('pqpNo')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('status')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('common.status')} {renderSortIcon('status')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('vendor')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('pqp.contractor')} {renderSortIcon('vendor')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('title')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('pqp.subject')} {renderSortIcon('title')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('version')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('pqp.version')} {renderSortIcon('version')}
-                </div>
-              </th>
-              <th onClick={() => handleSort('updatedAt')} className={styles.sortableHeader}>
-                <div className={styles.headerContent}>
-                  {t('pqp.updatedDate')} {renderSortIcon('updatedAt')}
-                </div>
-              </th>
-              <th>{t('common.operations')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredPqpList.length === 0 ? (
-              <tr>
-                <td colSpan={8} style={{ textAlign: 'center', padding: '24px', color: '#6b7280' }}>
-                  {t('common.noData')}
-                </td>
-              </tr>
-            ) : (
-              filteredPqpList.map((pqp, index) => {
-                const isRejectRow = (pqp.status || 'Approved').toLowerCase() === 'reject';
-                return (
-                  <tr key={pqp.id} className={isRejectRow ? styles.greenRow : styles.normalRow}>
-                    <td>{index + 1}</td>
-                    <td>{pqp.pqpNo}</td>
-                    <td>
-                      <span
-                        className={`${styles.statusBadge} ${(pqp.status || '').toLowerCase() === 'approved'
-                          ? styles.statusApproved
-                          : (pqp.status || '').toLowerCase() === 'reject'
-                            ? styles.statusReject
-                            : (pqp.status || '').toLowerCase() === 'under review'
-                              ? styles.statusUnderReview
-                              : (pqp.status || '').toLowerCase() === 'not submit'
-                                ? styles.statusNotSubmit
-                                : ''
-                          }`}
-                      >
-                        {getLocalizedStatus(pqp.status, t)}
-                      </span>
-                    </td>
-                    <td><span>{pqp.vendor}</span></td>
-                    <td><span>{pqp.title}</span></td>
-                    <td><span>{pqp.version}</span></td>
-                    <td>{pqp.updatedAt}</td>
-                    <td>
-                      <div className={styles.buttonGroup}>
-                        <button
-                          type="button"
-                          className={`${styles.actionBtn} ${styles.editBtn}`}
-                          onClick={() => handleEdit(pqp.id)}
-                          title={t('pqp.tooltip.edit')}
-                        >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.actionBtn} ${styles.detailsBtn}`}
-                          onClick={() => handleViewDetails(pqp.id)}
-                          title={t('pqp.tooltip.details')}
-                        >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                            <circle cx="12" cy="12" r="3"></circle>
-                          </svg>
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                          onClick={() => confirmDelete(pqp.id)}
-                          title={t('pqp.tooltip.delete')}
-                        >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          title={t('pqp.title')}
+          actions={
+            <button
+              type="button"
+              className={styles.addNewButton}
+              onClick={handleAddNew}
+            >
+              + {t('pqp.addNew')}
+            </button>
+          }
+          columns={createColumns(handleEdit, handleViewDetails, confirmDelete, t, getActiveContractors)}
+          data={filteredList}
+          searchKey=""
+          searchPlaceholder={t('pqp.searchPlaceholder')}
+          getRowClassName={(row) =>
+            (row.status || 'Approved').toLowerCase() === 'reject'
+              ? 'bg-emerald-100/50 text-gray-500 hover:bg-emerald-200/50'
+              : ''
+          }
+        />
       </div>
 
       <ConfirmModal
@@ -447,29 +261,33 @@ const PQP: React.FC = () => {
         cancelText={t('common.cancel')}
       />
 
-      {isEditModalOpen && currentPqpId && (
-        <PQPDetailModal
-          pqpId={currentPqpId}
-          existingItem={currentPqpId !== 'new' ? pqpList.find(item => item.id === currentPqpId) : undefined}
-          onSave={handleSavePQPDetails}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setCurrentPqpId(null);
-          }}
-        />
-      )}
+      {
+        isEditModalOpen && currentPqpId && (
+          <PQPDetailModal
+            pqpId={currentPqpId}
+            existingItem={currentPqpId !== 'new' ? pqpList.find(item => item.id === currentPqpId) : undefined}
+            onSave={handleSavePQPDetails}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              setCurrentPqpId(null);
+            }}
+          />
+        )
+      }
 
-      {isDetailsModalOpen && viewingPqpId && (
-        <PQPDetailsViewModal
-          pqpId={viewingPqpId}
-          pqpItem={pqpList.find(item => item.id === viewingPqpId)}
-          onClose={() => {
-            setIsDetailsModalOpen(false);
-            setViewingPqpId(null);
-          }}
-        />
-      )}
-    </div>
+      {
+        isDetailsModalOpen && viewingPqpId && (
+          <PQPDetailsViewModal
+            pqpId={viewingPqpId}
+            pqpItem={pqpList.find(item => item.id === viewingPqpId)}
+            onClose={() => {
+              setIsDetailsModalOpen(false);
+              setViewingPqpId(null);
+            }}
+          />
+        )
+      }
+    </div >
   );
 };
 

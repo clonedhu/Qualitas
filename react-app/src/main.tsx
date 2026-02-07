@@ -11,6 +11,10 @@ import { NCRProvider } from './context/NCRContext.tsx'
 import { ITRProvider } from './context/ITRContext.tsx'
 import { PQPProvider } from './context/PQPContext.tsx'
 import { OBSProvider } from './context/OBSContext.tsx'
+import { FollowUpProvider } from './context/FollowUpContext.tsx'
+import { AuditProvider } from './context/AuditContext.tsx'
+import { FATProvider } from './context/FATContext.tsx'
+import { IAMProvider } from './context/IAMContext.tsx'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -23,7 +27,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 <ITRProvider>
                   <PQPProvider>
                     <OBSProvider>
-                      <App />
+                      <FollowUpProvider>
+                        <AuditProvider>
+                          <FATProvider>
+                            <IAMProvider>
+                              <App />
+                            </IAMProvider>
+                          </FATProvider>
+                        </AuditProvider>
+                      </FollowUpProvider>
                     </OBSProvider>
                   </PQPProvider>
                 </ITRProvider>

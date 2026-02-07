@@ -4,24 +4,13 @@ import { useLanguage } from '../../context/LanguageContext';
 import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './IAM.module.css';
 
+
+
+import { DataTable } from '@/components/Shared/DataTable/DataTable';
+import { createUserColumns, createRoleColumns, User, Role } from './columns';
+
 const STORAGE_KEY_IAM_USERS = 'qualitas_iam_users';
 const STORAGE_KEY_IAM_ROLES = 'qualitas_iam_roles';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: 'active' | 'inactive';
-  createdAt: string;
-}
-
-interface Role {
-  id: string;
-  name: string;
-  description: string;
-  permissions: string[];
-}
 
 const defaultUsers: User[] = [
   { id: '1', name: 'Administrator', email: 'admin@example.com', role: 'admin', status: 'active', createdAt: '2024-01-01' },
@@ -42,7 +31,7 @@ function loadUsersFromStorage(): User[] {
       const parsed = JSON.parse(raw) as User[];
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-  } catch (_) {}
+  } catch (_) { }
   return defaultUsers;
 }
 
@@ -53,7 +42,7 @@ function loadRolesFromStorage(): Role[] {
       const parsed = JSON.parse(raw) as Role[];
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
-  } catch (_) {}
+  } catch (_) { }
   return defaultRoles;
 }
 
@@ -65,16 +54,20 @@ const IAM: React.FC = () => {
   const [users, setUsers] = useState<User[]>(loadUsersFromStorage);
   const [roles, setRoles] = useState<Role[]>(loadRolesFromStorage);
 
+  // Search States
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [roleSearchQuery, setRoleSearchQuery] = useState('');
+
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_IAM_USERS, JSON.stringify(users));
-    } catch (_) {}
+    } catch (_) { }
   }, [users]);
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_IAM_ROLES, JSON.stringify(roles));
-    } catch (_) {}
+    } catch (_) { }
   }, [roles]);
 
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
@@ -109,6 +102,27 @@ const IAM: React.FC = () => {
     { id: 'manage_users', label: '管理用戶' },
     { id: 'manage_roles', label: '管理角色' },
   ];
+
+  // Filtering Logic
+  const filteredUsers = React.useMemo(() => {
+    if (!userSearchQuery.trim()) return users;
+    const query = userSearchQuery.toLowerCase();
+    return users.filter(u =>
+      u.name.toLowerCase().includes(query) ||
+      u.email.toLowerCase().includes(query) ||
+      u.role.toLowerCase().includes(query)
+    );
+  }, [users, userSearchQuery]);
+
+  const filteredRoles = React.useMemo(() => {
+    if (!roleSearchQuery.trim()) return roles;
+    const query = roleSearchQuery.toLowerCase();
+    return roles.filter(r =>
+      r.name.toLowerCase().includes(query) ||
+      r.description.toLowerCase().includes(query)
+    );
+  }, [roles, roleSearchQuery]);
+
 
   const handleAddUser = () => {
     setEditingUser(null);
@@ -201,10 +215,32 @@ const IAM: React.FC = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
-          ← {t('common.back') || 'Back'}
-        </button>
-        <h1>身份與權限管理 (IAM)</h1>
+        <div className={styles.headerLeft}>
+          <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
+            ← {t('common.back') || 'Back'}
+          </button>
+          <h1>身份與權限管理 (IAM)</h1>
+        </div>
+        <div className={styles.headerRight}>
+          {activeTab === 'users' && (
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="搜尋用戶..."
+              value={userSearchQuery}
+              onChange={(e) => setUserSearchQuery(e.target.value)}
+            />
+          )}
+          {activeTab === 'roles' && (
+            <input
+              type="text"
+              className={styles.searchInput}
+              placeholder="搜尋角色..."
+              value={roleSearchQuery}
+              onChange={(e) => setRoleSearchQuery(e.target.value)}
+            />
+          )}
+        </div>
       </div>
 
       <div className={styles.tabs}>
@@ -230,109 +266,35 @@ const IAM: React.FC = () => {
 
       {activeTab === 'users' && (
         <div className={styles.content}>
-          <div className={styles.contentHeader}>
-            <h2>用戶列表</h2>
-            <button className={styles.addButton} onClick={handleAddUser}>
-              + 新增用戶
-            </button>
-          </div>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>姓名</th>
-                <th>電子郵件</th>
-                <th>角色</th>
-                <th>狀態</th>
-                <th>建立日期</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr key={user.id}>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>
-                    <span className={styles.roleBadge}>{user.role}</span>
-                  </td>
-                  <td>
-                    <span className={`${styles.statusBadge} ${styles[user.status]}`}>
-                      {user.status === 'active' ? '啟用' : '停用'}
-                    </span>
-                  </td>
-                  <td>{user.createdAt}</td>
-                  <td>
-                    <button
-                      className={styles.editButton}
-                      onClick={() => handleEditUser(user)}
-                    >
-                      編輯
-                    </button>
-                    <button
-                      className={styles.deleteButton}
-                      onClick={() => handleDeleteUserClick(user.id)}
-                    >
-                      刪除
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            title="用戶列表"
+            actions={
+              <button className={styles.addButton} onClick={handleAddUser}>
+                + 新增用戶
+              </button>
+            }
+            columns={createUserColumns(handleEditUser, handleDeleteUserClick, roles)}
+            data={filteredUsers}
+            searchKey=""
+            getRowId={(row) => row.id}
+          />
         </div>
       )}
 
       {activeTab === 'roles' && (
         <div className={styles.content}>
-          <div className={styles.contentHeader}>
-            <h2>角色列表</h2>
-            <button className={styles.addButton} onClick={handleAddRole}>
-              + 新增角色
-            </button>
-          </div>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>角色名稱</th>
-                <th>描述</th>
-                <th>權限</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {roles.map((role) => (
-                <tr key={role.id}>
-                  <td>
-                    <span className={styles.roleBadge}>{role.name}</span>
-                  </td>
-                  <td>{role.description}</td>
-                  <td>
-                    <div className={styles.permissionsList}>
-                      {role.permissions.map((perm) => (
-                        <span key={perm} className={styles.permissionTag}>
-                          {availablePermissions.find(p => p.id === perm)?.label || perm}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td>
-                    <button
-                      className={styles.editButton}
-                      onClick={() => handleEditRole(role)}
-                    >
-                      編輯
-                    </button>
-                    <button
-                      className={styles.deleteButton}
-                      onClick={() => handleDeleteRoleClick(role.id)}
-                    >
-                      刪除
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            title="角色列表"
+            actions={
+              <button className={styles.addButton} onClick={handleAddRole}>
+                + 新增角色
+              </button>
+            }
+            columns={createRoleColumns(handleEditRole, handleDeleteRoleClick, availablePermissions)}
+            data={filteredRoles}
+            searchKey=""
+            getRowId={(row) => row.id}
+          />
         </div>
       )}
 

@@ -15,6 +15,12 @@
   flex: 1;
 }
 
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .backButton {
   padding: 8px 16px;
   background: #11998e;
@@ -154,6 +160,14 @@
 .inputNum:focus {
   outline: none;
   border-color: #2563eb;
+}
+
+.searchInput {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 250px;
 }
 
 .hint {

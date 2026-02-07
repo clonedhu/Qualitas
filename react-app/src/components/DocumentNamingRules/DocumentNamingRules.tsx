@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { getNamingRules, updateNamingRules, NamingRuleApi } from '../../services/api';
 import styles from './DocumentNamingRules.module.css';
+import { DataTable } from '@/components/Shared/DataTable/DataTable';
+import { createColumns, NamingRuleItem } from './columns';
 
 export interface NamingRule {
   id: string;
@@ -23,14 +25,24 @@ const DEFAULT_RULES: NamingRule[] = [
   { id: 'fat', moduleName: 'FAT', prefix: 'QTS-[ABBREV]-FAT-', sequenceDigits: 6, description: '專案-廠商縮寫-FAT-6位流水號' },
 ];
 
+
+
 const DocumentNamingRules: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [rules, setRules] = useState<NamingRule[]>(DEFAULT_RULES);
+  const [rules, setRules] = useState<NamingRuleItem[]>(DEFAULT_RULES);
   const [saved, setSaved] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredRules = rules.filter(rule =>
+    rule.moduleName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    rule.prefix.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    rule.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     const fetchRules = async () => {
+      // ... (fetch logic remains same, just showing context)
       try {
         const apiRules: NamingRuleApi[] = await getNamingRules();
         const map = new Map<string, NamingRuleApi>();
@@ -88,7 +100,7 @@ const DocumentNamingRules: React.FC = () => {
     }
   };
 
-  const getExample = (rule: NamingRule): string => {
+  const getExample = (rule: NamingRuleItem): string => {
     const seq = String(1).padStart(rule.sequenceDigits, '0');
     return rule.prefix.replace('[ABBREV]', 'A') + seq;
   };
@@ -103,55 +115,31 @@ const DocumentNamingRules: React.FC = () => {
           <h1 className={styles.title}>文件命名規則</h1>
           <p className={styles.subtitle}>設定各模組文件編號的前綴與流水號格式，重新開啟後仍會保留。</p>
         </div>
+        <div className={styles.headerRight}>
+          <input
+            type="text"
+            className={styles.searchInput}
+            placeholder={t('common.search') || 'Search...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h2 className={styles.cardTitle}>命名規則一覽</h2>
-          <button className={styles.saveButton} onClick={handleSave}>
-            {saved ? '已儲存' : '儲存'}
-          </button>
-        </div>
         <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>模組</th>
-                <th>前綴／格式</th>
-                <th>流水號位數</th>
-                <th>範例</th>
-                <th>說明</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rules.map((rule) => (
-                <tr key={rule.id}>
-                  <td className={styles.cellModule}>{rule.moduleName}</td>
-                  <td>
-                    <input
-                      type="text"
-                      className={styles.input}
-                      value={rule.prefix}
-                      onChange={(e) => handlePrefixChange(rule.id, e.target.value)}
-                      placeholder="e.g. FUI- 或 [ABBREV]-NCR-"
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      className={styles.inputNum}
-                      min={1}
-                      max={6}
-                      value={rule.sequenceDigits}
-                      onChange={(e) => handleSequenceDigitsChange(rule.id, Number(e.target.value))}
-                    />
-                  </td>
-                  <td className={styles.cellExample}>{getExample(rule)}</td>
-                  <td className={styles.cellDesc}>{rule.description}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            title="命名規則一覽"
+            actions={
+              <button className={styles.saveButton} onClick={handleSave}>
+                {saved ? '已儲存' : '儲存'}
+              </button>
+            }
+            columns={createColumns(handlePrefixChange, handleSequenceDigitsChange, getExample)}
+            data={filteredRules}
+            searchKey=""
+            getRowId={(row) => row.id}
+          />
         </div>
         <p className={styles.hint}>
           <strong>前綴說明：</strong>使用 <code>[ABBREV]</code> 表示依廠商／承包商縮寫自動帶入（如 NOI、ITR、NCR、OBS）。其餘模組可自訂固定前綴（如 FUI-、PQP-）。流水號位數為 1～6。
