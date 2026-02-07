@@ -1,0 +1,10 @@
+{"location":"ITP.tsx:render","message":"ITP render state","data":{"loading":false,"error":"Request failed with status code 404","refetchType":"function","itpListLength":0,"showTable":false},"timestamp":1769944433999,"sessionId":"debug-session","hypothesisId":"A,B,C,E"}
+{"location":"ITP.tsx:render","message":"ITP render state","data":{"loading":false,"error":"Request failed with status code 404","refetchType":"function","itpListLength":0,"showTable":false},"timestamp":1769944433999,"sessionId":"debug-session","hypothesisId":"A,B,C,E"}
+{"location":"ITP.tsx:render","message":"ITP render state","data":{"loading":false,"error":"Request failed with status code 404","refetchType":"function","itpListLength":0,"showTable":false},"timestamp":1769944434004,"sessionId":"debug-session","hypothesisId":"A,B,C,E"}
+{"location":"ITP.tsx:render","message":"ITP render state","data":{"loading":false,"error":"Request failed with status code 404","refetchType":"function","itpListLength":0,"showTable":false},"timestamp":1769944434005,"sessionId":"debug-session","hypothesisId":"A,B,C,E"}
+{"location":"ITPContext.tsx:fetchITPs:entry","message":"fetchITPs started","data":{},"timestamp":1769944435505,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"ITPContext.tsx:fetchITPs:entry","message":"fetchITPs started","data":{},"timestamp":1769944435506,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"ITPContext.tsx:fetchITPs:catch","message":"fetch failed","data":{"errMsg":"Request failed with status code 404"},"timestamp":1769944435542,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"ITPContext.tsx:fetchITPs:finally","message":"loading set false","data":{},"timestamp":1769944435543,"sessionId":"debug-session","hypothesisId":"A"}
+{"location":"ITPContext.tsx:fetchITPs:catch","message":"fetch failed","data":{"errMsg":"Request failed with status code 404"},"timestamp":1769944435550,"sessionId":"debug-session","hypothesisId":"B"}
+{"location":"ITPContext.tsx:fetchITPs:finally","message":"loading set false","data":{},"timestamp":1769944435550,"sessionId":"debug-session","hypothesisId":"A"}

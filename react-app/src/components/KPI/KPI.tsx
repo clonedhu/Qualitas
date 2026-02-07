@@ -1,0 +1,421 @@
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  LabelList,
+} from 'recharts';
+import { useLanguage } from '../../context/LanguageContext';
+import { useContractors } from '../../context/ContractorsContext';
+import { usePQP } from '../../context/PQPContext';
+import { useITP } from '../../context/ITPContext';
+import { useOBS } from '../../context/OBSContext';
+import { useNCR } from '../../context/NCRContext';
+import styles from './KPI.module.css';
+
+const VENDOR_COLORS = [
+  '#3b82f6', '#f97316', '#6b7280', '#eab308', '#22d3ee', '#10b981',
+  '#8b5cf6', '#ec4899', '#14b8a6', '#f59e0b',
+];
+
+function parseMonth(dateStr: string | undefined): string | null {
+  if (!dateStr || typeof dateStr !== 'string') return null;
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+
+const DEFAULT_WEIGHTS = { pqp: 0.25, itp: 0.25, obs: 0.25, ncr: 0.25 };
+
+const KPI: React.FC = () => {
+  const navigate = useNavigate();
+  const { t, language } = useLanguage();
+  const { getActiveContractors } = useContractors();
+  const { pqpList } = usePQP();
+  const { itpList } = useITP();
+  const { obsList } = useOBS();
+  const { ncrList } = useNCR();
+
+  const [weights, setWeights] = useState(DEFAULT_WEIGHTS);
+  const [showWeights, setShowWeights] = useState(false);
+  const [selectedVendor, setSelectedVendor] = useState<string>('all');
+
+  const { chartData, vendorKeys, sortedMonths, vendorRates } = useMemo(() => {
+    const filterByVendor = <T extends { vendor?: string }>(list: T[]): T[] => {
+      if (selectedVendor === 'all') return list;
+      return list.filter((item) => (item.vendor || '').trim() === selectedVendor);
+    };
+    const filteredPqp = filterByVendor(pqpList);
+    const filteredItp = filterByVendor(itpList);
+    const filteredObs = filterByVendor(obsList);
+    const filteredNcr = filterByVendor(ncrList);
+
+    const totalW = weights.pqp + weights.itp + weights.obs + weights.ncr;
+    const scale = totalW > 0 ? 1 / totalW : 1;
+    const w = {
+      pqp: weights.pqp * scale,
+      itp: weights.itp * scale,
+      obs: weights.obs * scale,
+      ncr: weights.ncr * scale,
+    };
+
+    const getVendor = (item: { vendor?: string }) => (item.vendor || 'Unknown').trim() || 'Unknown';
+
+    const pqpByVendorMonth: Record<string, Record<string, { approved: number; total: number }>> = {};
+    filteredPqp.forEach((item) => {
+      const month = parseMonth(item.updatedAt || item.createdAt);
+      const vendor = getVendor(item);
+      if (!month) return;
+      if (!pqpByVendorMonth[vendor]) pqpByVendorMonth[vendor] = {};
+      if (!pqpByVendorMonth[vendor][month]) pqpByVendorMonth[vendor][month] = { approved: 0, total: 0 };
+      pqpByVendorMonth[vendor][month].total++;
+      if ((item.status || '').toLowerCase() === 'approved') pqpByVendorMonth[vendor][month].approved++;
+    });
+
+    const itpByVendorMonth: Record<string, Record<string, { closed: number; total: number }>> = {};
+    filteredItp.forEach((item) => {
+      const month = parseMonth(item.submissionDate);
+      const vendor = getVendor(item);
+      if (!month) return;
+      if (!itpByVendorMonth[vendor]) itpByVendorMonth[vendor] = {};
+      if (!itpByVendorMonth[vendor][month]) itpByVendorMonth[vendor][month] = { closed: 0, total: 0 };
+      itpByVendorMonth[vendor][month].total++;
+      const s = (item.status || '').toLowerCase();
+      if (s === 'approved' || s === 'approved with comments' || s === 'submitted') itpByVendorMonth[vendor][month].closed++;
+    });
+
+    const obsByVendorMonth: Record<string, Record<string, { closed: number; total: number }>> = {};
+    filteredObs.forEach((item) => {
+      const month = parseMonth(item.closeoutDate || item.raiseDate);
+      const vendor = getVendor(item);
+      if (!month) return;
+      if (!obsByVendorMonth[vendor]) obsByVendorMonth[vendor] = {};
+      if (!obsByVendorMonth[vendor][month]) obsByVendorMonth[vendor][month] = { closed: 0, total: 0 };
+      obsByVendorMonth[vendor][month].total++;
+      if ((item.status || '').toLowerCase() === 'closed') obsByVendorMonth[vendor][month].closed++;
+    });
+
+    const ncrByVendorMonth: Record<string, Record<string, { closed: number; total: number }>> = {};
+    filteredNcr.forEach((item) => {
+      const month = parseMonth(item.closeoutDate || item.raiseDate);
+      const vendor = getVendor(item);
+      if (!month) return;
+      if (!ncrByVendorMonth[vendor]) ncrByVendorMonth[vendor] = {};
+      if (!ncrByVendorMonth[vendor][month]) ncrByVendorMonth[vendor][month] = { closed: 0, total: 0 };
+      ncrByVendorMonth[vendor][month].total++;
+      if ((item.status || '').toLowerCase() === 'closed') ncrByVendorMonth[vendor][month].closed++;
+    });
+
+    const allMonths = new Set<string>();
+    [pqpByVendorMonth, itpByVendorMonth, obsByVendorMonth, ncrByVendorMonth].forEach((byVendor) => {
+      Object.values(byVendor).forEach((byMonth) => {
+        Object.keys(byMonth).forEach((m) => allMonths.add(m));
+      });
+    });
+    const vendors = new Set<string>();
+    [pqpByVendorMonth, itpByVendorMonth, obsByVendorMonth, ncrByVendorMonth].forEach((byVendor) => {
+      Object.keys(byVendor).forEach((v) => vendors.add(v));
+    });
+    const sortedMonths = Array.from(allMonths).sort();
+    const vendorList = Array.from(vendors).sort();
+
+    const data = sortedMonths.map((month) => {
+      const row: Record<string, string | number | null> = { month };
+      vendorList.forEach((vendor) => {
+        const pqpR = pqpByVendorMonth[vendor]?.[month];
+        const pqpRate = pqpR && pqpR.total > 0 ? Math.round((pqpR.approved / pqpR.total) * 100) : null;
+        const itpR = itpByVendorMonth[vendor]?.[month];
+        const itpRate = itpR && itpR.total > 0 ? Math.round((itpR.closed / itpR.total) * 100) : null;
+        const obsR = obsByVendorMonth[vendor]?.[month];
+        const obsRate = obsR && obsR.total > 0 ? Math.round((obsR.closed / obsR.total) * 100) : null;
+        const ncrR = ncrByVendorMonth[vendor]?.[month];
+        const ncrRate = ncrR && ncrR.total > 0 ? Math.round((ncrR.closed / ncrR.total) * 100) : null;
+
+        const count = [pqpRate, itpRate, obsRate, ncrRate].filter((r) => r !== null).length;
+        const kpi =
+          count === 0
+            ? null
+            : Math.round(
+              (w.pqp * (pqpRate ?? 0) + w.itp * (itpRate ?? 0) + w.obs * (obsRate ?? 0) + w.ncr * (ncrRate ?? 0)) * 100
+            ) / 100;
+        row[vendor] = kpi;
+      });
+      return row;
+    });
+
+    const latestMonth = sortedMonths.length > 0 ? sortedMonths[sortedMonths.length - 1] : null;
+    const vendorRates: Record<string, { obsPct: number | null; ncrPct: number | null }> = {};
+    vendorList.forEach((v) => {
+      const obsR = latestMonth ? obsByVendorMonth[v]?.[latestMonth] : null;
+      const ncrR = latestMonth ? ncrByVendorMonth[v]?.[latestMonth] : null;
+      vendorRates[v] = {
+        obsPct: obsR && obsR.total > 0 ? Math.round((obsR.closed / obsR.total) * 100) : null,
+        ncrPct: ncrR && ncrR.total > 0 ? Math.round((ncrR.closed / ncrR.total) * 100) : null,
+      };
+    });
+
+    return { chartData: data, vendorKeys: vendorList, sortedMonths, vendorRates };
+  }, [pqpList, itpList, obsList, ncrList, weights, selectedVendor]);
+
+  const handleWeightChange = (key: 'pqp' | 'itp' | 'obs' | 'ncr', value: number) => {
+    const v = Math.max(0, Math.min(100, value)) / 100;
+    setWeights((prev) => ({ ...prev, [key]: v }));
+  };
+
+  const contractors = getActiveContractors();
+  const tableRows = useMemo(() => {
+    return vendorKeys.map((vendor, idx) => {
+      const lastMonthVal = chartData.length >= 2 ? chartData[chartData.length - 2][vendor] : null;
+      const thisMonthVal = chartData.length >= 1 ? chartData[chartData.length - 1][vendor] : null;
+      const lastNum = lastMonthVal != null ? Number(lastMonthVal) : null;
+      const thisNum = thisMonthVal != null ? Number(thisMonthVal) : null;
+      const variance = lastNum != null && thisNum != null ? thisNum - lastNum : (thisNum != null ? thisNum : 0);
+      const scope = contractors.find((c) => c.name === vendor)?.scope || '—';
+      const monthly: Record<string, number | null> = {};
+      sortedMonths.forEach((m) => {
+        const row = chartData.find((r) => r.month === m);
+        const val = row && row[vendor] != null ? Number(row[vendor]) : null;
+        monthly[m] = val;
+      });
+      return {
+        index: idx + 1,
+        vendor,
+        scope,
+        obsPct: vendorRates[vendor]?.obsPct ?? null,
+        ncrPct: vendorRates[vendor]?.ncrPct ?? null,
+        lastMonth: lastNum,
+        thisMonth: thisNum,
+        variance,
+        trend: variance > 0 ? 'up' : variance < 0 ? 'down' : 'flat',
+        monthly,
+      };
+    });
+  }, [chartData, vendorKeys, sortedMonths, vendorRates, contractors]);
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
+            ← {t('common.back') || 'Back'}
+          </button>
+          <h1 className={styles.title}>
+            {language === 'en' ? 'Key Performance Indicators' : '關鍵績效指標 (KPI)'}
+          </h1>
+        </div>
+        <div className={styles.headerRight}>
+          <label className={styles.vendorLabel}>
+            {language === 'en' ? 'Contractor' : '廠商'}
+            <select
+              className={styles.vendorSelect}
+              value={selectedVendor}
+              onChange={(e) => setSelectedVendor(e.target.value)}
+            >
+              <option value="all">{language === 'en' ? 'All Contractors' : '全部廠商'}</option>
+              {getActiveContractors().map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <p className={styles.subtitle}>
+        {language === 'en'
+          ? 'KPI is based on monthly PQP, ITP, OBS, and NCR closure rates. Each indicator has a weight.'
+          : 'KPI 依每月 PQP、ITP、OBS、NCR 結案率計算，各指標具權重。'}
+      </p>
+
+      <div className={styles.weightSection}>
+        <button
+          type="button"
+          className={styles.weightToggle}
+          onClick={() => setShowWeights(!showWeights)}
+        >
+          {language === 'en' ? 'Weights' : '權重設定'}
+          {showWeights ? ' ▼' : ' ▶'}
+        </button>
+        {showWeights && (
+          <div className={styles.weightGrid}>
+            <label>
+              <span>PQP</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={Math.round(weights.pqp * 100)}
+                onChange={(e) => handleWeightChange('pqp', Number(e.target.value))}
+              />
+              %
+            </label>
+            <label>
+              <span>ITP</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={Math.round(weights.itp * 100)}
+                onChange={(e) => handleWeightChange('itp', Number(e.target.value))}
+              />
+              %
+            </label>
+            <label>
+              <span>OBS</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={Math.round(weights.obs * 100)}
+                onChange={(e) => handleWeightChange('obs', Number(e.target.value))}
+              />
+              %
+            </label>
+            <label>
+              <span>NCR</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={Math.round(weights.ncr * 100)}
+                onChange={(e) => handleWeightChange('ncr', Number(e.target.value))}
+              />
+              %
+            </label>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.chartSection}>
+        <h2 className={styles.chartTitle}>KPI Trend</h2>
+        <div className={styles.chartWrapper}>
+          {chartData.length === 0 ? (
+            <p className={styles.noData}>
+              {language === 'en'
+                ? 'No monthly data yet. PQP / ITP / OBS / NCR records with dates will appear here.'
+                : '尚無月度資料，有日期的 PQP / ITP / OBS / NCR 紀錄會顯示於此。'}
+            </p>
+          ) : (
+            <ResponsiveContainer width="100%" height={400}>
+              <LineChart
+                data={chartData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: '#9ca3af', fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                  interval={0}
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  tick={{ fill: '#9ca3af', fontSize: 12 }}
+                  tickFormatter={(v) => `${v}%`}
+                  label={{
+                    value: language === 'en' ? 'KPI %' : 'KPI %',
+                    angle: -90,
+                    position: 'insideLeft',
+                    style: { fill: '#9ca3af' },
+                  }}
+                />
+                <Tooltip
+                  formatter={(value: number | string | null) => (value == null ? '—' : `${value}%`)}
+                  labelFormatter={(label) => (language === 'en' ? `Month: ${label}` : `月份: ${label}`)}
+                />
+                <Legend />
+                {vendorKeys.map((vendor, i) => (
+                  <Line
+                    key={vendor}
+                    type="monotone"
+                    dataKey={vendor}
+                    name={vendor}
+                    stroke={VENDOR_COLORS[i % VENDOR_COLORS.length]}
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    connectNulls
+                  >
+                    <LabelList
+                      position="top"
+                      formatter={(v: number | string | null) => (v == null ? '' : `${v}%`)}
+                      style={{ fontSize: 11, fill: '#e5e7eb' }}
+                    />
+                  </Line>
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* KPI 表格：放在趨勢圖之下 */}
+      <div className={styles.tableSection}>
+        <h2 className={styles.tableTitle}>
+          {language === 'en' ? 'KPI by Contractor' : 'KPI 依廠商'}
+        </h2>
+        <div className={styles.tableWrapper}>
+          <table className={styles.kpiTable}>
+            <thead>
+              <tr>
+                <th className={styles.thIndex}>#</th>
+                <th>{language === 'en' ? 'Contractor' : '廠商'}</th>
+                <th>{language === 'en' ? 'Scope' : 'Scope'}</th>
+                <th>OBS</th>
+                <th>NCR</th>
+                <th>{language === 'en' ? 'Last Month' : '上月'}</th>
+                <th>{language === 'en' ? 'This Month' : '本月'}</th>
+                <th>{language === 'en' ? 'Trend' : '趨勢'}</th>
+                <th>{language === 'en' ? 'Variance' : '差異'}</th>
+                {sortedMonths.map((m) => (
+                  <th key={m} className={styles.thMonth}>{m}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.map((row) => (
+                <tr key={row.vendor} className={styles.tableRow}>
+                  <td className={styles.tdIndex}>{row.index}</td>
+                  <td>{row.vendor}</td>
+                  <td>{row.scope}</td>
+                  <td>{row.obsPct != null ? `${row.obsPct}%` : '—'}</td>
+                  <td>{row.ncrPct != null ? `${row.ncrPct}%` : '—'}</td>
+                  <td>{row.lastMonth != null ? `${row.lastMonth}%` : '—'}</td>
+                  <td>{row.thisMonth != null ? `${row.thisMonth}%` : '—'}</td>
+                  <td className={styles.tdTrend}>
+                    {row.trend === 'up' && <span className={styles.trendUp} title="↑">↑</span>}
+                    {row.trend === 'down' && <span className={styles.trendDown} title="↓">↓</span>}
+                    {row.trend === 'flat' && <span className={styles.trendFlat} title="—">—</span>}
+                  </td>
+                  <td>{row.variance !== 0 ? `${row.variance > 0 ? '+' : ''}${row.variance.toFixed(1)}%` : '0.0%'}</td>
+                  {sortedMonths.map((m) => (
+                    <td key={m} className={styles.tdMonth}>
+                      {row.monthly[m] != null ? `${row.monthly[m]}%` : '—'}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {tableRows.length === 0 && (
+          <p className={styles.tableNoData}>
+            {language === 'en' ? 'No contractor data.' : '尚無廠商資料。'}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default KPI;
