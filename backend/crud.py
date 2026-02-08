@@ -19,9 +19,7 @@ from models import (
     DocumentNamingRule,
     FollowUp,
 )
-import uuid
-import json
-import re
+# NOTE: 移除重複的 import (uuid, json, re 已在上方匯入)
 
 # 固定專案代碼
 PROJECT_CODE = "QTS"

@@ -5,6 +5,7 @@ from typing import List
 import schemas
 import crud
 from database import get_db
+from middleware.auth import get_current_user, PermissionChecker, Permission
 
 router = APIRouter(
     prefix="/itp",
@@ -12,8 +13,13 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+# NOTE: 寫入操作需要認證，讀取操作暫時開放
 @router.post("/", response_model=schemas.ITP)
-def create_itp(itp: schemas.ITPCreate, db: Session = Depends(get_db)):
+def create_itp(
+    itp: schemas.ITPCreate, 
+    db: Session = Depends(get_db),
+    _: bool = Depends(PermissionChecker([Permission.WRITE]))
+):
     return crud.create_itp(db=db, itp=itp)
 
 @router.get("/", response_model=List[schemas.ITP])

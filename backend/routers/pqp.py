@@ -5,6 +5,7 @@ from typing import List
 import schemas
 import crud
 from database import get_db
+from middleware.auth import PermissionChecker, Permission
 
 router = APIRouter(
     prefix="/pqp",
@@ -12,6 +13,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+# 讀取操作 - 無需認證
 @router.get("/", response_model=List[schemas.PQP])
 def read_pqps(skip: int = 0, limit: int = 500, db: Session = Depends(get_db)):
     return crud.get_pqps(db, skip=skip, limit=limit)
@@ -23,19 +25,33 @@ def read_pqp(pqp_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="PQP not found")
     return db_pqp
 
+# 寫入操作 - 需要認證
 @router.post("/", response_model=schemas.PQP)
-def create_pqp(pqp: schemas.PQPCreate, db: Session = Depends(get_db)):
+def create_pqp(
+    pqp: schemas.PQPCreate, 
+    db: Session = Depends(get_db),
+    _: bool = Depends(PermissionChecker([Permission.WRITE]))
+):
     return crud.create_pqp(db=db, pqp=pqp)
 
 @router.put("/{pqp_id}", response_model=schemas.PQP)
-def update_pqp(pqp_id: str, pqp: schemas.PQPUpdate, db: Session = Depends(get_db)):
+def update_pqp(
+    pqp_id: str, 
+    pqp: schemas.PQPUpdate, 
+    db: Session = Depends(get_db),
+    _: bool = Depends(PermissionChecker([Permission.WRITE]))
+):
     db_pqp = crud.update_pqp(db, pqp_id=pqp_id, pqp=pqp)
     if db_pqp is None:
         raise HTTPException(status_code=404, detail="PQP not found")
     return db_pqp
 
 @router.delete("/{pqp_id}")
-def delete_pqp(pqp_id: str, db: Session = Depends(get_db)):
+def delete_pqp(
+    pqp_id: str, 
+    db: Session = Depends(get_db),
+    _: bool = Depends(PermissionChecker([Permission.DELETE]))
+):
     if crud.delete_pqp(db, pqp_id=pqp_id) is None:
         raise HTTPException(status_code=404, detail="PQP not found")
     return {"ok": True}

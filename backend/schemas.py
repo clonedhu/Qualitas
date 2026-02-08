@@ -1,22 +1,38 @@
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, EmailStr, constr
 from typing import Optional, List, Any
 import json
+import re
+
+# 輸入驗證常數
+MAX_TEXT_LENGTH = 10000  # 一般文字欄位最大長度
+MAX_SHORT_LENGTH = 500   # 短文字欄位最大長度
+
+# 驗證工具函數
+def validate_date_format(v: str) -> str:
+    """驗證日期格式 (YYYY-MM-DD)"""
+    if v and not re.match(r'^\d{4}-\d{2}-\d{2}$', v):
+        raise ValueError('日期格式必須為 YYYY-MM-DD')
+    return v
 
 class ITPBase(BaseModel):
     vendor: str
     referenceNo: Optional[str] = None  # 由後端自動產生
-    description: Optional[str] = ''
-    rev: Optional[str] = ''
+    description: Optional[constr(max_length=MAX_TEXT_LENGTH)] = ''
+    rev: Optional[constr(max_length=MAX_SHORT_LENGTH)] = ''
     submit: Optional[str] = ''
     status: str
     remark: Optional[str] = None
     hasDetails: Optional[bool] = False
     submissionDate: Optional[str] = None
     detail_data: Optional[str] = None
-    detail_data: Optional[str] = None
     attachments: Optional[List[str]] = []
     last_reminded_at: Optional[str] = None
     dueDate: Optional[str] = None
+
+    @field_validator('submissionDate', 'dueDate', mode='before')
+    @classmethod
+    def check_dates(cls, v):
+        return validate_date_format(v)
 
     @field_validator('attachments', mode='before')
     @classmethod
@@ -42,8 +58,6 @@ class ITPUpdate(BaseModel):
     remark: Optional[str] = None
     hasDetails: Optional[bool] = None
     submissionDate: Optional[str] = None
-    submissionDate: Optional[str] = None
-    detail_data: Optional[str] = None
     detail_data: Optional[str] = None
     attachments: Optional[List[str]] = None
     last_reminded_at: Optional[str] = None
@@ -68,8 +82,8 @@ class ITPDetailBody(BaseModel):
 class NCRBase(BaseModel):
     vendor: str
     documentNumber: Optional[str] = None  # 由後端自動產生
-    description: str
-    rev: str
+    description: constr(max_length=MAX_TEXT_LENGTH)
+    rev: constr(max_length=MAX_SHORT_LENGTH)
     submit: str
     status: str
     remark: Optional[str] = None
@@ -90,9 +104,13 @@ class NCRBase(BaseModel):
     improvementPhotos: Optional[Any] = None
     noiNumber: Optional[str] = None  # 連結到觸發此 NCR 的 NOI
     dueDate: Optional[str] = None  # 到期日 (YYYY-MM-DD)
-    dueDate: Optional[str] = None  # 到期日 (YYYY-MM-DD)
     attachments: Optional[List[str]] = []
     last_reminded_at: Optional[str] = None
+
+    @field_validator('raiseDate', 'closeoutDate', 'dueDate', mode='before')
+    @classmethod
+    def check_dates(cls, v):
+        return validate_date_format(v)
 
     @field_validator('defectPhotos', 'improvementPhotos', 'attachments', mode='before')
     @classmethod
@@ -132,7 +150,6 @@ class NCRUpdate(BaseModel):
     improvementPhotos: Optional[Any] = None
     noiNumber: Optional[str] = None
     dueDate: Optional[str] = None
-    dueDate: Optional[str] = None
     attachments: Optional[List[str]] = None
     last_reminded_at: Optional[str] = None
 
@@ -164,6 +181,11 @@ class NOIBase(BaseModel):
     ncrNumber: Optional[str] = None  # 若此 NOI 是針對 NCR 的重新檢驗
     last_reminded_at: Optional[str] = None
     dueDate: Optional[str] = None
+
+    @field_validator('issueDate', 'inspectionDate', 'closeoutDate', 'dueDate', mode='before')
+    @classmethod
+    def check_dates(cls, v):
+        return validate_date_format(v)
 
     @field_validator('attachments', mode='before')
     @classmethod
@@ -228,9 +250,13 @@ class ITRBase(BaseModel):
     eventNumber: Optional[str] = None
     checkpoint: Optional[str] = None
     defectPhotos: Optional[Any] = None
-    defectPhotos: Optional[Any] = None
     improvementPhotos: Optional[Any] = None
     attachments: Optional[List[str]] = []
+
+    @field_validator('raiseDate', 'closeoutDate', mode='before')
+    @classmethod
+    def check_dates(cls, v):
+        return validate_date_format(v)
 
     @field_validator('attachments', mode='before')
     @classmethod
@@ -351,6 +377,12 @@ class OBSBase(BaseModel):
     defectPhotos: Optional[Any] = None
     improvementPhotos: Optional[Any] = None
     attachments: Optional[Any] = None
+    dueDate: Optional[str] = None
+
+    @field_validator('raiseDate', 'closeoutDate', 'dueDate', mode='before')
+    @classmethod
+    def check_dates(cls, v):
+        return validate_date_format(v)
 
 class OBSCreate(OBSBase):
     id: Optional[str] = None
@@ -395,7 +427,7 @@ class ContractorBase(BaseModel):
     abbreviation: Optional[str] = None
     scope: Optional[str] = None
     contactPerson: Optional[str] = None
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
     phone: Optional[str] = None
     address: Optional[str] = None
     status: str = "active"
@@ -435,6 +467,11 @@ class FollowUpBase(BaseModel):
     action: Optional[str] = None
     sourceModule: Optional[str] = None  # 來源模組
     sourceReferenceNo: Optional[str] = None  # 來源單號
+
+    @field_validator('dueDate', 'createdAt', 'updatedAt', mode='before')
+    @classmethod
+    def check_dates(cls, v):
+        return validate_date_format(v)
 
 class FollowUpCreate(FollowUpBase):
     id: Optional[str] = None
@@ -509,7 +546,7 @@ class Role(RoleBase):
 # User
 class UserBase(BaseModel):
     username: str
-    email: str
+    email: EmailStr
     full_name: Optional[str] = None
     is_active: Optional[bool] = True
     role_id: Optional[int] = None
@@ -543,6 +580,11 @@ class AuditBase(BaseModel):
     location: str
     findings: str
     contractor: Optional[str] = None
+
+    @field_validator('date', mode='before')
+    @classmethod
+    def check_dates(cls, v):
+        return validate_date_format(v)
 
 class AuditCreate(AuditBase):
     id: Optional[str] = None

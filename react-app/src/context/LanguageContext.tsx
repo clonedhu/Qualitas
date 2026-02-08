@@ -92,7 +92,7 @@ const translations: Record<Language, Record<string, string>> = {
     'home.itp.description': 'Inspection and Test Plan Management',
     'home.noi.description': 'Inspection Notification Management',
     'home.itr.description': 'Inspection and Test Report',
-    'home.osd.description': 'Super Short Damage Management',
+    'home.osd.description': 'Overage Shortage Damage Management',
     'home.obs.description': 'Observation Record Management',
     'home.ncr.description': 'Non-conformance Report Management',
     'home.fat.description': 'Factory Acceptance Test',
@@ -438,7 +438,7 @@ const translations: Record<Language, Record<string, string>> = {
 
     // OSD
     'osd.title': 'OSD Document',
-    'osd.description': 'Organization Structure Document',
+    'osd.description': 'Overage Shortage Damage Management',
     'osd.placeholderTitle': 'OSD Title',
 
     // Self Inspection
@@ -789,7 +789,7 @@ const translations: Record<Language, Record<string, string>> = {
     'home.itp.description': '檢驗與測試計劃管理',
     'home.noi.description': '檢驗通知管理',
     'home.itr.description': '檢驗與測試報告',
-    'home.osd.description': '超短損壞管理',
+    'home.osd.description': '溢短損管理',
     'home.obs.description': '觀察記錄管理',
     'home.ncr.description': '不符合報告管理',
     'home.fat.description': '工廠驗收測試',

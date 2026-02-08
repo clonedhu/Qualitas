@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Text
+from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey
 from database import Base
 
 class ITP(Base):
@@ -220,8 +220,8 @@ class User(Base):
     hashed_password = Column(String)
     full_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
-    role_id = Column(Integer, index=True, nullable=True)  # Foreign key to roles
-    created_at = Column(String, nullable=True)  # ISO date string for user creation
+    role_id = Column(Integer, ForeignKey("roles.id"), index=True, nullable=True)  # 加入外鍵約束
+    created_at = Column(String, nullable=True)
 
 class Role(Base):
     __tablename__ = "roles"

@@ -1,38 +1,60 @@
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = 3001;
 const PYTHON_API = 'http://localhost:8000';
 
-// Middleware
-app.use(cors());
+// Security: Rate Limiting - 防止暴力破解和 DoS
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 分鐘
+    max: 10, // 每個 IP 最多 10 次登入嘗試
+    message: { detail: 'Too many login attempts, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const apiLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 分鐘
+    max: 500, // 每個 IP 每分鐘 500 次請求（放寬限制以適應前端同時載入多個模組）
+    message: { detail: 'Too many requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Middleware - CORS 安全設定
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000').split(',');
+app.use(cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Mock user data
-const users = [
-    {
-        id: '1',
-        username: 'admin@example.com',
-        password: 'admin',
-        name: 'Administrator',
-        email: 'admin@example.com',
-        role: 'admin'
-    }
-];
+// Apply rate limiting to all API routes
+app.use('/api', apiLimiter);
+
+// NOTE: Mock user data 已棄用，改由 Python 後端處理認證
+// 保留此處以便開發測試，生產環境應移除
+const ENABLE_MOCK_AUTH = process.env.ENABLE_MOCK_AUTH === 'true';
+
+// Token 過期時間（毫秒）
+const TOKEN_EXPIRY_MS = 30 * 60 * 1000; // 30 分鐘
+const tokenStore = new Map(); // 儲存 token 和過期時間
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Backend server is running' });
 });
 
-// Login endpoint (FastAPI OAuth2 compatible)
-app.post('/api/auth/login', (req, res) => {
-    console.log('[Backend] Login request received');
-    console.log('[Backend] Content-Type:', req.headers['content-type']);
-    console.log('[Backend] Body:', req.body);
+// Login endpoint - 代理到 Python 後端，帶有 Rate Limiting
+app.post('/api/auth/login', authLimiter, async (req, res) => {
+    // NOTE: 不記錄密碼等敏感資訊
+    console.log('[Backend] Login request received for user:', req.body?.username || 'unknown');
 
     const { username, password } = req.body;
 
@@ -42,28 +64,47 @@ app.post('/api/auth/login', (req, res) => {
         });
     }
 
-    const user = users.find(u => u.username === username && u.password === password);
+    // 嘗試代理到 Python 後端
+    try {
+        const axios = require('axios');
+        const formData = new URLSearchParams();
+        formData.append('username', username);
+        formData.append('password', password);
 
-    if (!user) {
-        return res.status(401).json({
-            detail: 'Incorrect username or password'
+        const response = await axios.post(`${PYTHON_API}/api/auth/login`, formData, {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
         });
+
+        console.log('[Backend] Login successful via Python backend for:', username);
+        return res.json(response.data);
+    } catch (pythonError) {
+        // Python 後端不可用或登入失敗，回退到 mock auth（僅開發環境）
+        if (ENABLE_MOCK_AUTH) {
+            console.log('[Backend] Python backend unavailable, using mock auth');
+            // Mock 認證邏輯（僅開發用）
+            if (username === 'admin@example.com' && password === 'admin') {
+                const tokenId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const expiresAt = Date.now() + TOKEN_EXPIRY_MS;
+                tokenStore.set(tokenId, { userId: '1', expiresAt });
+
+                return res.json({
+                    access_token: tokenId,
+                    refresh_token: `refresh_${tokenId}`,
+                    token_type: 'bearer'
+                });
+            }
+        }
+
+        // Python 後端回傳的錯誤
+        if (pythonError.response) {
+            return res.status(pythonError.response.status).json(pythonError.response.data);
+        }
+
+        return res.status(401).json({ detail: 'Authentication service unavailable' });
     }
-
-    // Generate mock tokens
-    const access_token = `mock_access_token_${user.id}_${Date.now()}`;
-    const refresh_token = `mock_refresh_token_${user.id}_${Date.now()}`;
-
-    console.log('[Backend] Login successful for user:', username);
-
-    res.json({
-        access_token,
-        refresh_token,
-        token_type: 'bearer'
-    });
 });
 
-// Verify token endpoint
+// Verify token endpoint - 帶有過期檢查
 app.get('/api/auth/verify', (req, res) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -71,11 +112,21 @@ app.get('/api/auth/verify', (req, res) => {
     }
 
     const token = authHeader.substring(7);
-    if (token.startsWith('mock_access_token_')) {
-        return res.json({ valid: true });
+
+    // 檢查 token 是否存在且未過期
+    const tokenData = tokenStore.get(token);
+    if (tokenData) {
+        if (Date.now() < tokenData.expiresAt) {
+            return res.json({ valid: true });
+        } else {
+            // Token 已過期，清除
+            tokenStore.delete(token);
+            return res.status(401).json({ detail: 'Token expired' });
+        }
     }
 
-    return res.status(401).json({ detail: 'Invalid token' });
+    // 嘗試代理到 Python 後端驗證
+    return createCrudProxy('/api/auth')(req, res);
 });
 
 // User profile endpoint
@@ -144,7 +195,7 @@ const { sendEmailNotification } = require('./mailService');
 // Proxy CRUD paths to Python FastAPI backend (port 8000)
 // ...
 
-['/itp', '/ncr', '/noi', '/itr', '/pqp', '/obs', '/contractors', '/settings', '/followup'].forEach(p => app.use('/api' + p, createCrudProxy('/api' + p)));
+['/itp', '/ncr', '/noi', '/itr', '/pqp', '/obs', '/contractors', '/settings', '/followup', '/users', '/roles', '/permissions'].forEach(p => app.use('/api' + p, createCrudProxy('/api' + p)));
 
 /**
  * 自動提醒邏輯：檢查 3 天後到期的案件

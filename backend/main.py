@@ -18,6 +18,7 @@ from sqlalchemy import text
 from fastapi import Request
 from fastapi.responses import JSONResponse
 import logging
+import os
 
 # Import Routers
 from routers import contractors as contractors_router
@@ -38,21 +39,37 @@ except Exception:
     pass  # index may already exist
 
 # Migration: Add unique indexes on reference/document number columns for each table
-def add_unique_index_if_not_exists(table: str, column: str):
+# NOTE: 使用白名單驗證防止 SQL Injection
+ALLOWED_INDEX_CONFIGS = {
+    ("noi", "referenceNo"),
+    ("itr", "documentNumber"),
+    ("ncr", "documentNumber"),
+    ("obs", "documentNumber"),
+    ("itp", "referenceNo"),
+    ("pqp", "pqpNo"),
+    ("followup", "issueNo"),
+}
+
+def add_unique_index_if_not_exists(table: str, column: str) -> None:
+    """
+    為指定表格欄位建立唯一索引
+    使用白名單驗證防止 SQL Injection
+    """
+    # 安全檢查：只允許預定義的表格和欄位組合
+    if (table, column) not in ALLOWED_INDEX_CONFIGS:
+        raise ValueError(f"Invalid table/column combination: {table}.{column}")
+    
     try:
         with engine.connect() as conn:
+            # 使用預定義的安全值，因為已通過白名單驗證
             conn.execute(text(f"CREATE UNIQUE INDEX IF NOT EXISTS ix_{table}_{column}_unique ON {table} ({column})"))
             conn.commit()
     except Exception:
         pass  # index may already exist or column has duplicates
 
-add_unique_index_if_not_exists("noi", "referenceNo")
-add_unique_index_if_not_exists("itr", "documentNumber")
-add_unique_index_if_not_exists("ncr", "documentNumber")
-add_unique_index_if_not_exists("obs", "documentNumber")
-add_unique_index_if_not_exists("itp", "referenceNo")
-add_unique_index_if_not_exists("pqp", "pqpNo")
-add_unique_index_if_not_exists("followup", "issueNo")
+# 建立索引
+for table, column in ALLOWED_INDEX_CONFIGS:
+    add_unique_index_if_not_exists(table, column)
 
 # Migration: Add missing columns to ncr table if not exists
 try:
@@ -268,27 +285,34 @@ app = FastAPI()
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    # NOTE: 僅記錄內部錯誤詳情，不對外暴露
     logger.error(f"Global Exception: {exc}", exc_info=True)
     return JSONResponse(
         status_code=500,
-        content={"detail": f"Internal Server Error: {str(exc)}"},
+        content={"detail": "Internal Server Error"},
     )
 
-# Configuration
+# Configuration - CORS 安全設定
+# NOTE: 生產環境應明確指定允許的來源
+allowed_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # Include Routers
 app.include_router(contractors_router.router)
 
-SECRET_KEY = "your-secret-key-keep-it-secret"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# Security Configuration - 從環境變數載入（os 已透過 dotenv 匯入）
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    logger.warning("SECRET_KEY not set in environment, using default (UNSAFE for production!)")
+    SECRET_KEY = "qualitas-dev-secret-key-change-in-production"
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -491,8 +515,8 @@ def seed_initial_data():
 
 seed_initial_data()
 
-# Include API router (contains /api/auth/login, /api/users, /api/roles, etc.)
-app.include_router(api)
+# NOTE: Router 已在上方 line 448 掛載，此處註解避免重複掛載
+# app.include_router(api)
 
 @app.get("/")
 def read_root():

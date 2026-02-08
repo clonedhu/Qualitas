@@ -35,8 +35,14 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      // 排除登入相關請求，避免登入失敗時觸發重複重導向
+      const isAuthEndpoint = error.config?.url?.includes('/auth/');
+      const isAlreadyOnLogin = window.location.pathname === '/login';
+
+      if (!isAuthEndpoint && !isAlreadyOnLogin) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
