@@ -84,6 +84,7 @@ const IAM: React.FC = () => {
     password: '',
     confirmPassword: '',
   });
+  const [resetPassword, setResetPassword] = useState(false);
 
   const [roleForm, setRoleForm] = useState({
     name: '',
@@ -129,18 +130,20 @@ const IAM: React.FC = () => {
 
   const handleAddUser = () => {
     setEditingUser(null);
+    setResetPassword(false);
     setUserForm({ name: '', email: '', role: 'user', status: 'active', password: '', confirmPassword: '' });
     setIsUserModalOpen(true);
   };
 
   const handleEditUser = (user: User) => {
     setEditingUser(user);
+    setResetPassword(false);
     setUserForm({
       name: user.name,
       email: user.email,
       role: user.role,
       status: user.status,
-      password: '', // 編輯時不重設密碼
+      password: '',
       confirmPassword: '',
     });
     setIsUserModalOpen(true);
@@ -152,8 +155,9 @@ const IAM: React.FC = () => {
       const selectedRole = roles.find(r => r.name === userForm.role);
       const roleId = selectedRole ? parseInt(selectedRole.id) : 0; // Default or handle error
 
-      // 密碼驗證（僅新增時必填）
-      if (!editingUser) {
+      // 密碼驗證：新增時必填，編輯時若勾選重設密碼則必填
+      const needsPassword = !editingUser || resetPassword;
+      if (needsPassword) {
         if (!userForm.password || userForm.password.length < 8) {
           handleError(new Error('Password must be at least 8 characters'), t('iam.passwordTooShort') || 'Password must be at least 8 characters');
           return;
@@ -169,7 +173,7 @@ const IAM: React.FC = () => {
         email: userForm.email,
         role_id: roleId,
         is_active: userForm.status === 'active',
-        password: editingUser ? undefined : userForm.password, // 編輯時不更新密碼
+        password: needsPassword ? userForm.password : undefined,
       };
 
       if (editingUser) {
@@ -492,8 +496,26 @@ const IAM: React.FC = () => {
                 <option value="inactive">{t('iam.status.inactive')}</option>
               </select>
             </div>
-            {/* 密碼欄位 - 僅新增時顯示 */}
-            {!editingUser && (
+            {/* 密碼欄位 - 新增時必填，編輯時可選重設 */}
+            {editingUser && (
+              <div className={styles.formGroup}>
+                <label className={styles.checkboxLabel} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontWeight: 500 }}>
+                  <input
+                    type="checkbox"
+                    checked={resetPassword}
+                    onChange={(e) => {
+                      setResetPassword(e.target.checked);
+                      if (!e.target.checked) {
+                        setUserForm({ ...userForm, password: '', confirmPassword: '' });
+                      }
+                    }}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span>{t('iam.resetPassword') || 'Reset Password'}</span>
+                </label>
+              </div>
+            )}
+            {(!editingUser || resetPassword) && (
               <>
                 <div className={styles.formGroup}>
                   <label>{t('iam.password')}</label>

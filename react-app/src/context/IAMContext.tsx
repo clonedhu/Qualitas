@@ -93,12 +93,12 @@ export const IAMProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             const roleObj = roles.find(r => r.name === user.role);
             const roleId = roleObj ? Number(roleObj.id) : 2; // Default to user role if not found
 
-            // NOTE: 密碼應由使用者表單提供，這裡使用臨時預設值
-            // TODO: 修改 UI 表單以收集密碼欄位
+            // NOTE: IAM.tsx 使用直接 API 調用處理密碼，此函式為備用
+            // 此函式產生臨時密碼，適用於自動化或批次建立使用者的情境
             const payload: apiService.CreateUserPayload = {
                 username: user.name,
                 email: user.email,
-                password: `User_${Date.now()}`, // 臨時密碼，應由表單提供
+                password: `User_${Date.now()}`, // 臨時密碼
                 role_id: roleId,
                 is_active: user.status === 'active',
             };

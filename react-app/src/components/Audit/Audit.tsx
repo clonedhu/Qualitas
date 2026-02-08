@@ -165,6 +165,14 @@ const Audit: React.FC = () => {
         setIsEditModalOpen(true);
     };
 
+    const handleReport = (id: string) => {
+        // TODO: Navigate to Audit Report page or open report modal
+        console.log('Open report for audit:', id);
+        // For now, you can navigate to a report page:
+        // navigate(`/audit/${id}/report`);
+        alert(`Audit Report for ID: ${id}`);
+    };
+
     const handleDeleteClick = (id: string) => {
         setDeleteModal({ isOpen: true, id, message: t('audit.confirmDelete') || 'Are you sure you want to delete this audit?' });
     };
@@ -353,7 +361,7 @@ const Audit: React.FC = () => {
                             {t('audit.addNew')}
                         </button>
                     }
-                    columns={createColumns(handleEdit, handleDeleteClick, t, activeContractors)}
+                    columns={createColumns(handleEdit, handleDeleteClick, handleReport, t, activeContractors)}
                     data={tableBaseData}
                     searchKey=""
                     getRowClassName={() => styles.normalRow}
