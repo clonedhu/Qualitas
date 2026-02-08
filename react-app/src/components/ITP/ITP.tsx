@@ -5,11 +5,13 @@ import { useContractors } from '../../context/ContractorsContext';
 import { useITP, ITPItem } from '../../context/ITPContext';
 import { useNOI } from '../../context/NOIContext';
 import { checkITPReferences, generateDeleteMessage } from '../../utils/cascadeDelete';
+import { getErrorMessage } from '../../utils/errorUtils';
 import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './ITP.module.css';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
 import { ITPDetailModal, ITPDetailsViewModal } from './ITPModals';
+import { BackButton } from '@/components/ui/BackButton';
 
 const ITP: React.FC = () => {
   const navigate = useNavigate();
@@ -117,8 +119,8 @@ const ITP: React.FC = () => {
   };
 
   const handleAddNew = async () => {
-    const activeContactors = getActiveContractors();
-    const defaultVendor = activeContactors.length > 0 ? activeContactors[0].name : 'N/A';
+    const activeContractors = getActiveContractors();
+    const defaultVendor = activeContractors.length > 0 ? activeContractors[0].name : 'N/A';
     try {
       const newItem = await addITP({
         vendor: defaultVendor,
@@ -131,9 +133,8 @@ const ITP: React.FC = () => {
       } as Omit<ITPItem, 'id'>);
       setCurrentItpId(newItem.id);
       setIsEditModalOpen(true);
-    } catch (err: any) {
-      const detail = err.response?.data?.detail;
-      const msg = typeof detail === 'string' ? detail : Array.isArray(detail) ? detail.map((e: any) => e?.msg || JSON.stringify(e)).join(', ') : err.message || t('itp.addError');
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err, t('itp.addError'));
       alert(t('itp.addError') + '：' + msg);
     }
   };
@@ -168,9 +169,7 @@ const ITP: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
-            ← {t('common.back') || 'Back'}
-          </button>
+          <BackButton />
           <h1>{t('itp.title')}</h1>
         </div>
         <div className={styles.headerRight}>
@@ -344,7 +343,7 @@ const ITP: React.FC = () => {
                     className={styles.addNewButton}
                     onClick={handleAddNew}
                   >
-                    + {t('itp.addNew')}
+                    {t('itp.addNew')}
                   </button>
                 </div>
               }

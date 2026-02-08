@@ -322,13 +322,13 @@ const FollowUpIssue: React.FC = () => {
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           <BackButton />
-          <h1>Follow up Issue</h1>
+          <h1>{t('followup.title')}</h1>
         </div>
         <div className={styles.headerRight}>
           <input
             type="text"
             className={styles.searchInput}
-            placeholder="Search issue no..."
+            placeholder={t('common.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -337,7 +337,7 @@ const FollowUpIssue: React.FC = () => {
 
       <div className={styles.summaryRow}>
         <div className={styles.summarySection}>
-          <h2 className={styles.summaryTitle}>狀態統計</h2>
+          <h2 className={styles.summaryTitle}>{t('followup.statsTitle')}</h2>
           <div className={styles.statusStatsGrid}>
             <div className={styles.statItem}>
               <div className={`${styles.statIcon} ${styles.blueIcon}`}>
@@ -347,7 +347,7 @@ const FollowUpIssue: React.FC = () => {
                 </svg>
               </div>
               <div className={styles.statContent}>
-                <div className={styles.statLabel}>Open</div>
+                <div className={styles.statLabel}>{t('status.open')}</div>
                 <div className={styles.statValue}>{statistics.opening}</div>
               </div>
             </div>
@@ -358,7 +358,7 @@ const FollowUpIssue: React.FC = () => {
                 </svg>
               </div>
               <div className={styles.statContent}>
-                <div className={styles.statLabel}>Closed</div>
+                <div className={styles.statLabel}>{t('status.closed')}</div>
                 <div className={styles.statValue}>{statistics.closed}</div>
               </div>
             </div>
@@ -370,7 +370,7 @@ const FollowUpIssue: React.FC = () => {
                 </svg>
               </div>
               <div className={styles.statContent}>
-                <div className={styles.statLabel}>Total</div>
+                <div className={styles.statLabel}>{t('common.total')}</div>
                 <div className={styles.statValue}>{statistics.total}</div>
               </div>
             </div>
@@ -381,7 +381,7 @@ const FollowUpIssue: React.FC = () => {
                 </svg>
               </div>
               <div className={styles.statContent}>
-                <div className={styles.statLabel}>Open Rate</div>
+                <div className={styles.statLabel}>{t('noi.stats.openRate')}</div>
                 <div className={styles.statValue}>{statistics.opening} ({statistics.openRate}%)</div>
               </div>
             </div>
@@ -445,7 +445,7 @@ const FollowUpIssue: React.FC = () => {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className={styles.pieChartEmpty}>無資料</div>
+              <div className={styles.pieChartEmpty}>{t('common.noData')}</div>
             )}
           </div>
         </div>
@@ -453,19 +453,19 @@ const FollowUpIssue: React.FC = () => {
 
       <div className={styles.content}>
         <DataTable
-          title="問題列表"
+          title={t('followup.listTitle')}
           actions={
             <button
               className={styles.addNewButton}
               onClick={handleAddNew}
             >
-              + 新增問題
+              {t('followup.addNew')}
             </button>
           }
-          columns={createColumns(handleEdit, handleViewDetails, handleDeleteClick, navigate)}
+          columns={createColumns(handleEdit, handleViewDetails, handleDeleteClick, navigate, t)}
           data={filteredList}
           searchKey=""
-          searchPlaceholder="Search issue no..."
+          searchPlaceholder={t('common.search')}
           getRowClassName={(row) =>
             (row.status || '').toLowerCase() === 'closed'
               ? 'bg-emerald-100/50 text-gray-500 hover:bg-emerald-200/50'
@@ -474,10 +474,10 @@ const FollowUpIssue: React.FC = () => {
         />
       </div>
 
-      {isEditModalOpen && currentIssueId && (
+      {isEditModalOpen && (
         <FollowUpIssueDetailModal
-          issueId={currentIssueId}
-          existingItem={issues.find(item => item.id === currentIssueId)}
+          issueId={currentIssueId || 'new'}
+          existingItem={currentIssueId ? issues.find(item => item.id === currentIssueId) : undefined}
           onSave={handleSaveIssueDetails}
           onClose={() => {
             setIsEditModalOpen(false);
@@ -499,12 +499,12 @@ const FollowUpIssue: React.FC = () => {
 
       <ConfirmModal
         isOpen={deleteModal.isOpen}
-        title="確認刪除"
-        message={deleteModal.message || '確定要刪除此問題嗎？'}
+        title={t('common.confirmDeleteTitle')}
+        message={deleteModal.message || t('common.confirmDelete')}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteModal({ isOpen: false, id: null, message: '' })}
-        confirmText="Delete"
-        cancelText="Cancel"
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
       />
     </div>
   );
@@ -570,16 +570,16 @@ const FollowUpIssueDetailModal: React.FC<FollowUpIssueDetailModalProps> = ({ iss
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
-          <h2>{existingItem ? '編輯 Follow Up Issue' : '新增 Follow Up Issue'}</h2>
+          <h2>{existingItem ? t('followup.editTitle') : t('followup.addTitle')}</h2>
           <button className={styles.closeButton} onClick={onClose}>×</button>
         </div>
         <div className={styles.modalBody}>
           <div className={styles.formSections}>
             <div className={styles.formSection}>
-              <h3 className={styles.sectionTitle}>問題資訊</h3>
+              <h3 className={styles.sectionTitle}>{t('common.baseInfo')}</h3>
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
-                  <label>Reference no.</label>
+                  <label>{t('followup.issueNo')}</label>
                   <input
                     type="text"
                     className={styles.formInput}
@@ -590,7 +590,7 @@ const FollowUpIssueDetailModal: React.FC<FollowUpIssueDetailModalProps> = ({ iss
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Status</label>
+                  <label>{t('followup.status')}</label>
                   <select
                     className={styles.formSelect}
                     value={formData.status || 'Open'}
@@ -601,7 +601,7 @@ const FollowUpIssueDetailModal: React.FC<FollowUpIssueDetailModalProps> = ({ iss
                   </select>
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Assigned To</label>
+                  <label>{t('followup.assignedTo')}</label>
                   <input
                     type="text"
                     className={styles.formInput}
@@ -610,26 +610,26 @@ const FollowUpIssueDetailModal: React.FC<FollowUpIssueDetailModalProps> = ({ iss
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Vendor / Contractor</label>
+                  <label>{t('followup.vendor')}</label>
                   <select
                     className={styles.formSelect}
                     value={formData.vendor || ''}
                     onChange={(e) => handleFieldChange('vendor', e.target.value)}
                   >
-                    <option value="">-- {t('common.select') || 'Select'} --</option>
+                    <option value="">-- {t('common.selectContractor')} --</option>
                     {contractors.map(c => (
                       <option key={c.id} value={c.name}>{c.name}</option>
                     ))}
                   </select>
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Source Module</label>
+                  <label>{t('followup.sourceModule')}</label>
                   <select
                     className={styles.formSelect}
                     value={formData.sourceModule || ''}
                     onChange={(e) => handleFieldChange('sourceModule', e.target.value)}
                   >
-                    <option value="">-- {t('common.select') || 'Select'} --</option>
+                    <option value="">-- {t('common.selectPlaceholder')} --</option>
                     <option value="NCR">NCR</option>
                     <option value="OBS">OBS</option>
                     <option value="NOI">NOI</option>
@@ -640,7 +640,7 @@ const FollowUpIssueDetailModal: React.FC<FollowUpIssueDetailModalProps> = ({ iss
                   </select>
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Source Reference No</label>
+                  <label>{t('followup.sourceRef')}</label>
                   <input
                     type="text"
                     className={styles.formInput}
@@ -650,9 +650,15 @@ const FollowUpIssueDetailModal: React.FC<FollowUpIssueDetailModalProps> = ({ iss
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Created Date</label>
+                  <label>{t('followup.createdDate')}</label>
                   <input
-                    type="date"
+                    type={existingItem?.createdAt ? 'date' : 'text'}
+                    placeholder="mm/dd/yyyy"
+                    lang="en"
+                    onFocus={(e) => (e.target.type = 'date')}
+                    onBlur={(e) => {
+                      if (!e.target.value) e.target.type = 'text';
+                    }}
                     className={styles.formInput}
                     value={existingItem?.createdAt || ''}
                     readOnly
@@ -660,16 +666,22 @@ const FollowUpIssueDetailModal: React.FC<FollowUpIssueDetailModalProps> = ({ iss
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Due Date</label>
+                  <label>{t('followup.dueDate')}</label>
                   <input
-                    type="date"
+                    type={formData.dueDate ? 'date' : 'text'}
+                    placeholder="mm/dd/yyyy"
+                    lang="en"
+                    onFocus={(e) => (e.target.type = 'date')}
+                    onBlur={(e) => {
+                      if (!e.target.value) e.target.type = 'text';
+                    }}
                     className={styles.formInput}
                     value={formData.dueDate || ''}
                     onChange={(e) => handleFieldChange('dueDate', e.target.value)}
                   />
                 </div>
                 <div className={styles.formGroupFull}>
-                  <label>Description</label>
+                  <label>{t('followup.description')}</label>
                   <textarea
                     className={styles.formTextarea}
                     value={formData.description || ''}
@@ -679,7 +691,7 @@ const FollowUpIssueDetailModal: React.FC<FollowUpIssueDetailModalProps> = ({ iss
                 </div>
                 <div className={styles.formGroupFull}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <label>Action</label>
+                    <label>{t('followup.action')}</label>
                     <button
                       type="button"
                       onClick={handleInsertDate}
@@ -700,7 +712,7 @@ const FollowUpIssueDetailModal: React.FC<FollowUpIssueDetailModalProps> = ({ iss
                         e.currentTarget.style.backgroundColor = '#4CAF50';
                       }}
                     >
-                      Date
+                      {t('common.addDate')}
                     </button>
                   </div>
                   <textarea
@@ -717,10 +729,10 @@ const FollowUpIssueDetailModal: React.FC<FollowUpIssueDetailModalProps> = ({ iss
         </div>
         <div className={styles.modalActions}>
           <button className={styles.saveButton} onClick={handleSave}>
-            保存
+            {t('common.save')}
           </button>
           <button className={styles.cancelButton} onClick={onClose}>
-            取消
+            {t('common.cancel')}
           </button>
         </div>
       </div>
@@ -735,6 +747,7 @@ interface FollowUpIssueDetailsViewModalProps {
 }
 
 const FollowUpIssueDetailsViewModal: React.FC<FollowUpIssueDetailsViewModalProps> = ({ issueId, issueItem, onClose }) => {
+  const { t } = useLanguage();
   const handlePrint = () => {
     window.print();
   };
@@ -747,40 +760,40 @@ const FollowUpIssueDetailsViewModal: React.FC<FollowUpIssueDetailsViewModalProps
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
-          <h2>Follow Up Issue Details</h2>
+          <h2>{t('followup.detailsTitle')}</h2>
           <button className={styles.closeButton} onClick={onClose}>×</button>
         </div>
         <div className={styles.modalBody}>
           <div className={styles.formSections}>
             <div className={styles.formSection}>
-              <h3 className={styles.sectionTitle}>問題資訊</h3>
+              <h3 className={styles.sectionTitle}>{t('common.baseInfo')}</h3>
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
-                  <label>Reference no.</label>
+                  <label>{t('followup.issueNo')}</label>
                   <div className={styles.readOnlyField}>{issueItem.issueNo || '-'}</div>
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Status</label>
+                  <label>{t('followup.status')}</label>
                   <div className={styles.readOnlyField}>{issueItem.status || '-'}</div>
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Assigned To</label>
+                  <label>{t('followup.assignedTo')}</label>
                   <div className={styles.readOnlyField}>{issueItem.assignedTo || '-'}</div>
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Created Date</label>
+                  <label>{t('followup.createdDate')}</label>
                   <div className={styles.readOnlyField}>{issueItem.createdAt || '-'}</div>
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Due Date</label>
+                  <label>{t('followup.dueDate')}</label>
                   <div className={styles.readOnlyField}>{issueItem.dueDate || '-'}</div>
                 </div>
                 <div className={styles.formGroupFull}>
-                  <label>Description</label>
+                  <label>{t('followup.description')}</label>
                   <div className={styles.readOnlyField}>{issueItem.description || '-'}</div>
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Action</label>
+                  <label>{t('followup.action')}</label>
                   <div className={styles.readOnlyField}>{issueItem.action || '-'}</div>
                 </div>
               </div>
@@ -789,10 +802,10 @@ const FollowUpIssueDetailsViewModal: React.FC<FollowUpIssueDetailsViewModalProps
         </div>
         <div className={styles.modalActions}>
           <button className={styles.printButton} onClick={handlePrint}>
-            Print
+            {t('common.print')}
           </button>
           <button className={styles.cancelButton} onClick={onClose}>
-            Close
+            {t('common.close')}
           </button>
         </div>
       </div>

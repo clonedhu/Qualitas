@@ -11,6 +11,7 @@ import styles from './NCR.module.css';
 import { NCRDetailModal, NCRDetailsViewModal, NCRDetailData } from './NCRModals';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
+import { BackButton } from '@/components/ui/BackButton';
 
 const NCR: React.FC = () => {
   const navigate = useNavigate();
@@ -64,8 +65,8 @@ const NCR: React.FC = () => {
     };
 
     ncrList.forEach((item) => {
-      const status = item.status.toLowerCase();
-      if (status === 'open') {
+      const status = (item.status || '').toLowerCase();
+      if (status === 'open' || status === 'opening') {
         statusCounts.opening++;
       } else if (status === 'closed') {
         statusCounts.closed++;
@@ -129,6 +130,9 @@ const NCR: React.FC = () => {
         permanentProductDeviation: details.permanentProductDeviation,
         impactToOM: details.impactToOM,
         noiNumber: details.noiNumber,  // 連結到觸發此 NCR 的 NOI
+        defectPhotos: details.defectPhotos,
+        improvementPhotos: details.improvementPhotos,
+        attachments: details.attachments,
       };
 
       if (existingItem) {
@@ -171,10 +175,8 @@ const NCR: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
-            ← {t('common.back') || 'Back'}
-          </button>
-          <h1>{t('home.ncr.description') || 'NCR'}</h1>
+          <BackButton />
+          <h1>{t('ncr.title') || t('home.ncr.description') || 'NCR'}</h1>
         </div>
         <div className={styles.headerRight}>
           <input

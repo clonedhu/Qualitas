@@ -7,6 +7,7 @@ import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns, FATItem } from './columns';
 import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './FAT.module.css';
+import { BackButton } from '@/components/ui/BackButton';
 
 // ... (keep constants and interfaces that are NOT FATItem if any, or move them)
 // FATDetailItem is used in FAT.tsx. Keep it.
@@ -163,8 +164,8 @@ const FAT: React.FC = () => {
           )
         );
       } else {
-        const activeContactors = getActiveContractors();
-        const defaultSupplier = activeContactors.length > 0 ? activeContactors[0].name : '';
+        const activeContractors = getActiveContractors();
+        const defaultSupplier = activeContractors.length > 0 ? activeContractors[0].name : '';
         const newItem: FATItem = {
           id: currentFatId,
           equipment: updates.equipment || '',
@@ -238,14 +239,22 @@ const FAT: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
-            ← {t('common.back')}
-          </button>
+          <BackButton />
+          <h1>{t('fat.title') || t('home.fat.description') || 'FAT'}</h1>
+        </div>
+        <div className={styles.headerRight}>
+          <input
+            type="text"
+            className={styles.searchInput}
+            placeholder={t('fat.searchPlaceholder')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
 
       <div className={styles.summarySection}>
-        <h2 className={styles.summaryTitle}>{t('common.filter') || '統計'}</h2>
+        <h2 className={styles.summaryTitle}>{t('fat.statsTitle') || '統計'}</h2>
         <div className={styles.statsContainer}>
           <div className={styles.statusStatsGrid}>
             <div className={styles.statItem}>
@@ -295,21 +304,13 @@ const FAT: React.FC = () => {
               className={styles.addNewButton}
               onClick={handleAddNew}
             >
-              + {t('fat.addNew')}
+              {t('fat.addNew')}
             </button>
-          }
-          topRightContent={
-            <input
-              type="text"
-              className={styles.searchInput}
-              placeholder={t('fat.searchPlaceholder')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
           }
           columns={createColumns(handleEdit, handleViewDetails, handleAddDetails, handleDeleteClick, t, getActiveContractors())}
           data={filteredFatList}
           searchKey=""
+          searchPlaceholder={t('fat.searchPlaceholder')}
           getRowId={(row) => row.id}
         />
       </div>
@@ -550,7 +551,7 @@ const FATDetailModal: React.FC<FATDetailModalProps> = ({ fatId, details, onSave,
           </div>
           <div className={styles.modalActions}>
             <button className={styles.addRowButton} onClick={handleAddRow}>
-              + {t('fat.addRow')}
+              {t('fat.addRow')}
             </button>
             <div className={styles.actionButtons}>
               <button className={styles.saveButton} onClick={handleSave}>
@@ -656,7 +657,13 @@ const FATEditModal: React.FC<FATEditModalProps> = ({ fatId, existingItem, onSave
                 <div className={styles.formGroup}>
                   <label>{t('fat.startDate')}</label>
                   <input
-                    type="date"
+                    type={formData.startDate ? 'date' : 'text'}
+                    placeholder="mm/dd/yyyy"
+                    lang="en"
+                    onFocus={(e) => (e.target.type = 'date')}
+                    onBlur={(e) => {
+                      if (!e.target.value) e.target.type = 'text';
+                    }}
                     className={styles.formInput}
                     value={formData.startDate || ''}
                     onChange={(e) => handleFieldChange('startDate', e.target.value)}
@@ -665,7 +672,13 @@ const FATEditModal: React.FC<FATEditModalProps> = ({ fatId, existingItem, onSave
                 <div className={styles.formGroup}>
                   <label>{t('fat.endDate')}</label>
                   <input
-                    type="date"
+                    type={formData.endDate ? 'date' : 'text'}
+                    placeholder="mm/dd/yyyy"
+                    lang="en"
+                    onFocus={(e) => (e.target.type = 'date')}
+                    onBlur={(e) => {
+                      if (!e.target.value) e.target.type = 'text';
+                    }}
                     className={styles.formInput}
                     value={formData.endDate || ''}
                     onChange={(e) => handleFieldChange('endDate', e.target.value)}
@@ -701,7 +714,13 @@ const FATEditModal: React.FC<FATEditModalProps> = ({ fatId, existingItem, onSave
                 <div className={styles.formGroup}>
                   <label>{t('fat.moveInDate')}</label>
                   <input
-                    type="date"
+                    type={formData.moveInDate ? 'date' : 'text'}
+                    placeholder="mm/dd/yyyy"
+                    lang="en"
+                    onFocus={(e) => (e.target.type = 'date')}
+                    onBlur={(e) => {
+                      if (!e.target.value) e.target.type = 'text';
+                    }}
                     className={styles.formInput}
                     value={formData.moveInDate || ''}
                     onChange={(e) => handleFieldChange('moveInDate', e.target.value)}

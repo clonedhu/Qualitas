@@ -12,7 +12,7 @@ const Home = () => {
   const modules = useMemo(() => [
     {
       id: 'dashboard',
-      title: language === 'en' ? 'Dashboard' : '儀表板',
+      title: t('dashboard.title'),
       titleEn: 'Dashboard',
       description: t('home.dashboard.description'),
       path: '/dashboard',
@@ -30,8 +30,8 @@ const Home = () => {
     },
     {
       id: 'followup',
-      title: language === 'en' ? 'Follow up Issue' : '後續問題追蹤',
-      titleEn: 'Follow up Issue',
+      title: t('followup.title'), // Using title key
+      titleEn: 'Follow Up Issues',
       description: t('home.followup.description'),
       path: '/followup',
       iconGradient: 'linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%)',
@@ -48,7 +48,7 @@ const Home = () => {
     },
     {
       id: 'itp',
-      title: language === 'en' ? 'ITP & Checklist' : 'ITP & Checklist',
+      title: 'ITP & Checklist',
       titleEn: 'ITP & Checklist',
       description: t('home.itp.description'),
       path: '/itp',
@@ -111,7 +111,7 @@ const Home = () => {
     },
     {
       id: 'audit',
-      title: language === 'en' ? 'Audit' : '稽核',
+      title: t('audit.title'), // Audit usually uses description or module name
       titleEn: 'Audit',
       description: t('home.audit.description'),
       path: '/audit',
@@ -120,7 +120,7 @@ const Home = () => {
     },
     {
       id: 'contractors',
-      title: language === 'en' ? 'Contractors' : '承包商管理',
+      title: t('contractors.title'),
       titleEn: 'Contractors',
       description: t('home.contractors.description'),
       path: '/contractors',
@@ -129,7 +129,7 @@ const Home = () => {
     },
     {
       id: 'km',
-      title: language === 'en' ? 'Knowledge Management' : '知識管理',
+      title: t('km.title'),
       titleEn: 'KM',
       description: t('home.km.description'),
       path: '/km',
@@ -138,7 +138,7 @@ const Home = () => {
     },
     {
       id: 'iam',
-      title: language === 'en' ? 'IAM' : '身份與權限管理',
+      title: 'IAM',
       titleEn: 'IAM',
       description: t('home.iam.description'),
       path: '/iam',
@@ -147,16 +147,16 @@ const Home = () => {
     },
     {
       id: 'document-naming-rules',
-      title: language === 'en' ? 'Document Naming Rules' : '文件命名規則',
+      title: t('namingRules.title'),
       titleEn: 'Document Naming Rules',
-      description: language === 'en' ? 'Configure document reference number format per module' : '設定各模組文件編號格式',
+      description: t('namingRules.subtitle'),
       path: '/document-naming-rules',
       iconGradient: 'linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)',
       icon: '📄',
     },
     {
       id: 'owner-performance',
-      title: language === 'en' ? 'Owner Performance' : '業主績效',
+      title: t('home.ownerPerformance.description'), // Using description as title for consistency with others if no specific title key
       titleEn: 'Owner Performance',
       description: t('home.ownerPerformance.description'),
       path: '/owner-performance',
@@ -170,7 +170,7 @@ const Home = () => {
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           <h1 className={styles.title}>Qualitas</h1>
-          <p className={styles.welcomeText}>{t('home.welcome')}, {user?.name || t('home.adminUser')}!</p>
+          <p className={styles.welcomeText}>{t('home.welcome')}, {user?.full_name || user?.username || t('home.adminUser')}!</p>
         </div>
         <button className={styles.logoutButton} onClick={logout}>
           {t('home.logout')}

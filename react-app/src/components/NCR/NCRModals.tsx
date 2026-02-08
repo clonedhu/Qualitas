@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useContractors } from '../../context/ContractorsContext';
 import { useNOI } from '../../context/NOIContext';
+import { useITR } from '../../context/ITRContext';
 import { useNCR, NCRItem } from '../../context/NCRContext';
+import FileAttachment from '../Shared/FileAttachment';
 import styles from './NCR.module.css';
 
 export interface NCRDetailData {
@@ -37,6 +39,8 @@ export interface NCRDetailData {
     projectQualityManager: string;
     defectPhotos: string[];
     improvementPhotos: string[];
+    attachments: string[];
+    dueDate: string;
 }
 
 export interface NCRDetailModalProps {
@@ -53,6 +57,7 @@ export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingD
     const { getActiveContractors } = useContractors();
     const { ncrList: contextNcrList } = useNCR();
     const { getNOIList } = useNOI();
+    const { itrList } = useITR();
 
     // Use context list if available, otherwise use prop
     const ncrList = contextNcrList.length > 0 ? contextNcrList : propNcrList;
@@ -95,6 +100,8 @@ export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingD
                 projectQualityManager: '',
                 defectPhotos: existingItem.defectPhotos || [],
                 improvementPhotos: existingItem.improvementPhotos || [],
+                attachments: existingItem.attachments || [],
+                dueDate: (existingItem as any).dueDate || '',
             };
         }
         // 新項目：ncrNumber 留空，由後端自動產生
@@ -130,6 +137,8 @@ export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingD
             projectQualityManager: '',
             defectPhotos: [],
             improvementPhotos: [],
+            attachments: [],
+            dueDate: '',
         };
     };
 
@@ -186,6 +195,34 @@ export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingD
         e.target.value = '';
     };
 
+    const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files) {
+            const fileArray = Array.from(files);
+            fileArray.forEach((file) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const result = reader.result as string;
+                    setFormData(prev => ({
+                        ...prev,
+                        attachments: [...prev.attachments, result]
+                    }));
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        e.target.value = '';
+    };
+
+    const handleRemoveAttachment = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            attachments: prev.attachments.filter((_, i) => i !== index)
+        }));
+    };
+
+
+
     const handleRemovePhoto = (index: number, photoType: 'defect' | 'improvement') => {
         if (photoType === 'defect') {
             setFormData(prev => ({
@@ -231,12 +268,18 @@ export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingD
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>{t('ncr.itrNo')}</label>
-                                    <input
-                                        type="text"
-                                        className={styles.formInput}
+                                    <select
+                                        className={styles.formSelect}
                                         value={formData.itrNumber}
                                         onChange={(e) => handleFieldChange('itrNumber', e.target.value)}
-                                    />
+                                    >
+                                        <option value="">Select ITR No.</option>
+                                        {itrList.map((itr) => (
+                                            <option key={itr.id} value={itr.documentNumber}>
+                                                {itr.documentNumber}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>{t('obs.subject')}</label>
@@ -250,10 +293,31 @@ export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingD
                                 <div className={styles.formGroup}>
                                     <label>{t('ncr.raiseDate')}</label>
                                     <input
-                                        type="date"
+                                        type={formData.raiseDate ? 'date' : 'text'}
+                                        placeholder="mm/dd/yyyy"
+                                        lang="en"
+                                        onFocus={(e) => (e.target.type = 'date')}
+                                        onBlur={(e) => {
+                                            if (!e.target.value) e.target.type = 'text';
+                                        }}
                                         className={styles.formInput}
                                         value={formData.raiseDate}
                                         onChange={(e) => handleFieldChange('raiseDate', e.target.value)}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>{t('common.dueDate')}</label>
+                                    <input
+                                        type={formData.dueDate ? 'date' : 'text'}
+                                        placeholder="mm/dd/yyyy"
+                                        lang="en"
+                                        onFocus={(e) => (e.target.type = 'date')}
+                                        onBlur={(e) => {
+                                            if (!e.target.value) e.target.type = 'text';
+                                        }}
+                                        className={styles.formInput}
+                                        value={formData.dueDate}
+                                        onChange={(e) => handleFieldChange('dueDate', e.target.value)}
                                     />
                                 </div>
                                 <div className={styles.formGroup}>
@@ -386,6 +450,16 @@ export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingD
                                 </div>
                             </div>
                         </div>
+
+
+                        {/* Attachments */}
+                        {/* Attachments */}
+                        <FileAttachment
+                            attachments={formData.attachments}
+                            onUpload={handleAttachmentUpload}
+                            onRemove={handleRemoveAttachment}
+                            id="ncr"
+                        />
 
                         {/* {t('obs.sectionPersonnelLocation')} */}
                         <div className={styles.formSection}>
@@ -663,6 +737,7 @@ export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingD
                                     <label className={styles.optionalLabel}>{t('obs.closeoutDate')}</label>
                                     <input
                                         type="date"
+                                        lang="en"
                                         className={styles.formInput}
                                         value={formData.closeoutDate}
                                         onChange={(e) => handleFieldChange('closeoutDate', e.target.value)}
@@ -735,9 +810,9 @@ export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingD
                             {t('common.cancel')}
                         </button>
                     </div>
-                </div>
-            </div>
-        </div>
+                </div >
+            </div >
+        </div >
     );
 };
 
@@ -783,6 +858,8 @@ export const NCRDetailsViewModal: React.FC<NCRDetailsViewModalProps> = ({ ncrId,
         projectQualityManager: ncrDetailData?.projectQualityManager || '',
         defectPhotos: ncrDetailData?.defectPhotos || ncrItem?.defectPhotos || [],
         improvementPhotos: ncrDetailData?.improvementPhotos || ncrItem?.improvementPhotos || [],
+        attachments: ncrDetailData?.attachments || ncrItem?.attachments || [],
+        dueDate: ncrDetailData?.dueDate || (ncrItem as any)?.dueDate || '',
     };
 
     const handlePrint = () => {
@@ -798,6 +875,13 @@ export const NCRDetailsViewModal: React.FC<NCRDetailsViewModalProps> = ({ ncrId,
                 </div>
                 <div className={styles.modalBody}>
                     <div className={styles.formSections}>
+                        <FileAttachment
+                            attachments={displayData.attachments || []}
+                            onUpload={() => { }} // Read-only
+                            onRemove={() => { }} // Read-only
+                            id="ncr-view"
+                            readOnly={true}
+                        />
                         {/* 不符合項目資訊 */}
                         <div className={styles.formSection}>
                             <h3 className={styles.sectionTitle}>{t('obs.sectionInfo')}</h3>

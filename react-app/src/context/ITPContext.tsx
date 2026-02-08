@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useCallback, ReactNode, useEffect } from 'react';
 import api from '../services/api';
+import { parseJsonFields } from '../utils/normalizeApiItem';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 
 export interface ITPItem {
@@ -14,6 +15,13 @@ export interface ITPItem {
   submissionDate?: string;
   hasDetails?: boolean;
   detail_data?: string;
+  attachments?: string[];
+  dueDate?: string;
+}
+
+function normalizeItem(item: unknown): ITPItem {
+  const record = (typeof item === 'object' && item !== null ? { ...item } : {}) as Record<string, unknown>;
+  return parseJsonFields(record, ['defectPhotos', 'improvementPhotos', 'attachments']) as unknown as ITPItem;
 }
 
 interface ITPContextType {
@@ -112,7 +120,7 @@ export const ITPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const value = useMemo(
     () => ({ itpList, loading, error, refetch: fetchITPs, addITP, updateITP, deleteITP, getITPList, getITPByVendor }),
-    [itpList, loading, error, fetchITPs, addITP, updateITP, deleteITP]
+    [itpList, loading, error, fetchITPs, addITP, updateITP, deleteITP, getITPList, getITPByVendor]
   );
 
   return (

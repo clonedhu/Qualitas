@@ -636,6 +636,19 @@
   margin: 0 0 24px 0;
   padding-bottom: 12px;
   border-bottom: 2px solid #e0e7ff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.sectionTitle::before {
+  content: '';
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%);
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
 .formGrid {

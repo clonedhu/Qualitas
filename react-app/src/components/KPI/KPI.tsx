@@ -223,7 +223,7 @@ const KPI: React.FC = () => {
             ← {t('common.back') || 'Back'}
           </button>
           <h1 className={styles.title}>
-            {language === 'en' ? 'Key Performance Indicators' : '關鍵績效指標 (KPI)'}
+            {t('kpi.title')}
           </h1>
         </div>
         <div className={styles.headerRight}>
@@ -235,13 +235,13 @@ const KPI: React.FC = () => {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
           <label className={styles.vendorLabel}>
-            {language === 'en' ? 'Contractor' : '廠商'}
+            {t('common.contractor')}
             <select
               className={styles.vendorSelect}
               value={selectedVendor}
               onChange={(e) => setSelectedVendor(e.target.value)}
             >
-              <option value="all">{language === 'en' ? 'All Contractors' : '全部廠商'}</option>
+              <option value="all">{t('common.allContractors')}</option>
               {getActiveContractors().map((c) => (
                 <option key={c.id} value={c.name}>
                   {c.name}
@@ -253,9 +253,7 @@ const KPI: React.FC = () => {
       </div>
 
       <p className={styles.subtitle}>
-        {language === 'en'
-          ? 'KPI is based on monthly PQP, ITP, OBS, and NCR closure rates. Each indicator has a weight.'
-          : 'KPI 依每月 PQP、ITP、OBS、NCR 結案率計算，各指標具權重。'}
+        {t('kpi.subtitle')}
       </p>
 
       <div className={styles.weightSection}>
@@ -264,7 +262,7 @@ const KPI: React.FC = () => {
           className={styles.weightToggle}
           onClick={() => setShowWeights(!showWeights)}
         >
-          {language === 'en' ? 'Weights' : '權重設定'}
+          {t('kpi.weights')}
           {showWeights ? ' ▼' : ' ▶'}
         </button>
         {showWeights && (
@@ -318,13 +316,11 @@ const KPI: React.FC = () => {
       </div>
 
       <div className={styles.chartSection}>
-        <h2 className={styles.chartTitle}>KPI Trend</h2>
+        <h2 className={styles.chartTitle}>{t('kpi.trendTitle')}</h2>
         <div className={styles.chartWrapper}>
           {chartData.length === 0 ? (
             <p className={styles.noData}>
-              {language === 'en'
-                ? 'No monthly data yet. PQP / ITP / OBS / NCR records with dates will appear here.'
-                : '尚無月度資料，有日期的 PQP / ITP / OBS / NCR 紀錄會顯示於此。'}
+              {t('kpi.noData')}
             </p>
           ) : (
             <ResponsiveContainer width="100%" height={400}>
@@ -354,7 +350,7 @@ const KPI: React.FC = () => {
                 />
                 <Tooltip
                   formatter={(value: number | string | null) => (value == null ? '—' : `${value}%`)}
-                  labelFormatter={(label) => (language === 'en' ? `Month: ${label}` : `月份: ${label}`)}
+                  labelFormatter={(label) => (`${t('kpi.month')}: ${label}`)}
                 />
                 <Legend />
                 {vendorKeys.map((vendor, i) => (
@@ -384,16 +380,16 @@ const KPI: React.FC = () => {
       {/* KPI 表格：放在趨勢圖之下 */}
       <div className={styles.tableWrapper}>
         <DataTable
-          title={language === 'en' ? 'KPI by Contractor' : 'KPI 依廠商'}
+          title={t('kpi.tableTitle')}
           actions={
             <label className={styles.vendorLabel}>
-              {language === 'en' ? 'Contractor' : '廠商'}
+              {t('common.contractor')}
               <select
                 className={styles.vendorSelect}
                 value={selectedVendor}
                 onChange={(e) => setSelectedVendor(e.target.value)}
               >
-                <option value="all">{language === 'en' ? 'All Contractors' : '全部廠商'}</option>
+                <option value="all">{t('common.allContractors')}</option>
                 {getActiveContractors().map((c) => (
                   <option key={c.id} value={c.name}>
                     {c.name}

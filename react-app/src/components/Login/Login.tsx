@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { getErrorMessage } from '../../utils/errorUtils';
 import api from '../../services/api';
 import styles from './Login.module.css';
 
@@ -16,7 +17,6 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('[Login] 開始登入流程');
     setError('');
     setIsSubmitting(true);
     try {
@@ -24,21 +24,17 @@ const Login = () => {
       formData.append('username', email);
       formData.append('password', password);
 
-      // Demo backend implemented as Vercel serverless function: /api/auth-login
-      console.log('[Login] 發送登入請求到:', '/auth/login');
       const response = await api.post('/auth/login', formData.toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
       });
-      
-      console.log('[Login] 登入成功，收到回應:', response.data);
+
       const { access_token, refresh_token } = response.data;
       await login(access_token, refresh_token || '');
       navigate('/');
-    } catch (err: any) {
-      console.error('[Login] 登入失敗:', err);
-      setError(err.response?.data?.detail || err.message || t('login.failed'));
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, t('login.failed')));
     } finally {
       setIsSubmitting(false);
     }

@@ -17,6 +17,8 @@ import PQPGaugeChart from './PQPGaugeChart';
 import PQPStatsCard from './PQPStatsCard';
 import NCRParetoChart from './NCRParetoChart';
 import NCRStatsCard from './NCRStatsCard';
+import NCRStatusPieChart from './NCRStatusPieChart';
+import NOITrendChart from './NOITrendChart';
 import OBSParetoChart from './OBSParetoChart';
 import OBSStatsCard from './OBSStatsCard';
 import styles from './Dashboard.module.css';
@@ -211,19 +213,19 @@ const DashboardContent: React.FC<{
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
-            ← {t('common.back') || 'Back'}
+            ← {t('common.back')}
           </button>
-          <h1 className={styles.title}>{t('dashboard.title') || 'Dashboard'}</h1>
+          <h1 className={styles.title}>{t('dashboard.title')}</h1>
         </div>
         <div className={styles.headerRight}>
           <label className={styles.vendorLabel}>
-            {t('common.contractor') || 'Contractor'}
+            {t('common.contractor')}
             <select
               className={styles.vendorSelect}
               value={selectedVendor}
               onChange={(e) => setSelectedVendor(e.target.value)}
             >
-              <option value="all">{t('common.all')} {t('common.contractor') || 'All Contractors'}</option>
+              <option value="all">{t('common.allContractors')}</option>
               {getActiveContractors().map((contractor) => (
                 <option key={contractor.id} value={contractor.name}>
                   {contractor.name}
@@ -235,14 +237,14 @@ const DashboardContent: React.FC<{
       </div>
 
       <p className={styles.subtitle}>
-        {t('dashboard.subtitle') || 'Overview of PQP, ITP, OBS, NCR, NOI and ITR. Filter by contractor to see module statistics.'}
+        {t('dashboard.subtitle')}
       </p>
 
       {/* Upcoming Tasks Section */}
       {upcomingTasks.length > 0 && (
         <div className={styles.upcomingSection}>
           <h2 className={styles.sectionTitle}>
-            🔔 {t('dashboard.upcomingTasks') || 'Upcoming Tasks'}
+            🔔 {t('dashboard.upcomingTasks')}
             <span className={styles.badge}>{upcomingTasks.length}</span>
           </h2>
           <div className={styles.upcomingGrid}>
@@ -254,7 +256,7 @@ const DashboardContent: React.FC<{
                   <div className={styles.upcomingVenue}>{task.vendor}</div>
                 </div>
                 <div className={styles.upcomingDate}>
-                  <span className={styles.dateLabel}>{t('common.dueDate') || 'Due Date'}</span>
+                  <span className={styles.dateLabel}>{t('common.dueDate')}</span>
                   <span className={styles.dateValue}>{task.dueDate}</span>
                 </div>
               </div>
@@ -272,7 +274,7 @@ const DashboardContent: React.FC<{
           aria-expanded={!kpiCollapsed}
         >
           <span className={styles.sectionTitleChevron}>{kpiCollapsed ? '▶' : '▼'}</span>
-          {t('dashboard.kpiOverview') || 'Key Performance Indicators'}
+          {t('dashboard.kpiOverview')}
         </h2>
         {!kpiCollapsed && (
           <div className={styles.kpiGrid}>
@@ -309,7 +311,7 @@ const DashboardContent: React.FC<{
                   </span>
                 </div>
                 <div className={styles.kpiHeader}>
-                  <span className={styles.kpiLabel}>已批准</span>
+                  <span className={styles.kpiLabel}>{t('status.approved')}</span>
                   <span className={styles.kpiValue} style={{ color: '#10b981', fontSize: '20px' }}>
                     {statistics.itp.approved} ({statistics.itp.approvalRate}%)
                   </span>
@@ -399,13 +401,13 @@ const DashboardContent: React.FC<{
                   <span className={styles.kpiValue} style={{ color: '#3b82f6' }}>{statistics.itr.total}</span>
                 </div>
                 <div className={styles.kpiHeader}>
-                  <span className={styles.kpiLabel}>已批准</span>
+                  <span className={styles.kpiLabel}>{t('status.approved')}</span>
                   <span className={styles.kpiValue} style={{ color: '#10b981', fontSize: '20px' }}>
                     {statistics.itr.approved} ({statistics.itr.approvalRate}%)
                   </span>
                 </div>
                 <div className={styles.kpiHeader}>
-                  <span className={styles.kpiLabel}>已拒絕</span>
+                  <span className={styles.kpiLabel}>{t('status.reject')}</span>
                   <span className={styles.kpiValue} style={{ color: '#ef4444', fontSize: '20px' }}>
                     {statistics.itr.rejected} ({statistics.itr.total > 0 ? Math.round((statistics.itr.rejected / statistics.itr.total) * 100) : 0}%)
                   </span>
@@ -470,7 +472,7 @@ const DashboardContent: React.FC<{
           </div>
         </div>
         <button className={styles.obsSectionButton} onClick={() => navigate('/obs')}>
-          查看詳情 →
+          {t('common.viewDetails')}
         </button>
       </div>
 
@@ -479,7 +481,7 @@ const DashboardContent: React.FC<{
 
       {/* NCR Pareto 圖表區域 */}
       <div className={styles.chartSection}>
-        <h2 className={styles.sectionTitle}>{t('dashboard.ncrStatusAnalysis') || 'NCR Status Analysis'}</h2>
+        <h2 className={styles.sectionTitle}>{t('dashboard.ncrStatusAnalysis')}</h2>
         <div className={styles.ncrChartWrapper}>
           <NCRStatsCard />
           <div className={styles.chartContainer}>
@@ -487,8 +489,29 @@ const DashboardContent: React.FC<{
           </div>
         </div>
         <button className={styles.ncrSectionButton} onClick={() => navigate('/ncr')}>
-          查看詳情 →
+          {t('common.viewDetails')}
         </button>
+      </div>
+
+      {/* 分隔线 */}
+      <div className={styles.sectionDivider}></div>
+
+      {/* Recharts 互動圖表區域 */}
+      <div className={styles.chartSection}>
+        <h2 className={styles.sectionTitle}>{t('dashboard.interactiveCharts') || '互動圖表'}</h2>
+        <div className={styles.rechartsGrid}>
+          <NCRStatusPieChart
+            ncrList={ncrList}
+            filterByVendor={selectedVendor !== 'all'}
+            selectedVendor={selectedVendor}
+          />
+          <NOITrendChart
+            noiList={noiList}
+            months={6}
+            filterByVendor={selectedVendor !== 'all'}
+            selectedVendor={selectedVendor}
+          />
+        </div>
       </div>
 
     </div>

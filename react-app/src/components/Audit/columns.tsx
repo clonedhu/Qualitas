@@ -22,21 +22,22 @@ export const createColumns = (
         {
             accessorKey: "auditNo",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title={t('audit.auditNo') || 'Audit No.'} />
+                <DataTableColumnHeader column={column} title={t('audit.auditNo')} />
             ),
             cell: ({ row }) => <div className="text-center">{row.getValue("auditNo")}</div>,
+            size: 180,
         },
         {
             accessorKey: "title",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title={t('audit.auditTitle') || 'Title'} />
+                <DataTableColumnHeader column={column} title={t('audit.auditTitle')} />
             ),
             cell: ({ row }) => <div className="text-center">{row.getValue("title")}</div>,
         },
         {
             accessorKey: "date",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title={t('audit.date') || 'Date'} />
+                <DataTableColumnHeader column={column} title={t('audit.date')} />
             ),
             cell: ({ row }) => <div className="text-center">{row.getValue("date")}</div>,
         },
@@ -45,7 +46,7 @@ export const createColumns = (
             header: ({ column }) => (
                 <DataTableColumnHeader
                     column={column}
-                    title={t('common.contractor') || 'Vendor'}
+                    title={t('common.contractor')}
                     filterOptions={activeContractors.map(c => ({ label: c.name, value: c.name }))}
                 />
             ),
@@ -57,14 +58,14 @@ export const createColumns = (
         {
             accessorKey: "location",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title={t('audit.location') || 'Location'} />
+                <DataTableColumnHeader column={column} title={t('audit.location')} />
             ),
             cell: ({ row }) => <div className="text-center">{row.getValue("location")}</div>,
         },
         {
             accessorKey: "auditor",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title={t('audit.auditor') || 'Auditor'} />
+                <DataTableColumnHeader column={column} title={t('audit.auditor')} />
             ),
             cell: ({ row }) => <div className="text-center">{row.getValue("auditor")}</div>,
         },

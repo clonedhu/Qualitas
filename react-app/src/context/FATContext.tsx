@@ -131,9 +131,8 @@ export const FATProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             } catch (_) {
                 setFatDetails(loadDetailsFromStorage());
             }
-        } catch (err: any) {
-            // API 不存在時使用 localStorage
-            console.warn('FAT API not available, using localStorage fallback');
+        } catch (err: unknown) {
+            // API 不存在時使用 localStorage 備援
             setFatList(loadListFromStorage());
             setFatDetails(loadDetailsFromStorage());
         } finally {
@@ -164,7 +163,7 @@ export const FATProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             const newFAT = response.data;
             setFatList(prev => [...prev, newFAT]);
             return newFAT;
-        } catch (err: any) {
+        } catch (err: unknown) {
             const newFAT: FATItem = {
                 ...fat,
                 id: String(Date.now()),
@@ -179,7 +178,7 @@ export const FATProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         try {
             const response = await api.put(`/fat/${id}`, updates);
             setFatList(prev => prev.map(f => (f.id === id ? response.data : f)));
-        } catch (err: any) {
+        } catch (err: unknown) {
             setFatList(prev => prev.map(f => (f.id === id ? { ...f, ...updates } : f)));
         }
     }, []);
@@ -193,7 +192,7 @@ export const FATProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                 delete newDetails[id];
                 return newDetails;
             });
-        } catch (err: any) {
+        } catch (err: unknown) {
             setFatList(prev => prev.filter(f => f.id !== id));
             setFatDetails(prev => {
                 const newDetails = { ...prev };
@@ -210,7 +209,7 @@ export const FATProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setFatList(prev => prev.map(f =>
                 f.id === fatId ? { ...f, hasDetails: details.length > 0 } : f
             ));
-        } catch (err: any) {
+        } catch (err: unknown) {
             // API 失敗時使用本地更新
             setFatDetails(prev => ({ ...prev, [fatId]: details }));
             setFatList(prev => prev.map(f =>

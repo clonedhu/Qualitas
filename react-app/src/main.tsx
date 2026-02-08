@@ -15,35 +15,38 @@ import { FollowUpProvider } from './context/FollowUpContext.tsx'
 import { AuditProvider } from './context/AuditContext.tsx'
 import { FATProvider } from './context/FATContext.tsx'
 import { IAMProvider } from './context/IAMContext.tsx'
+import { ErrorBoundary } from './components/Shared/ErrorBoundary'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <LanguageProvider>
-      <AuthProvider>
-        <ContractorsProvider>
-          <ITPProvider>
-            <NOIProvider>
-              <NCRProvider>
-                <ITRProvider>
-                  <PQPProvider>
-                    <OBSProvider>
-                      <FollowUpProvider>
-                        <AuditProvider>
-                          <FATProvider>
-                            <IAMProvider>
-                              <App />
-                            </IAMProvider>
-                          </FATProvider>
-                        </AuditProvider>
-                      </FollowUpProvider>
-                    </OBSProvider>
-                  </PQPProvider>
-                </ITRProvider>
-              </NCRProvider>
-            </NOIProvider>
-          </ITPProvider>
-        </ContractorsProvider>
-      </AuthProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <ContractorsProvider>
+            <ITPProvider>
+              <NOIProvider>
+                <NCRProvider>
+                  <ITRProvider>
+                    <PQPProvider>
+                      <OBSProvider>
+                        <FollowUpProvider>
+                          <AuditProvider>
+                            <FATProvider>
+                              <IAMProvider>
+                                <App />
+                              </IAMProvider>
+                            </FATProvider>
+                          </AuditProvider>
+                        </FollowUpProvider>
+                      </OBSProvider>
+                    </PQPProvider>
+                  </ITRProvider>
+                </NCRProvider>
+              </NOIProvider>
+            </ITPProvider>
+          </ContractorsProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </LanguageProvider>
   </React.StrictMode>,
 )

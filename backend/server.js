@@ -135,10 +135,86 @@ function createCrudProxy(pathPrefix) {
         proxyReq.end();
     };
 }
-['/itp', '/ncr', '/noi', '/itr', '/pqp', '/obs', '/contractors', '/settings'].forEach(p => app.use('/api' + p, createCrudProxy('/api' + p)));
+const cron = require('node-cron');
+const axios = require('axios');
+const { sendEmailNotification } = require('./mailService');
+
+// ... (other parts of the file)
+
+// Proxy CRUD paths to Python FastAPI backend (port 8000)
+// ...
+
+['/itp', '/ncr', '/noi', '/itr', '/pqp', '/obs', '/contractors', '/settings', '/followup'].forEach(p => app.use('/api' + p, createCrudProxy('/api' + p)));
+
+/**
+ * 自動提醒邏輯：檢查 3 天後到期的案件
+ */
+async function checkAndSendReminders() {
+    console.log('[Cron] Checking for upcoming due dates (3 days ahead)...');
+    try {
+        // Calculate target date (Today + 3 days)
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + 3);
+        const targetDateStr = targetDate.toISOString().split('T')[0];
+
+        console.log(`[Cron] Target date: ${targetDateStr}`);
+
+        // 1. Fetch NCRs
+        const ncrsResp = await axios.get(`${PYTHON_API}/api/ncr/`);
+        const openNcrs = ncrsResp.data.filter(n =>
+            n.status !== 'Closed' && n.status !== '結案' && n.dueDate === targetDateStr
+        );
+
+        // 2. Fetch FollowUp Issues
+        const followupsResp = await axios.get(`${PYTHON_API}/api/followup/`);
+        const openFollowups = followupsResp.data.filter(f =>
+            f.status !== 'Closed' && f.status !== '結案' && f.dueDate === targetDateStr
+        );
+
+        // 3. Process NCR Reminders
+        for (const ncr of openNcrs) {
+            // Find contractor email
+            const contractorsResp = await axios.get(`${PYTHON_API}/api/contractors/`);
+            const contractor = contractorsResp.data.find(c => c.name === ncr.vendor);
+            const email = contractor ? contractor.email : 'admin@example.com';
+
+            await sendEmailNotification(email, `NCR: ${ncr.documentNumber}`, 'NCR', ncr.dueDate);
+        }
+
+        // 4. Process FollowUp Reminders
+        for (const f of openFollowups) {
+            // Priority: Check if vendor email exists, otherwise assignedTo or admin
+            let email = 'admin@example.com';
+            if (f.vendor) {
+                const contractorsResp = await axios.get(`${PYTHON_API}/api/contractors/`);
+                const contractor = contractorsResp.data.find(c => c.name === f.vendor);
+                if (contractor) email = contractor.email;
+            }
+
+            await sendEmailNotification(email, `Follow-up Issue: ${f.issueNo} - ${f.title}`, 'Follow-up Issue', f.dueDate);
+        }
+
+        console.log(`[Cron] Reminders process finished. Sent ${openNcrs.length + openFollowups.data?.length || 0} notifications.`);
+    } catch (error) {
+        console.error('[Cron] Error during reminder process:', error.message);
+    }
+}
+
+// 排程任務：每天早上 08:00 執行
+cron.schedule('0 8 * * *', () => {
+    checkAndSendReminders();
+});
+
+// 手動觸發提醒測試端點
+app.post('/api/remind/test', async (req, res) => {
+    console.log('[Backend] Manual reminder test triggered');
+    await checkAndSendReminders();
+    res.json({ message: 'Reminder check triggered. Check server console for logs.' });
+});
 
 // Start server
 app.listen(PORT, () => {
     console.log(`Backend server is running on http://localhost:${PORT}`);
     console.log(`Health check: http://localhost:${PORT}/api/health`);
+    console.log(`Reminder test endpoint: http://localhost:${PORT}/api/remind/test (POST)`);
 });

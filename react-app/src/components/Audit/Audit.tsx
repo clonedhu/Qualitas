@@ -8,6 +8,7 @@ import styles from './Audit.module.css';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
 import { AuditEditModal } from './AuditModals';
+import { BackButton } from '@/components/ui/BackButton';
 
 const Audit: React.FC = () => {
     const navigate = useNavigate();
@@ -142,8 +143,10 @@ const Audit: React.FC = () => {
                 await updateAudit(currentAuditId, updates);
             } else {
                 // 新增項目
+                const contractor = updates.contractor || '';
+                const abbrev = contractor.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() || 'XXX';
                 const newItem: Omit<AuditItem, 'id'> = {
-                    auditNo: updates.auditNo || `AUD-${new Date().getFullYear()}-${String(auditList.length + 1).padStart(3, '0')}`,
+                    auditNo: updates.auditNo || `QTS-RKS-${abbrev}-AUD-${String(auditList.length + 1).padStart(6, '0')}`,
                     title: updates.title || '',
                     date: updates.date || '',
                     auditor: updates.auditor || '',
@@ -177,10 +180,8 @@ const Audit: React.FC = () => {
         <div className={styles.container}>
             <div className={styles.header}>
                 <div className={styles.headerLeft}>
-                    <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
-                        ← {t('common.back')}
-                    </button>
-                    <h1>{t('audit.title') || 'Internal Audit'}</h1>
+                    <BackButton />
+                    <h1>{t('audit.title')}</h1>
                 </div>
                 <div className={styles.headerRight}>
                     {/* Status filter moved to TableHeader, visual vendor filter remains. */}
@@ -188,7 +189,7 @@ const Audit: React.FC = () => {
                         <input
                             type="text"
                             className={styles.searchInput}
-                            placeholder={t('audit.searchPlaceholder') || 'Search Date, Vendor, No...'}
+                            placeholder={t('audit.searchPlaceholder')}
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -201,7 +202,7 @@ const Audit: React.FC = () => {
                 <div className={styles.panel}>
                     <div className={styles.panelTitle}>
                         <span>{t('common.contractor') || 'Vendors'}</span>
-                        <span style={{ fontSize: '12px', fontWeight: 400 }}>{t('audit.total') || 'Total'}: {auditList.length}</span>
+                        <span style={{ fontSize: '12px', fontWeight: 400 }}>{t('audit.total')}: {auditList.length}</span>
                     </div>
                     <div className={styles.vendorList}>
                         <div
@@ -209,7 +210,7 @@ const Audit: React.FC = () => {
                             onClick={() => setSelectedVendorFilter(null)}
                         >
                             <div className={styles.vendorHeader}>
-                                <span className={styles.vendorName}>{t('common.all') || 'All'}</span>
+                                <span className={styles.vendorName}>{t('common.all')}</span>
                                 <span className={styles.auditCount}>{auditList.length}</span>
                             </div>
                             <div className={styles.chartTrack}>
@@ -247,10 +248,10 @@ const Audit: React.FC = () => {
                 {/* Right: Audit Matrix View (Visual) */}
                 <div className={styles.panel}>
                     <div className={styles.panelTitle}>
-                        <span>{t('audit.schedule') || 'Audit Schedule'}</span>
+                        <span>{t('audit.schedule')}</span>
                         <div className={styles.navGroup}>
                             <button className={styles.navBtn} onClick={() => changeMonth(-1)}>&lt;</button>
-                            <button className={styles.navBtn} onClick={() => setViewDate(new Date())}>{t('common.today') || 'Today'}</button>
+                            <button className={styles.navBtn} onClick={() => setViewDate(new Date())}>{t('common.today')}</button>
                             <button className={styles.navBtn} onClick={() => changeMonth(1)}>&gt;</button>
                         </div>
                     </div>
@@ -270,7 +271,7 @@ const Audit: React.FC = () => {
                                             #
                                         </th>
                                         <th className={`${styles.matrixHeaderCell} ${styles.corner}`}>
-                                            {t('common.contractor') || 'Vendor'}
+                                            {t('common.contractor')}
                                         </th>
                                         {matrixDates.map((d, i) => (
                                             <th key={i} className={`${styles.matrixHeaderCell} ${d.isToday ? styles.today : ''}`}>
@@ -343,13 +344,13 @@ const Audit: React.FC = () => {
 
             <div className={styles.content}>
                 <DataTable
-                    title={t('audit.listTitle') || 'Audit List'}
+                    title={t('audit.listTitle')}
                     actions={
                         <button
                             className={styles.addNewButton}
                             onClick={handleAddNew}
                         >
-                            + {t('audit.addNew') || 'Add Audit'}
+                            {t('audit.addNew')}
                         </button>
                     }
                     columns={createColumns(handleEdit, handleDeleteClick, t, activeContractors)}

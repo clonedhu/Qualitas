@@ -4,12 +4,22 @@ import { Contractor } from "../../context/ContractorsContext";
 import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { Pencil } from "lucide-react";
 
 export const createColumns = (
     handleEdit: (contractor: Contractor) => void,
     handleDelete: (id: string) => void,
     t: (key: string) => string
 ): ColumnDef<Contractor>[] => [
+        {
+            id: "serialNumber",
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title={t('contractors.serialNumber') || 'No.'} />
+            ),
+            cell: ({ row }) => <div className="text-center">{row.index + 1}</div>,
+            enableSorting: false,
+            enableHiding: false,
+        },
         {
             accessorKey: "package",
             header: ({ column }) => (

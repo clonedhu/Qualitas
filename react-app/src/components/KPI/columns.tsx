@@ -32,14 +32,14 @@ export const createColumns = (
         {
             accessorKey: "vendor",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title={language === 'en' ? 'Contractor' : '廠商'} />
+                <DataTableColumnHeader column={column} title={t('common.contractor')} />
             ),
             cell: ({ row }) => <div className="font-medium">{row.getValue("vendor")}</div>,
         },
         {
             accessorKey: "scope",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title={language === 'en' ? 'Scope' : 'Scope'} />
+                <DataTableColumnHeader column={column} title={t('kpi.scope')} />
             ),
             cell: ({ row }) => <div className="text-center">{row.getValue("scope")}</div>,
         },
@@ -66,7 +66,7 @@ export const createColumns = (
         {
             accessorKey: "lastMonth",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title={language === 'en' ? 'Last Month' : '上月'} />
+                <DataTableColumnHeader column={column} title={t('kpi.lastMonth')} />
             ),
             cell: ({ row }) => {
                 const val = row.getValue("lastMonth");
@@ -76,7 +76,7 @@ export const createColumns = (
         {
             accessorKey: "thisMonth",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title={language === 'en' ? 'This Month' : '本月'} />
+                <DataTableColumnHeader column={column} title={t('kpi.thisMonth')} />
             ),
             cell: ({ row }) => {
                 const val = row.getValue("thisMonth");
@@ -86,7 +86,7 @@ export const createColumns = (
         {
             accessorKey: "trend",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title={language === 'en' ? 'Trend' : '趨勢'} />
+                <DataTableColumnHeader column={column} title={t('kpi.trend')} />
             ),
             cell: ({ row }) => {
                 const trend = row.getValue("trend") as string;
@@ -102,7 +102,7 @@ export const createColumns = (
         {
             accessorKey: "variance",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title={language === 'en' ? 'Variance' : '差異'} />
+                <DataTableColumnHeader column={column} title={t('kpi.variance')} />
             ),
             cell: ({ row }) => {
                 const val = row.getValue("variance") as number;

@@ -24,6 +24,7 @@ export const createColumns = (
                 <DataTableColumnHeader column={column} title={t('ncr.documentNumber')} />
             ),
             cell: ({ row }) => <div className="text-center">{row.getValue("documentNumber")}</div>,
+            size: 180,
         },
         {
             accessorKey: "status",

@@ -30,7 +30,9 @@
   align-items: center;
 }
 
-.vendorFilter, .statusFilter, .dateInput {
+.vendorFilter,
+.statusFilter,
+.dateInput {
   padding: 10px 20px;
   padding-right: 40px;
   border: 1px solid #d1d5db;
@@ -55,11 +57,15 @@
   padding-right: 20px;
 }
 
-.vendorFilter:hover, .statusFilter:hover, .dateInput:hover {
+.vendorFilter:hover,
+.statusFilter:hover,
+.dateInput:hover {
   border-color: #9ca3af;
 }
 
-.vendorFilter:focus, .statusFilter:focus, .dateInput:focus {
+.vendorFilter:focus,
+.statusFilter:focus,
+.dateInput:focus {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -168,12 +174,29 @@
   stroke-width: 2;
 }
 
-.greenIcon { color: #10b981; }
-.yellowIcon { color: #f59e0b; }
-.pinkIcon { color: #ec4899; }
-.orangeIcon { color: #f97316; }
-.grayIcon { color: #6b7280; }
-.blueIcon { color: #3b82f6; }
+.greenIcon {
+  color: #10b981;
+}
+
+.yellowIcon {
+  color: #f59e0b;
+}
+
+.pinkIcon {
+  color: #ec4899;
+}
+
+.orangeIcon {
+  color: #f97316;
+}
+
+.grayIcon {
+  color: #6b7280;
+}
+
+.blueIcon {
+  color: #3b82f6;
+}
 
 .statContent {
   flex: 1;
@@ -496,6 +519,19 @@
   margin: 0 0 24px 0;
   padding-bottom: 12px;
   border-bottom: 2px solid #e0e7ff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.sectionTitle::before {
+  content: '';
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%);
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
 .formGrid {

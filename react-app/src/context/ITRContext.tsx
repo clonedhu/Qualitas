@@ -26,11 +26,12 @@ export interface ITRItem {
   checkpoint?: string;
   defectPhotos?: string[];
   improvementPhotos?: string[];
+  attachments?: string[];
 }
 
 function normalizeItem(item: unknown): ITRItem {
   const record = (typeof item === 'object' && item !== null ? { ...item } : {}) as Record<string, unknown>;
-  return parseJsonFields(record, ['defectPhotos', 'improvementPhotos']) as unknown as ITRItem;
+  return parseJsonFields(record, ['defectPhotos', 'improvementPhotos', 'attachments']) as unknown as ITRItem;
 }
 
 interface ITRContextType {

@@ -2,16 +2,16 @@ import { Contractor } from '../context/ContractorsContext';
 
 /**
  * 統一的編號生成工具函數
- * 從 ContactorsContext 獲取 abbreviation，如果沒有則使用備用邏輯
+ * 從 ContractorsContext 獲取 abbreviation，如果沒有則使用備用邏輯
  */
 export const getContractorAbbreviation = (
   contractorName: string,
-  contactors: Contractor[]
+  contractors: Contractor[]
 ): string => {
   if (!contractorName) return 'XXX';
 
-  // First, try to get abbreviation from ContactorsContext
-  const contractor = contactors.find(c => c.name === contractorName);
+  // First, try to get abbreviation from ContractorsContext
+  const contractor = contractors.find(c => c.name === contractorName);
   if (contractor && contractor.abbreviation) {
     return contractor.abbreviation.toUpperCase();
   }
@@ -39,11 +39,11 @@ export const getContractorAbbreviation = (
 export const generateDocumentNumber = (
   type: 'NOI' | 'NCR' | 'ITR',
   contractorName: string,
-  contactors: Contractor[],
+  contractors: Contractor[],
   existingNumbers: string[],
   excludeId?: string
 ): string => {
-  const abbreviation = getContractorAbbreviation(contractorName, contactors);
+  const abbreviation = getContractorAbbreviation(contractorName, contractors);
 
   // Extract sequence numbers from existing numbers that match the format
   const sequenceNumbers = existingNumbers

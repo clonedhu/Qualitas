@@ -12,18 +12,18 @@ const OSD: React.FC = () => {
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
-            ← {t('common.back') || 'Back'}
+            ← {t('common.back')}
           </button>
-          <h1>OSD (Over, Short and Damaged)</h1>
+          <h1>{t('osd.title')}</h1>
         </div>
       </div>
 
       <div className={styles.content}>
         <div className={styles.placeholder}>
-          <h2>Over, Short and Damaged Management</h2>
-          <p>OSD 模組</p>
+          <h2>{t('osd.placeholderTitle')}</h2>
+          <p>OSD Module</p>
           <p className={styles.description}>
-            此模組用於管理超短損壞相關紀錄與追蹤，功能開發中。
+            {t('osd.description')}
           </p>
         </div>
       </div>

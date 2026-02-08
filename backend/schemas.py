@@ -13,6 +13,20 @@ class ITPBase(BaseModel):
     hasDetails: Optional[bool] = False
     submissionDate: Optional[str] = None
     detail_data: Optional[str] = None
+    detail_data: Optional[str] = None
+    attachments: Optional[List[str]] = []
+    last_reminded_at: Optional[str] = None
+    dueDate: Optional[str] = None
+
+    @field_validator('attachments', mode='before')
+    @classmethod
+    def parse_attachments(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
 
 class ITPCreate(ITPBase):
     id: Optional[str] = None
@@ -28,7 +42,12 @@ class ITPUpdate(BaseModel):
     remark: Optional[str] = None
     hasDetails: Optional[bool] = None
     submissionDate: Optional[str] = None
+    submissionDate: Optional[str] = None
     detail_data: Optional[str] = None
+    detail_data: Optional[str] = None
+    attachments: Optional[List[str]] = None
+    last_reminded_at: Optional[str] = None
+    dueDate: Optional[str] = None
 
 class ITP(ITPBase):
     id: str
@@ -70,8 +89,12 @@ class NCRBase(BaseModel):
     defectPhotos: Optional[Any] = None
     improvementPhotos: Optional[Any] = None
     noiNumber: Optional[str] = None  # 連結到觸發此 NCR 的 NOI
+    dueDate: Optional[str] = None  # 到期日 (YYYY-MM-DD)
+    dueDate: Optional[str] = None  # 到期日 (YYYY-MM-DD)
+    attachments: Optional[List[str]] = []
+    last_reminded_at: Optional[str] = None
 
-    @field_validator('defectPhotos', 'improvementPhotos', mode='before')
+    @field_validator('defectPhotos', 'improvementPhotos', 'attachments', mode='before')
     @classmethod
     def parse_photos(cls, v):
         if isinstance(v, str):
@@ -108,6 +131,10 @@ class NCRUpdate(BaseModel):
     defectPhotos: Optional[Any] = None
     improvementPhotos: Optional[Any] = None
     noiNumber: Optional[str] = None
+    dueDate: Optional[str] = None
+    dueDate: Optional[str] = None
+    attachments: Optional[List[str]] = None
+    last_reminded_at: Optional[str] = None
 
 class NCR(NCRBase):
     id: str
@@ -135,6 +162,8 @@ class NOIBase(BaseModel):
     closeoutDate: Optional[str] = None
     attachments: Optional[List[str]] = []
     ncrNumber: Optional[str] = None  # 若此 NOI 是針對 NCR 的重新檢驗
+    last_reminded_at: Optional[str] = None
+    dueDate: Optional[str] = None
 
     @field_validator('attachments', mode='before')
     @classmethod
@@ -168,6 +197,8 @@ class NOIUpdate(BaseModel):
     closeoutDate: Optional[str] = None
     attachments: Optional[List[str]] = None
     ncrNumber: Optional[str] = None
+    last_reminded_at: Optional[str] = None
+    dueDate: Optional[str] = None
 
 class NOI(NOIBase):
     id: str
@@ -197,7 +228,19 @@ class ITRBase(BaseModel):
     eventNumber: Optional[str] = None
     checkpoint: Optional[str] = None
     defectPhotos: Optional[Any] = None
+    defectPhotos: Optional[Any] = None
     improvementPhotos: Optional[Any] = None
+    attachments: Optional[List[str]] = []
+
+    @field_validator('attachments', mode='before')
+    @classmethod
+    def parse_attachments(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
 
 class ITRCreate(ITRBase):
     id: Optional[str] = None
@@ -223,7 +266,9 @@ class ITRUpdate(BaseModel):
     eventNumber: Optional[str] = None
     checkpoint: Optional[str] = None
     defectPhotos: Optional[Any] = None
+    defectPhotos: Optional[Any] = None
     improvementPhotos: Optional[Any] = None
+    attachments: Optional[List[str]] = None
 
 class ITR(ITRBase):
     id: str
@@ -241,6 +286,17 @@ class PQPBase(BaseModel):
     version: str
     createdAt: str
     updatedAt: str
+    attachments: Optional[List[str]] = []
+
+    @field_validator('attachments', mode='before')
+    @classmethod
+    def parse_attachments(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
 
 class PQPCreate(PQPBase):
     id: Optional[str] = None
@@ -262,6 +318,7 @@ class PQPUpdate(BaseModel):
     version: Optional[str] = None
     createdAt: Optional[str] = None
     updatedAt: Optional[str] = None
+    attachments: Optional[List[str]] = None
 
 class PQP(PQPBase):
     id: str
@@ -322,6 +379,8 @@ class OBSUpdate(BaseModel):
     defectPhotos: Optional[Any] = None
     improvementPhotos: Optional[Any] = None
     attachments: Optional[Any] = None
+    last_reminded_at: Optional[str] = None
+    dueDate: Optional[str] = None
 
 class OBS(OBSBase):
     id: str
@@ -361,6 +420,45 @@ class Contractor(ContractorBase):
         from_attributes = True
 
 
+# FollowUp
+class FollowUpBase(BaseModel):
+    issueNo: Optional[str] = None
+    title: str
+    description: str
+    status: str
+    priority: Optional[str] = None
+    assignedTo: Optional[str] = None
+    vendor: Optional[str] = None
+    dueDate: Optional[str] = None
+    createdAt: str
+    updatedAt: str
+    action: Optional[str] = None
+    sourceModule: Optional[str] = None  # 來源模組
+    sourceReferenceNo: Optional[str] = None  # 來源單號
+
+class FollowUpCreate(FollowUpBase):
+    id: Optional[str] = None
+
+class FollowUpUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    assignedTo: Optional[str] = None
+    vendor: Optional[str] = None
+    dueDate: Optional[str] = None
+    updatedAt: Optional[str] = None
+    action: Optional[str] = None
+    sourceModule: Optional[str] = None
+    sourceReferenceNo: Optional[str] = None
+    last_reminded_at: Optional[str] = None
+
+class FollowUp(FollowUpBase):
+    id: str
+    class Config:
+        from_attributes = True
+
+
 # Document Naming Rules
 class NamingRuleBase(BaseModel):
     doc_type: str
@@ -371,5 +469,95 @@ class NamingRuleBase(BaseModel):
 class NamingRule(NamingRuleBase):
     id: int
 
+    class Config:
+        from_attributes = True
+
+# --- IAM Schemas ---
+
+# Role
+class RoleBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    permissions: List[str] = []
+
+    @field_validator('permissions', mode='before')
+    @classmethod
+    def parse_permissions(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
+
+class RoleCreate(RoleBase):
+    pass
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    permissions: Optional[List[str]] = None
+
+class Role(RoleBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+# User
+class UserBase(BaseModel):
+    username: str
+    email: str
+    full_name: Optional[str] = None
+    is_active: Optional[bool] = True
+    role_id: Optional[int] = None
+    created_at: Optional[str] = None  # ISO date string
+
+class UserCreate(UserBase):
+    password: str
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[str] = None
+    full_name: Optional[str] = None
+    is_active: Optional[bool] = None
+    role_id: Optional[int] = None
+    password: Optional[str] = None
+
+class User(UserBase):
+    id: int
+    role_name: Optional[str] = None # For UI convenience
+
+    class Config:
+        from_attributes = True
+
+# --- Audit Schemas ---
+class AuditBase(BaseModel):
+    auditNo: str
+    title: str
+    date: str
+    auditor: str
+    status: str
+    location: str
+    findings: str
+    contractor: Optional[str] = None
+
+class AuditCreate(AuditBase):
+    id: Optional[str] = None
+
+class AuditUpdate(BaseModel):
+    auditNo: Optional[str] = None
+    title: Optional[str] = None
+    date: Optional[str] = None
+    auditor: Optional[str] = None
+    status: Optional[str] = None
+    location: Optional[str] = None
+    findings: Optional[str] = None
+    contractor: Optional[str] = None
+
+class Audit(AuditBase):
+    id: str
     class Config:
         from_attributes = True

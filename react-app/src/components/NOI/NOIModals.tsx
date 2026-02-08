@@ -6,6 +6,7 @@ import { useNCR } from '../../context/NCRContext';
 import { NOIItem } from '../../context/NOIContext'; // Import NOIItem from context definition if exported, or re-define if strictly local. Usually exported.
 // Assuming NOIItem is exported from context.
 import { validateStatusTransition, NOIStatusTransitions } from '../../utils/statusValidation';
+import FileAttachment from '../Shared/FileAttachment';
 import styles from './NOI.module.css';
 
 // Helper functions (duplicated for now to avoid circular deps or moved to utils later)
@@ -48,6 +49,7 @@ export interface NOIDetailData {
     closeoutDate: string;
     attachments: string[];
     ncrNumber?: string;
+    dueDate?: string;
 }
 
 export interface NOIDetailModalProps {
@@ -89,10 +91,11 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
                 closeoutDate: existingItem.closeoutDate || '',
                 attachments: existingItem.attachments || [],
                 ncrNumber: existingItem.ncrNumber || '',
+                dueDate: (existingItem as any).dueDate || '',
             };
         }
-        const activeContactors = getActiveContractors();
-        const defaultContractor = activeContactors.length > 0 ? activeContactors[0].name : '';
+        const activeContractors = getActiveContractors();
+        const defaultContractor = activeContractors.length > 0 ? activeContractors[0].name : '';
         return {
             package: '',
             referenceNo: '',
@@ -112,6 +115,7 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
             closeoutDate: '',
             attachments: [],
             ncrNumber: '',
+            dueDate: '',
         };
     };
 
@@ -223,11 +227,48 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>{t('noi.issueDate')}</label>
-                                    <input type="date" className={styles.formInput} value={formData.issueDate} onChange={(e) => handleFieldChange('issueDate', e.target.value)} />
+                                    <input
+                                        type={formData.issueDate ? 'date' : 'text'}
+                                        placeholder="mm/dd/yyyy"
+                                        lang="en"
+                                        onFocus={(e) => (e.target.type = 'date')}
+                                        onBlur={(e) => {
+                                            if (!e.target.value) e.target.type = 'text';
+                                        }}
+                                        className={styles.formInput}
+                                        value={formData.issueDate}
+                                        onChange={(e) => handleFieldChange('issueDate', e.target.value)}
+                                    />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>{t('noi.inspectionDate')}</label>
-                                    <input type="date" className={styles.formInput} value={formData.inspectionDate} onChange={(e) => handleFieldChange('inspectionDate', e.target.value)} />
+                                    <input
+                                        type={formData.inspectionDate ? 'date' : 'text'}
+                                        placeholder="mm/dd/yyyy"
+                                        lang="en"
+                                        onFocus={(e) => (e.target.type = 'date')}
+                                        onBlur={(e) => {
+                                            if (!e.target.value) e.target.type = 'text';
+                                        }}
+                                        className={styles.formInput}
+                                        value={formData.inspectionDate}
+                                        onChange={(e) => handleFieldChange('inspectionDate', e.target.value)}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>{t('common.dueDate')}</label>
+                                    <input
+                                        type={formData.dueDate ? 'date' : 'text'}
+                                        placeholder="mm/dd/yyyy"
+                                        lang="en"
+                                        onFocus={(e) => (e.target.type = 'date')}
+                                        onBlur={(e) => {
+                                            if (!e.target.value) e.target.type = 'text';
+                                        }}
+                                        className={styles.formInput}
+                                        value={formData.dueDate || ''}
+                                        onChange={(e) => handleFieldChange('dueDate', e.target.value)}
+                                    />
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label>{t('noi.inspectionTime')} (24h)</label>
@@ -250,22 +291,28 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
                             </div>
                         </div>
                         <div className={styles.formSection}>
-                            <h3 className={styles.sectionTitle}>{t('common.contactors')}</h3>
+                            <h3 className={styles.sectionTitle}>{t('common.contactInfo')}</h3>
                             <div className={styles.formGrid}>
                                 <div className={styles.formGroup}>
-                                    <label>{t('contactors.contact')}</label>
+                                    <label>{t('contractors.contact')}</label>
                                     <input type="text" className={styles.formInput} value={formData.contacts} onChange={(e) => handleFieldChange('contacts', e.target.value)} />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>{t('contactors.phone')}</label>
+                                    <label>{t('contractors.phone')}</label>
                                     <input type="tel" className={styles.formInput} value={formData.phone} onChange={(e) => handleFieldChange('phone', e.target.value)} />
                                 </div>
                                 <div className={styles.formGroupFull}>
-                                    <label>{t('contactors.email')}</label>
+                                    <label>{t('contractors.email')}</label>
                                     <input type="email" className={styles.formInput} value={formData.email} onChange={(e) => handleFieldChange('email', e.target.value)} />
                                 </div>
                             </div>
                         </div>
+                        <FileAttachment
+                            attachments={formData.attachments}
+                            onUpload={handleAttachmentUpload}
+                            onRemove={handleRemoveAttachment}
+                            id="noi"
+                        />
                         <div className={styles.formSection}>
                             <h3 className={styles.sectionTitle}>{t('noi.sectionQuality')}</h3>
                             <div className={styles.formGrid}>
@@ -280,7 +327,18 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label className={styles.optionalLabel}>{t('noi.closeoutDate')}</label>
-                                    <input type="date" className={styles.formInput} value={formData.closeoutDate} onChange={(e) => handleFieldChange('closeoutDate', e.target.value)} />
+                                    <input
+                                        type={formData.closeoutDate ? 'date' : 'text'}
+                                        placeholder="mm/dd/yyyy"
+                                        lang="en"
+                                        onFocus={(e) => (e.target.type = 'date')}
+                                        onBlur={(e) => {
+                                            if (!e.target.value) e.target.type = 'text';
+                                        }}
+                                        className={styles.formInput}
+                                        value={formData.closeoutDate}
+                                        onChange={(e) => handleFieldChange('closeoutDate', e.target.value)}
+                                    />
                                 </div>
                                 <div className={styles.formGroupFull}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -289,23 +347,6 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
                                     </div>
                                     <textarea className={styles.formTextarea} value={formData.remark} onChange={(e) => handleFieldChange('remark', e.target.value)} rows={4} />
                                 </div>
-                            </div>
-                        </div>
-                        <div className={styles.formSection}>
-                            <h3 className={styles.sectionTitle}>{t('common.attachments')}</h3>
-                            <div className={styles.photoUploadContainer}>
-                                <input type="file" accept="image/*" multiple onChange={handleAttachmentUpload} className={styles.photoInput} id="noi-attachment-upload" />
-                                <label htmlFor="noi-attachment-upload" className={styles.photoUploadButton}><span>+ {t('common.add')}{t('common.attachments')}</span></label>
-                                {formData.attachments.length > 0 && (
-                                    <div className={styles.photoPreviewGrid}>
-                                        {formData.attachments.map((attachment, index) => (
-                                            <div key={index} className={styles.photoPreviewItem}>
-                                                <img src={attachment} alt={`Attachment ${index + 1}`} className={styles.photoPreview} />
-                                                <button type="button" className={styles.photoRemoveButton} onClick={() => handleRemoveAttachment(index)} aria-label="Remove attachment">×</button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -377,11 +418,11 @@ export const NOIDetailsViewModal: React.FC<NOIDetailsViewModalProps> = ({ noiId,
                             </div>
                         </div>
                         <div className={styles.formSection}>
-                            <h3 className={styles.sectionTitle}>{t('common.contactors')}</h3>
+                            <h3 className={styles.sectionTitle}>{t('common.contactInfo')}</h3>
                             <div className={styles.formGrid}>
-                                <div className={styles.formGroup}><label>{t('contactors.contact')}</label><div className={styles.readOnlyField}>{displayData.contacts || '-'}</div></div>
-                                <div className={styles.formGroup}><label>{t('contactors.phone')}</label><div className={styles.readOnlyField}>{displayData.phone || '-'}</div></div>
-                                <div className={styles.formGroupFull}><label>{t('contactors.email')}</label><div className={styles.readOnlyField}>{displayData.email || '-'}</div></div>
+                                <div className={styles.formGroup}><label>{t('contractors.contact')}</label><div className={styles.readOnlyField}>{displayData.contacts || '-'}</div></div>
+                                <div className={styles.formGroup}><label>{t('contractors.phone')}</label><div className={styles.readOnlyField}>{displayData.phone || '-'}</div></div>
+                                <div className={styles.formGroupFull}><label>{t('contractors.email')}</label><div className={styles.readOnlyField}>{displayData.email || '-'}</div></div>
                             </div>
                         </div>
                         <div className={styles.formSection}>
@@ -392,18 +433,13 @@ export const NOIDetailsViewModal: React.FC<NOIDetailsViewModalProps> = ({ noiId,
                                 <div className={styles.formGroupFull}><label>{t('common.remark')}</label><div className={styles.readOnlyField} style={{ whiteSpace: 'pre-wrap', minHeight: '80px' }}>{displayData.remark || '-'}</div></div>
                             </div>
                         </div>
-                        {displayData.attachments && displayData.attachments.length > 0 && (
-                            <div className={styles.formSection}>
-                                <h3 className={styles.sectionTitle}>{t('common.attachments')}</h3>
-                                <div className={styles.photoPreviewGrid}>
-                                    {displayData.attachments.map((attachment, index) => (
-                                        <div key={index} className={`${styles.photoPreviewItem} ${styles.previewItemClickable}`} onClick={() => setPreviewUrl(attachment)}>
-                                            <img src={attachment} alt={`Attachment ${index + 1}`} className={styles.photoPreview} />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                        <FileAttachment
+                            attachments={displayData.attachments || []}
+                            onUpload={() => { }}
+                            onRemove={() => { }}
+                            id="noi-view"
+                            readOnly={true}
+                        />
                     </div>
                 </div>
                 <div className={styles.modalActions}>
@@ -442,10 +478,10 @@ export const NOIBulkAddModal: React.FC<NOIBulkAddModalProps> = ({ onSave, onClos
     const { t } = useLanguage();
     const { getActiveContractors } = useContractors();
     const { getITPByVendor } = useITP();
-    const activeContactors = getActiveContractors();
+    const activeContractors = getActiveContractors();
 
     const [commonData, setCommonData] = useState({
-        contractor: activeContactors.length > 0 ? activeContactors[0].name : '',
+        contractor: activeContractors.length > 0 ? activeContractors[0].name : '',
         issueDate: new Date().toISOString().split('T')[0],
         inspectionDate: new Date().toISOString().split('T')[0],
         contacts: '',
@@ -532,27 +568,27 @@ export const NOIBulkAddModal: React.FC<NOIBulkAddModalProps> = ({ onSave, onClos
                                 <label className={styles.requiredLabel}>{t('common.contractor')}</label>
                                 <select className={styles.formSelect} value={commonData.contractor} onChange={(e) => handleCommonChange('contractor', e.target.value)}>
                                     <option value="">{t('common.selectPlaceholder')}</option>
-                                    {activeContactors.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
+                                    {activeContractors.map((c) => (<option key={c.id} value={c.name}>{c.name}</option>))}
                                 </select>
                             </div>
                             <div className={styles.formGroup}>
                                 <label className={styles.requiredLabel}>{t('noi.issueDate')}</label>
-                                <input type="date" className={styles.formInput} value={commonData.issueDate} onChange={(e) => handleCommonChange('issueDate', e.target.value)} />
+                                <input type="date" lang="en" className={styles.formInput} value={commonData.issueDate} onChange={(e) => handleCommonChange('issueDate', e.target.value)} />
                             </div>
                             <div className={styles.formGroup}>
                                 <label>{t('noi.inspectionDate')}</label>
-                                <input type="date" className={styles.formInput} value={commonData.inspectionDate} onChange={(e) => handleCommonChange('inspectionDate', e.target.value)} />
+                                <input type="date" lang="en" className={styles.formInput} value={commonData.inspectionDate} onChange={(e) => handleCommonChange('inspectionDate', e.target.value)} />
                             </div>
                             <div className={styles.formGroup}>
-                                <label>{t('contactors.contact')}</label>
+                                <label>{t('contractors.contact')}</label>
                                 <input type="text" className={styles.formInput} value={commonData.contacts} onChange={(e) => handleCommonChange('contacts', e.target.value)} />
                             </div>
                             <div className={styles.formGroup}>
-                                <label>{t('contactors.phone')}</label>
+                                <label>{t('contractors.phone')}</label>
                                 <input type="text" className={styles.formInput} value={commonData.phone} onChange={(e) => handleCommonChange('phone', e.target.value)} />
                             </div>
                             <div className={styles.formGroup}>
-                                <label>{t('contactors.email')}</label>
+                                <label>{t('contractors.email')}</label>
                                 <input type="email" className={styles.formInput} value={commonData.email} onChange={(e) => handleCommonChange('email', e.target.value)} />
                             </div>
                         </div>
@@ -560,7 +596,7 @@ export const NOIBulkAddModal: React.FC<NOIBulkAddModalProps> = ({ onSave, onClos
                     <div className={styles.formSection}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                             <h3 className={styles.sectionTitle} style={{ margin: 0 }}>{t('noi.print.listTitle')}</h3>
-                            <button type="button" onClick={addRow} style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}>+ {t('common.add')}</button>
+                            <button type="button" onClick={addRow} style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}>{t('common.add')}</button>
                         </div>
                         <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>

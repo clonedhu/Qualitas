@@ -29,6 +29,19 @@ const AuditContext = createContext<AuditContextType | undefined>(undefined);
 // 暫時使用 localStorage 作為後端 API 不存在時的備用方案
 const STORAGE_KEY = 'qualitas_audit_list';
 
+// 將廠商名稱轉換為縮寫（取前3個字母大寫）
+const getVendorAbbrev = (contractor?: string): string => {
+    if (!contractor) return 'XXX';
+    // 取廠商名稱的前三個字母並轉大寫
+    return contractor.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() || 'XXX';
+};
+
+// 生成符合命名規則的審計編號
+const generateAuditNo = (contractor: string | undefined, sequence: number): string => {
+    const abbrev = getVendorAbbrev(contractor);
+    return `QTS-RKS-${abbrev}-AUD-${String(sequence).padStart(6, '0')}`;
+};
+
 const loadFromStorage = (): AuditItem[] => {
     try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -39,7 +52,7 @@ const loadFromStorage = (): AuditItem[] => {
     } catch (_) { }
     return [{
         id: '1',
-        auditNo: 'AUD-2026-001',
+        auditNo: 'QTS-RKS-SAM-AUD-000001',
         title: 'Internal Quality Audit Q1',
         date: '2026-03-15',
         auditor: 'John Doe',
@@ -69,9 +82,8 @@ export const AuditProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             // 嘗試從 API 獲取資料
             const response = await api.get('/audit/');
             setAuditList(response.data || []);
-        } catch (err: any) {
-            // 如果 API 不存在（404）或其他錯誤，使用 localStorage
-            console.warn('Audit API not available, using localStorage fallback');
+        } catch (err: unknown) {
+            // API 不存在（404）或其他錯誤時，使用 localStorage 備援
             setAuditList(loadFromStorage());
         } finally {
             setLoading(false);
@@ -95,12 +107,12 @@ export const AuditProvider: React.FC<{ children: ReactNode }> = ({ children }) =
             const newAudit = response.data;
             setAuditList(prev => [...prev, newAudit]);
             return newAudit;
-        } catch (err: any) {
+        } catch (err: unknown) {
             // API 失敗時使用本地儲存
             const newAudit: AuditItem = {
                 ...audit,
                 id: String(Date.now()),
-                auditNo: audit.auditNo || `AUD-${new Date().getFullYear()}-${String(auditList.length + 1).padStart(3, '0')}`,
+                auditNo: audit.auditNo || generateAuditNo(audit.contractor, auditList.length + 1),
             };
             setAuditList(prev => [...prev, newAudit]);
             return newAudit;
@@ -111,7 +123,7 @@ export const AuditProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         try {
             const response = await api.put(`/audit/${id}`, updates);
             setAuditList(prev => prev.map(a => (a.id === id ? response.data : a)));
-        } catch (err: any) {
+        } catch (err: unknown) {
             // API 失敗時使用本地更新
             setAuditList(prev => prev.map(a => (a.id === id ? { ...a, ...updates } : a)));
         }
@@ -121,7 +133,7 @@ export const AuditProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         try {
             await api.delete(`/audit/${id}`);
             setAuditList(prev => prev.filter(a => a.id !== id));
-        } catch (err: any) {
+        } catch (err: unknown) {
             // API 失敗時使用本地刪除
             setAuditList(prev => prev.filter(a => a.id !== id));
         }

@@ -29,11 +29,12 @@ export interface NCRItem {
   improvementPhotos?: string[];
   noiNumber?: string;
   dueDate?: string;
+  attachments?: string[];
 }
 
 function normalizeItem(item: unknown): NCRItem {
   const record = (typeof item === 'object' && item !== null ? { ...item } : {}) as Record<string, unknown>;
-  return parseJsonFields(record, ['defectPhotos', 'improvementPhotos']) as unknown as NCRItem;
+  return parseJsonFields(record, ['defectPhotos', 'improvementPhotos', 'attachments']) as unknown as NCRItem;
 }
 
 interface NCRContextType {
@@ -112,7 +113,7 @@ export const NCRProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const value = useMemo(
     () => ({ ncrList, loading, error, refetch: fetchNCRs, addNCR, updateNCR, deleteNCR, getNCRList, getNCRByVendor }),
-    [ncrList, loading, error, fetchNCRs, addNCR, updateNCR, deleteNCR]
+    [ncrList, loading, error, fetchNCRs, addNCR, updateNCR, deleteNCR, getNCRList, getNCRByVendor]
   );
 
   return (

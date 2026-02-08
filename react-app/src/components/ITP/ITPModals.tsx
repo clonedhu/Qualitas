@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useContractors } from '../../context/ContractorsContext';
 import { ITPItem } from '../../context/ITPContext';
+import FileAttachment from '../Shared/FileAttachment';
 import styles from './ITP.module.css';
 
 export interface ITPDetailModalProps {
@@ -24,6 +25,8 @@ export const ITPDetailModal: React.FC<ITPDetailModalProps> = ({ itpId, existingI
         status: existingItem?.status || 'Pending',
         remark: existingItem?.remark || '',
         submissionDate: existingItem?.submissionDate || new Date().toISOString().split('T')[0],
+        attachments: existingItem?.attachments || [],
+        dueDate: (existingItem as any)?.dueDate || '',
     });
 
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -64,6 +67,32 @@ export const ITPDetailModal: React.FC<ITPDetailModalProps> = ({ itpId, existingI
             onSave(formData);
             // onClose is handled by parent after async operation
         }
+    };
+
+    const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files;
+        if (files) {
+            const fileArray = Array.from(files);
+            fileArray.forEach((file) => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const result = reader.result as string;
+                    setFormData(prev => ({
+                        ...prev,
+                        attachments: [...(prev.attachments || []), result]
+                    }));
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        e.target.value = '';
+    };
+
+    const handleRemoveAttachment = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            attachments: (prev.attachments || []).filter((_, i) => i !== index)
+        }));
     };
 
     return (
@@ -117,10 +146,26 @@ export const ITPDetailModal: React.FC<ITPDetailModalProps> = ({ itpId, existingI
                                 <div className={styles.formGroup}>
                                     <label>{t('itp.submissionDate')}</label>
                                     <input
-                                        type="date"
+                                        type={formData.submissionDate ? 'date' : 'text'}
+                                        placeholder="mm/dd/yyyy"
+                                        lang="en"
+                                        onFocus={(e) => (e.target.type = 'date')}
+                                        onBlur={(e) => {
+                                            if (!e.target.value) e.target.type = 'text';
+                                        }}
                                         className={styles.formInput}
                                         value={formData.submissionDate || ''}
                                         onChange={(e) => handleFieldChange('submissionDate', e.target.value)}
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>{t('common.dueDate')}</label>
+                                    <input
+                                        type="date"
+                                        lang="en"
+                                        className={styles.formInput}
+                                        value={(formData as any).dueDate || ''}
+                                        onChange={(e) => handleFieldChange('dueDate' as any, e.target.value)}
                                     />
                                 </div>
                                 <div className={styles.formGroup}>
@@ -156,6 +201,22 @@ export const ITPDetailModal: React.FC<ITPDetailModalProps> = ({ itpId, existingI
                                         />
                                     )}
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Attachments */}
+                        {/* Attachments */}
+                        <FileAttachment
+                            attachments={formData.attachments || []}
+                            onUpload={handleAttachmentUpload}
+                            onRemove={handleRemoveAttachment}
+                            id="itp"
+                        />
+
+                        {/* Quality Assessment */}
+                        <div className={styles.formSection}>
+                            <h3 className={styles.sectionTitle}>{t('pqp.qualityAssessment')}</h3>
+                            <div className={styles.formGrid}>
                                 <div className={styles.formGroup}>
                                     <label>{t('itp.status')}</label>
                                     <select
@@ -193,6 +254,7 @@ export const ITPDetailModal: React.FC<ITPDetailModalProps> = ({ itpId, existingI
                         </div>
                     </div>
                 </div>
+
                 <div className={styles.modalActions}>
                     <button className={styles.saveButton} onClick={handleSave}>
                         {t('common.save')}
@@ -202,7 +264,7 @@ export const ITPDetailModal: React.FC<ITPDetailModalProps> = ({ itpId, existingI
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
@@ -266,6 +328,19 @@ export const ITPDetailsViewModal: React.FC<ITPDetailsViewModalProps> = ({ itpId,
                                 )}
                             </div>
                         </div>
+                        {itpItem.attachments && itpItem.attachments.length > 0 && (
+                            <div className={styles.formSection} style={{ marginTop: '20px', padding: '0 20px' }}>
+                                <h3 className={styles.sectionTitle}>{t('common.attachments')}</h3>
+                                <div className={styles.photoPreviewGrid}>
+                                    {itpItem.attachments.map((attachment, index) => (
+                                        <div key={index} className={styles.photoPreviewItem}>
+                                            <span style={{ fontSize: 12, wordBreak: 'break-all' }}>Attachment {index + 1}</span>
+                                            <a href={attachment} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, marginLeft: 4 }}>View</a>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className={styles.modalActions}>
@@ -277,6 +352,6 @@ export const ITPDetailsViewModal: React.FC<ITPDetailsViewModalProps> = ({ itpId,
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };

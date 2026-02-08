@@ -14,16 +14,16 @@ const KM: React.FC = () => {
           <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
             ← {t('common.back') || 'Back'}
           </button>
-          <h1>Knowledge Management (KM)</h1>
+          <h1>{t('km.title')}</h1>
         </div>
       </div>
 
       <div className={styles.content}>
         <div className={styles.placeholder}>
-          <h2>知識管理系統</h2>
+          <h2>{t('km.systemTitle')}</h2>
           <p>Knowledge Management System</p>
           <p className={styles.description}>
-            此模組用於管理組織的知識資產、文件、最佳實踐和經驗分享。
+            {t('km.description')}
           </p>
         </div>
       </div>

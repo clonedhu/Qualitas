@@ -51,7 +51,7 @@ export const AuditEditModal: React.FC<AuditEditModalProps> = ({ auditId, existin
         <div className={styles.modalOverlay}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
                 <div className={styles.modalHeader}>
-                    <h2>{existingItem ? (t('audit.editTitle') || 'Edit Audit') : (t('audit.addTitle') || 'New Audit')}</h2>
+                    <h2>{existingItem ? t('audit.editTitle') : t('audit.addTitle')}</h2>
                     <button className={styles.closeButton} onClick={onClose}>×</button>
                 </div>
                 <div className={styles.modalBody}>
@@ -60,7 +60,7 @@ export const AuditEditModal: React.FC<AuditEditModalProps> = ({ auditId, existin
                             <h3 className={styles.sectionTitle}>{t('common.baseInfo')}</h3>
                             <div className={styles.formGrid}>
                                 <div className={styles.formGroup}>
-                                    <label>{t('audit.auditNo') || 'Audit No.'}</label>
+                                    <label>{t('audit.auditNo')}</label>
                                     <input
                                         type="text"
                                         className={styles.formInput}
@@ -72,20 +72,20 @@ export const AuditEditModal: React.FC<AuditEditModalProps> = ({ auditId, existin
                                     />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>{t('common.contractor') || 'Vendor'}</label>
+                                    <label>{t('common.contractor')}</label>
                                     <select
                                         className={styles.formSelect}
                                         value={formData.contractor}
                                         onChange={(e) => handleFieldChange('contractor', e.target.value)}
                                     >
-                                        <option value="">{t('common.selectPlaceholder') || 'Select Vendor'}</option>
+                                        <option value="">{t('common.selectPlaceholder')}</option>
                                         {activeContractors.map(vendor => (
                                             <option key={vendor.id} value={vendor.name}>{vendor.name}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>{t('audit.auditTitle') || 'Title'}</label>
+                                    <label>{t('audit.auditTitle')}</label>
                                     <input
                                         type="text"
                                         className={styles.formInput}
@@ -94,16 +94,22 @@ export const AuditEditModal: React.FC<AuditEditModalProps> = ({ auditId, existin
                                     />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>{t('audit.date') || 'Date'}</label>
+                                    <label>{t('audit.date')}</label>
                                     <input
-                                        type="date"
+                                        type={formData.date ? 'date' : 'text'}
+                                        placeholder="mm/dd/yyyy"
+                                        lang="en"
+                                        onFocus={(e) => (e.target.type = 'date')}
+                                        onBlur={(e) => {
+                                            if (!e.target.value) e.target.type = 'text';
+                                        }}
                                         className={styles.formInput}
                                         value={formData.date}
                                         onChange={(e) => handleFieldChange('date', e.target.value)}
                                     />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>{t('audit.location') || 'Location'}</label>
+                                    <label>{t('audit.location')}</label>
                                     <input
                                         type="text"
                                         className={styles.formInput}
@@ -112,7 +118,7 @@ export const AuditEditModal: React.FC<AuditEditModalProps> = ({ auditId, existin
                                     />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>{t('audit.auditor') || 'Auditor'}</label>
+                                    <label>{t('audit.auditor')}</label>
                                     <input
                                         type="text"
                                         className={styles.formInput}
@@ -120,6 +126,11 @@ export const AuditEditModal: React.FC<AuditEditModalProps> = ({ auditId, existin
                                         onChange={(e) => handleFieldChange('auditor', e.target.value)}
                                     />
                                 </div>
+                            </div>
+                        </div>
+                        <div className={styles.formSection}>
+                            <h3 className={styles.sectionTitle}>{t('audit.sectionQuality')}</h3>
+                            <div className={styles.formGrid}>
                                 <div className={styles.formGroup}>
                                     <label>{t('common.status')}</label>
                                     <select
@@ -134,7 +145,7 @@ export const AuditEditModal: React.FC<AuditEditModalProps> = ({ auditId, existin
                                     </select>
                                 </div>
                                 <div className={styles.formGroupFull}>
-                                    <label className={styles.optionalLabel}>{t('audit.findings') || 'Findings / Remarks'}</label>
+                                    <label className={styles.optionalLabel}>{t('audit.findings')}</label>
                                     <textarea
                                         className={styles.formTextarea}
                                         value={formData.findings}

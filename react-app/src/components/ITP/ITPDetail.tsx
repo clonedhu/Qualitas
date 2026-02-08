@@ -147,6 +147,14 @@ const DEFAULT_SELF_INSPECTION: SelfInspectionData = {
 };
 
 const ITPDetail: React.FC = () => {
+  // 簽名 canvas (預留功能)
+  const sigCanvas1 = useRef<HTMLCanvasElement>(null);
+  const sigCanvas2 = useRef<HTMLCanvasElement>(null);
+  const sigCanvas3 = useRef<HTMLCanvasElement>(null);
+
+  // File Attachments
+  const [fileAttachments, setFileAttachments] = useState<string[]>([]);
+
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { id: itpId } = useParams<{ id: string }>();
@@ -309,7 +317,11 @@ const ITPDetail: React.FC = () => {
           setChecklist(normChecklist(parsed.checklist));
           setSelfInspection(normSelfInspection(parsed.self_inspection));
         }
-      } catch {
+
+        // Set attachments
+        setFileAttachments(res.data.attachments || []);
+
+      } catch (error) {
         setItpTitle('');
       }
     };
@@ -426,6 +438,29 @@ const ITPDetail: React.FC = () => {
     setSelfInspection(prev => ({ ...prev, auditComment: value }));
   };
 
+  const handleFileAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const newAttachments: string[] = [];
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === 'string') {
+            newAttachments.push(reader.result);
+            if (newAttachments.length === files.length) {
+              setFileAttachments(prev => [...prev, ...newAttachments]);
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const handleRemoveFileAttachment = (index: number) => {
+    setFileAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSaveAll = async () => {
     if (!itpId) {
       alert(t('itp.detail.missingId'));
@@ -433,7 +468,11 @@ const ITPDetail: React.FC = () => {
     }
     try {
       const payload = { a: itpData.a, b: itpData.b, c: itpData.c, checklist, self_inspection: selfInspection };
+      // 1. Update detail_data
       await api.put(`/itp/${itpId}/detail`, payload);
+      // 2. Update attachments (standard column)
+      await api.put(`/itp/${itpId}`, { attachments: fileAttachments });
+
       alert(t('itp.detail.saveSuccess'));
       navigate('/itp');
     } catch (err) {
@@ -765,7 +804,42 @@ const ITPDetail: React.FC = () => {
           </table>
 
           <div className={styles.selfInspectionBlock}>
-            <span className={styles.selfInspectionLabel}>{t('itp.selfInspection.attachments')}</span>
+            <span className={styles.selfInspectionLabel}>{t('common.attachments')}</span>
+            <div className={styles.photoUploadContainer}>
+              <input
+                type="file"
+                accept="*"
+                multiple
+                onChange={handleFileAttachmentUpload}
+                className={styles.photoInput}
+                id="itp-attachment-upload"
+              />
+              <label htmlFor="itp-attachment-upload" className={styles.photoUploadButton}>
+                <span>{t('obs.uploadFiles')}</span>
+              </label>
+              {fileAttachments.length > 0 && (
+                <div className={styles.photoPreviewGrid}>
+                  {fileAttachments.map((attachment, index) => (
+                    <div key={index} className={styles.photoPreviewItem}>
+                      <span style={{ fontSize: 12, wordBreak: 'break-all', padding: 4, display: 'block' }}>Attachment {index + 1}</span>
+                      <a href={attachment} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, marginLeft: 4, display: 'block', textAlign: 'center' }}>View</a>
+                      <button
+                        type="button"
+                        className={styles.photoRemoveButton}
+                        onClick={() => handleRemoveFileAttachment(index)}
+                        aria-label="Remove attachment"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.selfInspectionBlock}>
+            <span className={styles.selfInspectionLabel}>{t('itp.selfInspection.attachments')} (Checklist)</span>
             <div className={styles.selfInspectionCheckRow}>
               <label><input type="checkbox" checked={selfInspection.attachments.spec} onChange={(e) => setAttachments('spec', e.target.checked)} /> {t('itp.selfInspection.attachment.spec')}</label>
               <label><input type="checkbox" checked={selfInspection.attachments.submission} onChange={(e) => setAttachments('submission', e.target.checked)} /> {t('itp.selfInspection.attachment.submission')}</label>

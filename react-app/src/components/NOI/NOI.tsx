@@ -14,6 +14,7 @@ import styles from './NOI.module.css';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
 import { RowSelectionState } from '@tanstack/react-table';
+import { BackButton } from '@/components/ui/BackButton';
 
 import {
   NOIDetailModal,
@@ -233,9 +234,7 @@ const NOI: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
-            ← {t('common.back')}
-          </button>
+          <BackButton />
           <h1>{t('noi.title')}</h1>
         </div>
         <div className={styles.headerRight}>
@@ -327,11 +326,11 @@ const NOI: React.FC = () => {
       </div>
 
       <div className={styles.content}>
-        {loading && <p className={styles.loadingMessage}>載入中...</p>}
+        {loading && <p className={styles.loadingMessage}>{t('common.loading')}</p>}
         {error && (
           <div className={styles.loadingError}>
             <p>{error}</p>
-            <button type="button" className={styles.retryButton} onClick={() => refetch()}>重試</button>
+            <button type="button" className={styles.retryButton} onClick={() => refetch()}>{t('common.retry')}</button>
           </div>
         )}
         {!loading && !error && (
@@ -344,14 +343,14 @@ const NOI: React.FC = () => {
                     className={styles.addNewButton}
                     onClick={handleAddNew}
                   >
-                    + {t('noi.addNew')}
+                    {t('noi.addNew')}
                   </button>
                   <button
                     className={styles.addNewButton}
                     onClick={() => setIsBulkModalOpen(true)}
                     style={{ backgroundColor: '#059669' }}
                   >
-                    + {t('noi.bulkAdd')}
+                    {t('noi.bulkAdd')}
                   </button>
                   <button
                     className={styles.printButton}
@@ -416,8 +415,8 @@ const NOI: React.FC = () => {
 
       <ConfirmModal
         isOpen={deleteModal.isOpen}
-        title="確認刪除"
-        message={deleteModal.message || '確定要刪除此 NOI 項目嗎？'}
+        title={t('common.deleteConfirmTitle')}
+        message={deleteModal.message || t('common.deleteConfirmMessage', { item: 'NOI' })}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteModal({ isOpen: false, id: null, message: '' })}
         confirmText="Delete"

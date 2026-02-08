@@ -12,6 +12,8 @@ export interface PQPItem {
   version: string;
   createdAt: string;
   updatedAt: string;
+  attachments?: string[];
+  dueDate?: string;
 }
 
 interface PQPContextType {

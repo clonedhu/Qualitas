@@ -30,7 +30,9 @@
   align-items: center;
 }
 
-.vendorFilter, .statusFilter, .dateInput {
+.vendorFilter,
+.statusFilter,
+.dateInput {
   padding: 10px 20px;
   padding-right: 40px;
   border: 1px solid #d1d5db;
@@ -55,11 +57,15 @@
   padding-right: 20px;
 }
 
-.vendorFilter:hover, .statusFilter:hover, .dateInput:hover {
+.vendorFilter:hover,
+.statusFilter:hover,
+.dateInput:hover {
   border-color: #9ca3af;
 }
 
-.vendorFilter:focus, .statusFilter:focus, .dateInput:focus {
+.vendorFilter:focus,
+.statusFilter:focus,
+.dateInput:focus {
   outline: none;
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
@@ -168,12 +174,29 @@
   stroke-width: 2;
 }
 
-.greenIcon { color: #10b981; }
-.yellowIcon { color: #f59e0b; }
-.pinkIcon { color: #ec4899; }
-.orangeIcon { color: #f97316; }
-.grayIcon { color: #6b7280; }
-.blueIcon { color: #3b82f6; }
+.greenIcon {
+  color: #10b981;
+}
+
+.yellowIcon {
+  color: #f59e0b;
+}
+
+.pinkIcon {
+  color: #ec4899;
+}
+
+.orangeIcon {
+  color: #f97316;
+}
+
+.grayIcon {
+  color: #6b7280;
+}
+
+.blueIcon {
+  color: #3b82f6;
+}
 
 .statContent {
   flex: 1;
@@ -267,7 +290,8 @@
 }
 
 .sortableHeader:hover {
-  background-color: #1e40af; /* Darker blue on hover */
+  background-color: #1e40af;
+  /* Darker blue on hover */
   color: white;
 }
 
@@ -280,7 +304,8 @@
 
 .sortIcon {
   font-size: 12px;
-  color: #93c5fd; /* Lighter blue for icon */
+  color: #93c5fd;
+  /* Lighter blue for icon */
   display: inline-flex;
   align-items: center;
 }
@@ -513,6 +538,19 @@
   margin: 0 0 24px 0;
   padding-bottom: 12px;
   border-bottom: 2px solid #e0e7ff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.sectionTitle::before {
+  content: '';
+  width: 4px;
+  height: 24px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%);
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
 .formGrid {
@@ -614,7 +652,8 @@
   background: #f9fafb;
 }
 
-.saveButton, .printButton {
+.saveButton,
+.printButton {
   padding: 12px 32px;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
@@ -632,7 +671,8 @@
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
-.saveButton:hover, .printButton:hover {
+.saveButton:hover,
+.printButton:hover {
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
   transform: translateY(-1px);
 }
@@ -675,6 +715,7 @@
     position: absolute;
     background: white;
   }
+
   .modalContent {
     box-shadow: none;
     width: 100%;
@@ -719,4 +760,102 @@
   background: #e5e7eb;
   border-color: #9ca3af;
   color: #374151;
+}
+
+/* Photo/File Attachment Styles */
+.photoSectionContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.photoSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.photoUploadContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.photoInput {
+  display: none;
+}
+
+.photoUploadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.photoUploadButton:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+  color: #1f2937;
+}
+
+.photoPreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.photoPreviewItem {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.photoPreview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photoRemoveButton {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.photoRemoveButton:hover {
+  background: rgba(239, 68, 68, 0.9);
+  transform: scale(1.1);
 }

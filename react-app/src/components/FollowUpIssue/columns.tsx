@@ -25,7 +25,8 @@ export const createColumns = (
     handleEdit: (id: string) => void,
     handleViewDetails: (id: string) => void,
     handleDeleteClick: (id: string) => void,
-    navigate: (path: string) => void
+    navigate: (path: string) => void,
+    t: (key: string, params?: Record<string, string | number>) => string
 ): ColumnDef<FollowUpIssueItem>[] => [
         {
             id: "index",
@@ -40,7 +41,7 @@ export const createColumns = (
             header: ({ column }) => (
                 <DataTableColumnHeader
                     column={column}
-                    title="Source"
+                    title={t('followup.source')}
                     filterOptions={[
                         { label: 'Follow-up', value: 'Follow-up' },
                         { label: 'NCR', value: 'NCR' },
@@ -75,7 +76,7 @@ export const createColumns = (
                             className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
                             onClick={() => modulePath && navigate(modulePath)}
                             style={{ cursor: modulePath ? 'pointer' : 'default' }}
-                            title={`前往 ${issue.sourceModule} 模組`}
+                            title={t('followup.tooltip.goToModule', { module: issue.sourceModule })}
                         >
                             {issue.sourceModule}
                         </span>
@@ -95,7 +96,7 @@ export const createColumns = (
         {
             accessorKey: "issueNo",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Reference no." />
+                <DataTableColumnHeader column={column} title={t('followup.issueNo')} />
             ),
             cell: ({ row }) => {
                 const issue = row.original;
@@ -130,7 +131,7 @@ export const createColumns = (
             header: ({ column }) => (
                 <DataTableColumnHeader
                     column={column}
-                    title="Status"
+                    title={t('followup.status')}
                     filterOptions={[
                         { label: 'Open', value: 'Open' },
                         { label: 'Closed', value: 'Closed' },
@@ -145,7 +146,7 @@ export const createColumns = (
         {
             accessorKey: "description",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Description" />
+                <DataTableColumnHeader column={column} title={t('followup.description')} />
             ),
             cell: ({ row }) => (
                 <div className="max-w-[300px] truncate" title={row.getValue("description")}>
@@ -156,7 +157,7 @@ export const createColumns = (
         {
             accessorKey: "assignedTo",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Assigned To" />
+                <DataTableColumnHeader column={column} title={t('followup.assignedTo')} />
             ),
             cell: ({ row }) => {
                 const issue = row.original;
@@ -168,18 +169,18 @@ export const createColumns = (
         {
             accessorKey: "createdAt",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Created Date" />
+                <DataTableColumnHeader column={column} title={t('followup.createdDate')} />
             ),
         },
         {
             accessorKey: "dueDate",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="Due Date" />
+                <DataTableColumnHeader column={column} title={t('followup.dueDate')} />
             ),
         },
         {
             id: "actions",
-            header: "Operations",
+            header: t('common.operations'),
             cell: ({ row }) => {
                 const issue = row.original;
                 const getModulePath = (module?: string) => {
@@ -201,7 +202,7 @@ export const createColumns = (
                             variant="ghost"
                             size="sm"
                             onClick={() => navigate(modulePath)}
-                            title={`前往 ${issue.sourceModule}`}
+                            title={t('followup.tooltip.goToModule', { module: issue.sourceModule })}
                         >
                             <Eye className="h-4 w-4" />
                         </Button>
@@ -214,7 +215,7 @@ export const createColumns = (
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEdit(issue.id)}
-                            title="Edit"
+                            title={t('common.edit')}
                             className="text-blue-500 hover:text-blue-700"
                         >
                             <Edit2 className="h-4 w-4" />
@@ -223,7 +224,7 @@ export const createColumns = (
                             variant="ghost"
                             size="sm"
                             onClick={() => handleViewDetails(issue.id)}
-                            title="Details"
+                            title={t('common.details')}
                             className="text-gray-500 hover:text-gray-700"
                         >
                             <Eye className="h-4 w-4" />
@@ -232,7 +233,7 @@ export const createColumns = (
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteClick(issue.id)}
-                            title="Delete"
+                            title={t('common.delete')}
                             className="text-red-500 hover:text-red-700"
                         >
                             <Trash2 className="h-4 w-4" />

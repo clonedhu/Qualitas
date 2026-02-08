@@ -23,7 +23,7 @@
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 14px;
-  width: 250px;
+  width: 300px;
   background: white;
   color: #1f2937;
   transition: border-color 0.2s;
@@ -66,9 +66,9 @@
   margin: 0;
 }
 
-.addButton {
+.addNewButton {
   padding: 10px 20px;
-  background: #2563eb;
+  background: #10b981;
   color: white;
   border: none;
   border-radius: 6px;
@@ -76,10 +76,13 @@
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.addButton:hover {
-  background: #1d4ed8;
+.addNewButton:hover {
+  background: #059669;
 }
 
 .content {

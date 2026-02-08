@@ -29,19 +29,20 @@ export interface Role {
 export const createUserColumns = (
     handleEdit: (user: User) => void,
     handleDelete: (id: string) => void,
-    availableRoles: { id: string; name: string }[] = [] // Pass roles for filter options
+    availableRoles: { id: string; name: string }[] = [],
+    t: (key: string) => string
 ): ColumnDef<User>[] => [
         {
             accessorKey: "name",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="姓名" />
+                <DataTableColumnHeader column={column} title={t('iam.name')} />
             ),
             cell: ({ row }) => <div className="text-center font-medium">{row.getValue("name")}</div>,
         },
         {
             accessorKey: "email",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="電子郵件" />
+                <DataTableColumnHeader column={column} title={t('iam.email')} />
             ),
             cell: ({ row }) => <div className="text-center">{row.getValue("email")}</div>,
         },
@@ -50,7 +51,7 @@ export const createUserColumns = (
             header: ({ column }) => (
                 <DataTableColumnHeader
                     column={column}
-                    title="角色"
+                    title={t('iam.role')}
                     filterOptions={availableRoles.map(r => ({ label: r.name, value: r.name }))}
                 />
             ),
@@ -72,10 +73,10 @@ export const createUserColumns = (
             header: ({ column }) => (
                 <DataTableColumnHeader
                     column={column}
-                    title="狀態"
+                    title={t('iam.status')}
                     filterOptions={[
-                        { label: '啟用', value: 'active' },
-                        { label: '停用', value: 'inactive' },
+                        { label: t('iam.status.active'), value: 'active' },
+                        { label: t('iam.status.inactive'), value: 'inactive' },
                     ]}
                 />
             ),
@@ -90,7 +91,7 @@ export const createUserColumns = (
                                 isActive ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
                             )}
                         >
-                            {isActive ? '啟用' : '停用'}
+                            {isActive ? t('iam.status.active') : t('iam.status.inactive')}
                         </span>
                     </div>
                 );
@@ -102,13 +103,13 @@ export const createUserColumns = (
         {
             accessorKey: "createdAt",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="建立日期" />
+                <DataTableColumnHeader column={column} title={t('iam.createdDate')} />
             ),
             cell: ({ row }) => <div className="text-center">{row.getValue("createdAt")}</div>,
         },
         {
             id: "actions",
-            header: "操作",
+            header: t('common.operations'),
             cell: ({ row }) => {
                 const item = row.original;
                 return (
@@ -118,7 +119,7 @@ export const createUserColumns = (
                             size="sm"
                             className="h-8 w-8 p-0 text-blue-600 hover:text-white hover:bg-blue-600"
                             onClick={() => handleEdit(item)}
-                            title="編輯"
+                            title={t('common.edit')}
                         >
                             <Edit className="h-4 w-4" />
                         </Button>
@@ -127,7 +128,7 @@ export const createUserColumns = (
                             size="sm"
                             className="h-8 w-8 p-0 text-red-500 hover:text-white hover:bg-red-500"
                             onClick={() => handleDelete(item.id)}
-                            title="刪除"
+                            title={t('common.delete')}
                         >
                             <Trash2 className="h-4 w-4" />
                         </Button>
@@ -143,12 +144,13 @@ export const createUserColumns = (
 export const createRoleColumns = (
     handleEdit: (role: Role) => void,
     handleDelete: (id: string) => void,
-    availablePermissions: { id: string; label: string }[]
+    availablePermissions: { id: string; label: string }[],
+    t: (key: string) => string
 ): ColumnDef<Role>[] => [
         {
             accessorKey: "name",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="角色名稱" />
+                <DataTableColumnHeader column={column} title={t('iam.roleName')} />
             ),
             cell: ({ row }) => (
                 <div className="flex justify-center">
@@ -161,14 +163,14 @@ export const createRoleColumns = (
         {
             accessorKey: "description",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="描述" />
+                <DataTableColumnHeader column={column} title={t('iam.description')} />
             ),
             cell: ({ row }) => <div className="text-left">{row.getValue("description")}</div>,
         },
         {
             accessorKey: "permissions",
             header: ({ column }) => (
-                <DataTableColumnHeader column={column} title="權限" />
+                <DataTableColumnHeader column={column} title={t('iam.permissions')} />
             ),
             cell: ({ row }) => {
                 const perms = row.original.permissions;
@@ -185,7 +187,7 @@ export const createRoleColumns = (
         },
         {
             id: "actions",
-            header: "操作",
+            header: t('common.operations'),
             cell: ({ row }) => {
                 const item = row.original;
                 return (

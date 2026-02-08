@@ -15,14 +15,15 @@ export interface NamingRule {
 }
 
 const DEFAULT_RULES: NamingRule[] = [
-  { id: 'itp', moduleName: 'ITP', prefix: 'QTS-[ABBREV]-ITP-', sequenceDigits: 6, description: '專案-廠商縮寫-ITP-6位流水號' },
-  { id: 'noi', moduleName: 'NOI', prefix: 'QTS-[ABBREV]-NOI-', sequenceDigits: 6, description: '專案-廠商縮寫-NOI-6位流水號' },
-  { id: 'itr', moduleName: 'ITR', prefix: 'QTS-[ABBREV]-ITR-', sequenceDigits: 6, description: '專案-廠商縮寫-ITR-6位流水號' },
-  { id: 'ncr', moduleName: 'NCR', prefix: 'QTS-[ABBREV]-NCR-', sequenceDigits: 6, description: '專案-廠商縮寫-NCR-6位流水號' },
-  { id: 'obs', moduleName: 'OBS', prefix: 'QTS-[ABBREV]-OBS-', sequenceDigits: 6, description: '專案-廠商縮寫-OBS-6位流水號' },
-  { id: 'pqp', moduleName: 'PQP', prefix: 'QTS-[ABBREV]-PQP-', sequenceDigits: 6, description: '專案-廠商縮寫-PQP-6位流水號' },
-  { id: 'followup', moduleName: 'Follow up Issue', prefix: 'QTS-[ABBREV]-FUI-', sequenceDigits: 6, description: '專案-廠商縮寫-FUI-6位流水號' },
-  { id: 'fat', moduleName: 'FAT', prefix: 'QTS-[ABBREV]-FAT-', sequenceDigits: 6, description: '專案-廠商縮寫-FAT-6位流水號' },
+  { id: 'itp', moduleName: 'ITP', prefix: 'QTS-RKS-[ABBREV]-ITP-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-ITP-6位流水號' },
+  { id: 'noi', moduleName: 'NOI', prefix: 'QTS-RKS-[ABBREV]-NOI-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-NOI-6位流水號' },
+  { id: 'itr', moduleName: 'ITR', prefix: 'QTS-RKS-[ABBREV]-ITR-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-ITR-6位流水號' },
+  { id: 'ncr', moduleName: 'NCR', prefix: 'QTS-RKS-[ABBREV]-NCR-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-NCR-6位流水號' },
+  { id: 'obs', moduleName: 'OBS', prefix: 'QTS-RKS-[ABBREV]-OBS-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-OBS-6位流水號' },
+  { id: 'pqp', moduleName: 'PQP', prefix: 'QTS-RKS-[ABBREV]-PQP-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-PQP-6位流水號' },
+  { id: 'followup', moduleName: 'Follow up Issue', prefix: 'QTS-RKS-[ABBREV]-FUI-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-FUI-6位流水號' },
+  { id: 'fat', moduleName: 'FAT', prefix: 'QTS-RKS-[ABBREV]-FAT-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-FAT-6位流水號' },
+  { id: 'audit', moduleName: 'Audit', prefix: 'QTS-RKS-[ABBREV]-AUD-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-AUD-6位流水號' },
 ];
 
 
@@ -110,16 +111,16 @@ const DocumentNamingRules: React.FC = () => {
       <div className={styles.header}>
         <div className={styles.headerLeft}>
           <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
-            ← {t('common.back') || 'Back'}
+            ← {t('common.back')}
           </button>
-          <h1 className={styles.title}>文件命名規則</h1>
-          <p className={styles.subtitle}>設定各模組文件編號的前綴與流水號格式，重新開啟後仍會保留。</p>
+          <h1 className={styles.title}>{t('namingRules.title')}</h1>
+          <p className={styles.subtitle}>{t('namingRules.subtitle')}</p>
         </div>
         <div className={styles.headerRight}>
           <input
             type="text"
             className={styles.searchInput}
-            placeholder={t('common.search') || 'Search...'}
+            placeholder={t('common.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -129,10 +130,10 @@ const DocumentNamingRules: React.FC = () => {
       <div className={styles.card}>
         <div className={styles.tableWrap}>
           <DataTable
-            title="命名規則一覽"
+            title={t('namingRules.title')}
             actions={
               <button className={styles.saveButton} onClick={handleSave}>
-                {saved ? '已儲存' : '儲存'}
+                {saved ? t('namingRules.saved') : t('namingRules.save')}
               </button>
             }
             columns={createColumns(handlePrefixChange, handleSequenceDigitsChange, getExample)}
@@ -142,7 +143,7 @@ const DocumentNamingRules: React.FC = () => {
           />
         </div>
         <p className={styles.hint}>
-          <strong>前綴說明：</strong>使用 <code>[ABBREV]</code> 表示依廠商／承包商縮寫自動帶入（如 NOI、ITR、NCR、OBS）。其餘模組可自訂固定前綴（如 FUI-、PQP-）。流水號位數為 1～6。
+          <strong>{t('namingRules.hint')}：</strong> {t('namingRules.hintContent')}
         </p>
       </div>
     </div>

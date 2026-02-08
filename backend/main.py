@@ -1,3 +1,7 @@
+# 載入環境變數 (必須在其他 import 之前)
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, Depends, HTTPException, status, APIRouter
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +18,9 @@ from sqlalchemy import text
 from fastapi import Request
 from fastapi.responses import JSONResponse
 import logging
+
+# Import Routers
+from routers import contractors as contractors_router
 
 # Setup Logger
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +52,21 @@ add_unique_index_if_not_exists("ncr", "documentNumber")
 add_unique_index_if_not_exists("obs", "documentNumber")
 add_unique_index_if_not_exists("itp", "referenceNo")
 add_unique_index_if_not_exists("pqp", "pqpNo")
+add_unique_index_if_not_exists("followup", "issueNo")
+
+# Migration: Add missing columns to ncr table if not exists
+try:
+    with engine.connect() as conn:
+        result = conn.execute(text("PRAGMA table_info(ncr)"))
+        columns = [row[1] for row in result]
+        if "dueDate" not in columns:
+            conn.execute(text("ALTER TABLE ncr ADD COLUMN dueDate TEXT"))
+            conn.commit()
+        if "last_reminded_at" not in columns:
+            conn.execute(text("ALTER TABLE ncr ADD COLUMN last_reminded_at TEXT"))
+            conn.commit()
+except Exception:
+    pass
 
 # Migration: Add missing columns to noi table if not exists
 try:
@@ -52,7 +74,7 @@ try:
         # Check if column exists
         result = conn.execute(text("PRAGMA table_info(noi)"))
         columns = [row[1] for row in result]
-        for col in ["attachments", "remark", "closeoutDate", "ncrNumber"]:
+        for col in ["attachments", "remark", "closeoutDate", "ncrNumber", "dueDate", "last_reminded_at"]:
             if col not in columns:
                 conn.execute(text(f"ALTER TABLE noi ADD COLUMN {col} TEXT"))
                 conn.commit()
@@ -72,13 +94,44 @@ DEFAULT_NAMING_RULES = [
     {"doc_type": "fat", "prefix": "QTS-[ABBREV]-FAT-", "sequence_digits": 6},
 ]
 
-# Add detail_data column to itp if missing (migration for existing DB)
+# Migration: Add missing columns to itp, obs, followup, itr
 try:
     with engine.connect() as conn:
-        conn.execute(text("ALTER TABLE itp ADD COLUMN detail_data TEXT"))
+        # ITP
+        result = conn.execute(text("PRAGMA table_info(itp)"))
+        columns = [row[1] for row in result]
+        if "detail_data" not in columns:
+            conn.execute(text("ALTER TABLE itp ADD COLUMN detail_data TEXT"))
+        if "dueDate" not in columns:
+            conn.execute(text("ALTER TABLE itp ADD COLUMN dueDate TEXT"))
+        if "last_reminded_at" not in columns:
+            conn.execute(text("ALTER TABLE itp ADD COLUMN last_reminded_at TEXT"))
+        
+        # OBS
+        result = conn.execute(text("PRAGMA table_info(obs)"))
+        columns = [row[1] for row in result]
+        if "dueDate" not in columns:
+            conn.execute(text("ALTER TABLE obs ADD COLUMN dueDate TEXT"))
+        if "last_reminded_at" not in columns:
+            conn.execute(text("ALTER TABLE obs ADD COLUMN last_reminded_at TEXT"))
+
+        # ITR
+        result = conn.execute(text("PRAGMA table_info(itr)"))
+        columns = [row[1] for row in result]
+        if "last_reminded_at" not in columns:
+            conn.execute(text("ALTER TABLE itr ADD COLUMN last_reminded_at TEXT"))
+        if "dueDate" not in columns:
+             conn.execute(text("ALTER TABLE itr ADD COLUMN dueDate TEXT"))
+
+        # FollowUp
+        result = conn.execute(text("PRAGMA table_info(followup)"))
+        columns = [row[1] for row in result]
+        if "last_reminded_at" not in columns:
+            conn.execute(text("ALTER TABLE followup ADD COLUMN last_reminded_at TEXT"))
+            
         conn.commit()
 except Exception:
-    pass  # column may already exist
+    pass
 
 # Add attachments column to obs if missing (migration for existing DB)
 try:
@@ -87,6 +140,39 @@ try:
         conn.commit()
 except Exception:
     pass  # column may already exist
+
+# Migration: Add attachments column to itp if missing
+try:
+    with engine.connect() as conn:
+        result = conn.execute(text("PRAGMA table_info(itp)"))
+        columns = [row[1] for row in result]
+        if "attachments" not in columns:
+            conn.execute(text("ALTER TABLE itp ADD COLUMN attachments TEXT"))
+            conn.commit()
+except Exception:
+    pass
+
+# Migration: Add attachments column to itr if missing
+try:
+    with engine.connect() as conn:
+        result = conn.execute(text("PRAGMA table_info(itr)"))
+        columns = [row[1] for row in result]
+        if "attachments" not in columns:
+            conn.execute(text("ALTER TABLE itr ADD COLUMN attachments TEXT"))
+            conn.commit()
+except Exception:
+    pass
+
+# Migration: Add attachments column to ncr if missing
+try:
+    with engine.connect() as conn:
+        result = conn.execute(text("PRAGMA table_info(ncr)"))
+        columns = [row[1] for row in result]
+        if "attachments" not in columns:
+            conn.execute(text("ALTER TABLE ncr ADD COLUMN attachments TEXT"))
+            conn.commit()
+except Exception:
+    pass
 
 # Migration: Add noiNumber column to NCR table (連結到觸發此 NCR 的 NOI)
 try:
@@ -112,6 +198,17 @@ try:
         conn.commit()
 except Exception:
     pass  # column may already exist
+
+# Migration: Add attachments column to pqp if missing
+try:
+    with engine.connect() as conn:
+        result = conn.execute(text("PRAGMA table_info(pqp)"))
+        columns = [row[1] for row in result]
+        if "attachments" not in columns:
+            conn.execute(text("ALTER TABLE pqp ADD COLUMN attachments TEXT"))
+            conn.commit()
+except Exception:
+    pass
 
 # Migration: Create document_naming_rules table if not exists
 try:
@@ -186,21 +283,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include Routers
+app.include_router(contractors_router.router)
+
 SECRET_KEY = "your-secret-key-keep-it-secret"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
-# Fake Users DB
-fake_users_db = {
-    "admin@example.com": {
-        "username": "admin@example.com",
-        "password": pwd_context.hash("admin"),
-        "disabled": False,
-    }
-}
 
 # Auth Models
 class Token(BaseModel):
@@ -210,15 +301,13 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     username: Optional[str] = None
 
-class User(BaseModel):
-    username: str
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    disabled: Optional[bool] = None
 
 # Auth Functions
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -230,7 +319,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -244,41 +333,42 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         token_data = TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    user_dict = fake_users_db.get(token_data.username)
-    if user_dict is None:
+    
+    user = crud.get_user_by_username(db, username=token_data.username)
+    if user is None:
         raise credentials_exception
-    return User(**user_dict)
+    return user
 
 # All API routes under /api prefix
 api = APIRouter(prefix="/api")
 
 @api.post("/auth/login", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    user_dict = fake_users_db.get(form_data.username)
-    if not user_dict:
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = crud.get_user_by_username(db, username=form_data.username)
+    if not user:
+        # Fallback to check email if username not found (allow login by email)
+        user = crud.get_user_by_email(db, email=form_data.username)
+    
+    if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    if not verify_password(form_data.password, user_dict["password"]):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user_dict["username"]}, expires_delta=access_token_expires
+        data={"sub": user.username}, expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+
 @api.get("/auth/verify")
-async def auth_verify(current_user: User = Depends(get_current_user)):
+async def auth_verify(current_user: schemas.User = Depends(get_current_user)):
     return {"ok": True}
 
-@api.get("/user/profile", response_model=User)
-async def read_users_me(current_user: User = Depends(get_current_user)):
+@api.get("/user/profile", response_model=schemas.User)
+async def read_users_me(current_user: schemas.User = Depends(get_current_user)):
     return current_user
 
 
@@ -338,227 +428,70 @@ def update_naming_rules(
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-# ITP Routes
-@api.post("/itp/", response_model=schemas.ITP)
-def create_itp(itp: schemas.ITPCreate, db: Session = Depends(get_db)):
-    return crud.create_itp(db=db, itp=itp)
-
-@api.get("/itp/", response_model=List[schemas.ITP])
-def read_itps(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    itps = crud.get_itps(db, skip=skip, limit=limit)
-    return itps
-
-@api.get("/itp/{itp_id}", response_model=schemas.ITP)
-def read_itp(itp_id: str, db: Session = Depends(get_db)):
-    db_itp = crud.get_itp(db, itp_id=itp_id)
-    if db_itp is None:
-        raise HTTPException(status_code=404, detail="ITP not found")
-    return db_itp
-
-@api.put("/itp/{itp_id}", response_model=schemas.ITP)
-def update_itp(itp_id: str, itp: schemas.ITPUpdate, db: Session = Depends(get_db)):
-    db_itp = crud.update_itp(db, itp_id=itp_id, itp=itp)
-    if db_itp is None:
-        raise HTTPException(status_code=404, detail="ITP not found")
-    return db_itp
-
-@api.delete("/itp/{itp_id}")
-def delete_itp(itp_id: str, db: Session = Depends(get_db)):
-    db_itp = crud.delete_itp(db, itp_id=itp_id)
-    if db_itp is None:
-        raise HTTPException(status_code=404, detail="ITP not found")
-    return {"ok": True}
-
-@api.put("/itp/{itp_id}/detail", response_model=schemas.ITP)
-def update_itp_detail(itp_id: str, body: schemas.ITPDetailBody, db: Session = Depends(get_db)):
-    db_itp = crud.update_itp_detail(db, itp_id=itp_id, detail_body=body.dict())
-    if db_itp is None:
-        raise HTTPException(status_code=404, detail="ITP not found")
-    return db_itp
-
-# NCR Routes
-@api.get("/ncr/", response_model=List[schemas.NCR])
-def read_ncrs(skip: int = 0, limit: int = 500, db: Session = Depends(get_db)):
-    return crud.get_ncrs(db, skip=skip, limit=limit)
-
-@api.get("/ncr/{ncr_id}", response_model=schemas.NCR)
-def read_ncr(ncr_id: str, db: Session = Depends(get_db)):
-    db_ncr = crud.get_ncr(db, ncr_id=ncr_id)
-    if db_ncr is None:
-        raise HTTPException(status_code=404, detail="NCR not found")
-    return db_ncr
-
-@api.post("/ncr/", response_model=schemas.NCR)
-def create_ncr(ncr: schemas.NCRCreate, db: Session = Depends(get_db)):
-    return crud.create_ncr(db=db, ncr=ncr)
-
-@api.put("/ncr/{ncr_id}", response_model=schemas.NCR)
-def update_ncr(ncr_id: str, ncr: schemas.NCRUpdate, db: Session = Depends(get_db)):
-    db_ncr = crud.update_ncr(db, ncr_id=ncr_id, ncr=ncr)
-    if db_ncr is None:
-        raise HTTPException(status_code=404, detail="NCR not found")
-    return db_ncr
-
-@api.delete("/ncr/{ncr_id}")
-def delete_ncr(ncr_id: str, db: Session = Depends(get_db)):
-    if crud.delete_ncr(db, ncr_id=ncr_id) is None:
-        raise HTTPException(status_code=404, detail="NCR not found")
-    return {"ok": True}
-
-# NOI Routes
-@api.get("/noi/", response_model=List[schemas.NOI])
-def read_nois(skip: int = 0, limit: int = 500, db: Session = Depends(get_db)):
-    return crud.get_nois(db, skip=skip, limit=limit)
-
-@api.post("/noi/", response_model=schemas.NOI)
-def create_noi(noi: schemas.NOICreate, db: Session = Depends(get_db)):
-    return crud.create_noi(db=db, noi=noi)
-
-@api.post("/noi/bulk/", response_model=List[schemas.NOI])
-def create_nois_bulk(nois: List[schemas.NOICreate], db: Session = Depends(get_db)):
-    """批次建立多筆 NOI，每筆都會自動產生 Reference No"""
-    created = []
-    for noi in nois:
-        created.append(crud.create_noi(db=db, noi=noi))
-    return created
-
-@api.get("/noi/{noi_id}", response_model=schemas.NOI)
-def read_noi(noi_id: str, db: Session = Depends(get_db)):
-    db_noi = crud.get_noi(db, noi_id=noi_id)
-    if db_noi is None:
-        raise HTTPException(status_code=404, detail="NOI not found")
-    return db_noi
-
-@api.put("/noi/{noi_id}", response_model=schemas.NOI)
-def update_noi(noi_id: str, noi: schemas.NOIUpdate, db: Session = Depends(get_db)):
-    db_noi = crud.update_noi(db, noi_id=noi_id, noi=noi)
-    if db_noi is None:
-        raise HTTPException(status_code=404, detail="NOI not found")
-    return db_noi
-
-@api.delete("/noi/{noi_id}")
-def delete_noi(noi_id: str, db: Session = Depends(get_db)):
-    if crud.delete_noi(db, noi_id=noi_id) is None:
-        raise HTTPException(status_code=404, detail="NOI not found")
-    return {"ok": True}
-
-# ITR Routes
-@api.get("/itr/", response_model=List[schemas.ITR])
-def read_itrs(skip: int = 0, limit: int = 500, db: Session = Depends(get_db)):
-    return crud.get_itrs(db, skip=skip, limit=limit)
-
-@api.get("/itr/{itr_id}", response_model=schemas.ITR)
-def read_itr(itr_id: str, db: Session = Depends(get_db)):
-    db_itr = crud.get_itr(db, itr_id=itr_id)
-    if db_itr is None:
-        raise HTTPException(status_code=404, detail="ITR not found")
-    return db_itr
-
-@api.post("/itr/", response_model=schemas.ITR)
-def create_itr(itr: schemas.ITRCreate, db: Session = Depends(get_db)):
-    return crud.create_itr(db=db, itr=itr)
-
-@api.put("/itr/{itr_id}", response_model=schemas.ITR)
-def update_itr(itr_id: str, itr: schemas.ITRUpdate, db: Session = Depends(get_db)):
-    db_itr = crud.update_itr(db, itr_id=itr_id, itr=itr)
-    if db_itr is None:
-        raise HTTPException(status_code=404, detail="ITR not found")
-    return db_itr
-
-@api.delete("/itr/{itr_id}")
-def delete_itr(itr_id: str, db: Session = Depends(get_db)):
-    if crud.delete_itr(db, itr_id=itr_id) is None:
-        raise HTTPException(status_code=404, detail="ITR not found")
-    return {"ok": True}
-
-# PQP Routes
-@api.get("/pqp/", response_model=List[schemas.PQP])
-def read_pqps(skip: int = 0, limit: int = 500, db: Session = Depends(get_db)):
-    return crud.get_pqps(db, skip=skip, limit=limit)
-
-@api.get("/pqp/{pqp_id}", response_model=schemas.PQP)
-def read_pqp(pqp_id: str, db: Session = Depends(get_db)):
-    db_pqp = crud.get_pqp(db, pqp_id=pqp_id)
-    if db_pqp is None:
-        raise HTTPException(status_code=404, detail="PQP not found")
-    return db_pqp
-
-@api.post("/pqp/", response_model=schemas.PQP)
-def create_pqp(pqp: schemas.PQPCreate, db: Session = Depends(get_db)):
-    return crud.create_pqp(db=db, pqp=pqp)
-
-@api.put("/pqp/{pqp_id}", response_model=schemas.PQP)
-def update_pqp(pqp_id: str, pqp: schemas.PQPUpdate, db: Session = Depends(get_db)):
-    db_pqp = crud.update_pqp(db, pqp_id=pqp_id, pqp=pqp)
-    if db_pqp is None:
-        raise HTTPException(status_code=404, detail="PQP not found")
-    return db_pqp
-
-@api.delete("/pqp/{pqp_id}")
-def delete_pqp(pqp_id: str, db: Session = Depends(get_db)):
-    if crud.delete_pqp(db, pqp_id=pqp_id) is None:
-        raise HTTPException(status_code=404, detail="PQP not found")
-    return {"ok": True}
-
-# OBS Routes
-@api.get("/obs/", response_model=List[schemas.OBS])
-def read_obss(skip: int = 0, limit: int = 500, db: Session = Depends(get_db)):
-    return crud.get_obss(db, skip=skip, limit=limit)
-
-@api.get("/obs/{obs_id}", response_model=schemas.OBS)
-def read_obs(obs_id: str, db: Session = Depends(get_db)):
-    db_obs = crud.get_obs(db, obs_id=obs_id)
-    if db_obs is None:
-        raise HTTPException(status_code=404, detail="OBS not found")
-    return db_obs
-
-@api.post("/obs/", response_model=schemas.OBS)
-def create_obs(obs: schemas.OBSCreate, db: Session = Depends(get_db)):
-    return crud.create_obs(db=db, obs=obs)
-
-@api.put("/obs/{obs_id}", response_model=schemas.OBS)
-def update_obs(obs_id: str, obs: schemas.OBSUpdate, db: Session = Depends(get_db)):
-    db_obs = crud.update_obs(db, obs_id=obs_id, obs=obs)
-    if db_obs is None:
-        raise HTTPException(status_code=404, detail="OBS not found")
-    return db_obs
-
-@api.delete("/obs/{obs_id}")
-def delete_obs(obs_id: str, db: Session = Depends(get_db)):
-    if crud.delete_obs(db, obs_id=obs_id) is None:
-        raise HTTPException(status_code=404, detail="OBS not found")
-    return {"ok": True}
-
-# Contractors Routes
-@api.get("/contractors/", response_model=List[schemas.Contractor])
-def read_contractors(skip: int = 0, limit: int = 500, db: Session = Depends(get_db)):
-    return crud.get_contractors(db, skip=skip, limit=limit)
-
-@api.get("/contractors/{contractor_id}", response_model=schemas.Contractor)
-def read_contractor(contractor_id: str, db: Session = Depends(get_db)):
-    db_c = crud.get_contractor(db, contractor_id=contractor_id)
-    if db_c is None:
-        raise HTTPException(status_code=404, detail="Contractor not found")
-    return db_c
-
-@api.post("/contractors/", response_model=schemas.Contractor)
-def create_contractor(contractor: schemas.ContractorCreate, db: Session = Depends(get_db)):
-    return crud.create_contractor(db=db, contractor=contractor)
-
-@api.put("/contractors/{contractor_id}", response_model=schemas.Contractor)
-def update_contractor(contractor_id: str, contractor: schemas.ContractorUpdate, db: Session = Depends(get_db)):
-    db_c = crud.update_contractor(db, contractor_id=contractor_id, contractor=contractor)
-    if db_c is None:
-        raise HTTPException(status_code=404, detail="Contractor not found")
-    return db_c
-
-@api.delete("/contractors/{contractor_id}")
-def delete_contractor(contractor_id: str, db: Session = Depends(get_db)):
-    if crud.delete_contractor(db, contractor_id=contractor_id) is None:
-        raise HTTPException(status_code=404, detail="Contractor not found")
-    return {"ok": True}
-
 # Mount API router
+# app.include_router(api) # Old monolithic router
+
+# Include Module Routers
+from routers import itp, ncr, noi, itr, pqp, obs, contractors, followup, iam, audit
+
+api.include_router(itp.router)
+api.include_router(ncr.router)
+api.include_router(noi.router)
+api.include_router(itr.router)
+api.include_router(pqp.router)
+api.include_router(obs.router)
+api.include_router(contractors.router)
+api.include_router(followup.router)
+api.include_router(iam.router)
+api.include_router(audit.router)
+
+app.include_router(api)
+
+# Seed Initial User and Role
+def seed_initial_data():
+    from database import SessionLocal
+    db = SessionLocal()
+    try:
+        # 1. Create Admin Role if not exists
+        admin_role = crud.get_role_by_name(db, "admin")
+        if not admin_role:
+            admin_role = crud.create_role(db, schemas.RoleCreate(
+                name="admin",
+                description="Administrator with full access",
+                permissions=["read", "write", "delete", "manage_users", "manage_roles"]
+            ))
+            print("Seeded admin role.")
+
+        # 2. Create User Role if not exists
+        user_role = crud.get_role_by_name(db, "user")
+        if not user_role:
+            user_role = crud.create_role(db, schemas.RoleCreate(
+                name="user",
+                description="Standard user",
+                permissions=["read"]
+            ))
+            print("Seeded user role.")
+        
+        # 3. Create Admin User if not exists
+        admin_user = crud.get_user_by_email(db, "admin@example.com")
+        if not admin_user:
+            crud.create_user(db, schemas.UserCreate(
+                username="admin",
+                email="admin@example.com",
+                password="admin",
+                full_name="System Administrator",
+                role_id=admin_role.id
+            ), hashed_password=get_password_hash("admin"))
+            print("Seeded admin user.")
+            
+    except Exception as e:
+        print(f"Error seeding data: {e}")
+    finally:
+        db.close()
+
+seed_initial_data()
+
+# Include API router (contains /api/auth/login, /api/users, /api/roles, etc.)
 app.include_router(api)
 
 @app.get("/")

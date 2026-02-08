@@ -35,6 +35,7 @@ export const createColumns = (
                 <DataTableColumnHeader column={column} title={t('pqp.referenceNo')} />
             ),
             cell: ({ row }) => <div className="text-center">{row.getValue("pqpNo")}</div>,
+            size: 180,
         },
         {
             accessorKey: "status",

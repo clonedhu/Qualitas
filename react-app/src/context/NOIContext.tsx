@@ -111,7 +111,7 @@ export const NOIProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const value = useMemo(
     () => ({ noiList, loading, error, refetch: fetchNOIs, addNOI, addBulkNOI, updateNOI, deleteNOI, getNOIList }),
-    [noiList, loading, error, fetchNOIs, addNOI, addBulkNOI, updateNOI, deleteNOI]
+    [noiList, loading, error, fetchNOIs, addNOI, addBulkNOI, updateNOI, deleteNOI, getNOIList]
   );
 
   return (

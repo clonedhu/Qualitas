@@ -8,6 +8,8 @@ import styles from './Contractors.module.css';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
 
+import { BackButton } from '@/components/ui/BackButton';
+
 const Contractors: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -73,7 +75,7 @@ const Contractors: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDeleteClick = (id: string) => {
+  const handleDeleteClick = (id: string) => { // Changed to string
     setDeleteModal({ isOpen: true, id, message: t('contractors.confirmDelete') });
   };
 
@@ -103,24 +105,31 @@ const Contractors: React.FC = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <button type="button" className={styles.backButton} onClick={() => navigate('/')}>
-            ← {t('common.back') || 'Back'}
-          </button>
+          <BackButton />
           <h1>{t('contractors.title')}</h1>
+        </div>
+        <div className={styles.headerRight}>
+          <input
+            type="text"
+            className={styles.searchInput}
+            placeholder={t('common.search') || 'Search...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
       <div className={styles.content}>
         <DataTable
           title={t('contractors.title')}
           actions={
-            <button className={styles.addButton} onClick={() => { resetForm(); setIsModalOpen(true); }}>
-              + {t('contractors.addContractor')}
+            <button className={styles.addNewButton} onClick={() => { resetForm(); setIsModalOpen(true); }}>
+              {t('contractors.addContractor')}
             </button>
           }
           columns={createColumns(handleEdit, handleDeleteClick, t)}
           data={filteredContractors}
           searchKey=""
-          getRowId={(row) => row.id}
+          getRowId={(row) => row.id.toString()} // Convert number to string for DataTable row ID if needed
         />
       </div>
 
@@ -223,7 +232,7 @@ const Contractors: React.FC = () => {
                 </div>
                 <div className={styles.formActions}>
                   <button type="submit" className={styles.submitButton}>
-                    {editingId ? t('common.edit') : t('common.add')}
+                    {editingId ? t('common.save') : t('common.add')}
                   </button>
                   <button type="button" className={styles.cancelButton} onClick={() => { setIsModalOpen(false); resetForm(); }}>
                     {t('common.cancel')}

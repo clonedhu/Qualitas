@@ -48,6 +48,7 @@ export const createColumns = (
                     </div>
                 );
             },
+            size: 180,
         },
         {
             accessorKey: "status",
