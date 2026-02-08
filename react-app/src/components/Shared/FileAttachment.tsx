@@ -28,15 +28,25 @@ const FileAttachment: React.FC<FileAttachmentProps> = ({
     // Original thumbnail grid style matching OBS.module.css
     const styles = {
         container: {
-            marginBottom: '24px'
+            marginBottom: '0'
         },
-        sectionTitle: {
-            fontSize: '14px',
-            fontWeight: 600,
-            color: '#374151',
-            marginBottom: '12px',
-            paddingLeft: '12px',
-            borderLeft: '3px solid #3b82f6'
+        sectionTitleWrapper: {
+            fontSize: '18px',
+            fontWeight: 700,
+            color: '#1e3a8a',
+            margin: '0 0 24px 0',
+            paddingBottom: '12px',
+            borderBottom: '2px solid #e0e7ff',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+        },
+        sectionTitleBar: {
+            width: '4px',
+            height: '24px',
+            background: 'linear-gradient(135deg, #3b82f6 0%, #1e3a8a 100%)',
+            borderRadius: '2px',
+            boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
         },
         photoUploadContainer: {
             display: 'flex',
@@ -107,7 +117,8 @@ const FileAttachment: React.FC<FileAttachmentProps> = ({
 
     return (
         <div style={styles.container}>
-            <h3 style={styles.sectionTitle}>
+            <h3 style={styles.sectionTitleWrapper}>
+                <span style={styles.sectionTitleBar}></span>
                 {title || t('common.attachments')}
             </h3>
             <div style={styles.photoUploadContainer}>

@@ -451,13 +451,15 @@ export const OBSDetailModal: React.FC<OBSDetailModalProps> = ({ obsId, existingD
                         </div>
 
                         {/* Attachments */}
-                        <FileAttachment
-                            attachments={formData.attachments}
-                            onUpload={handleAttachmentUpload}
-                            onRemove={handleRemoveAttachment}
-                            id="obs"
-                            title={t('obs.attachments')}
-                        />
+                        <div className={styles.formSection}>
+                            <FileAttachment
+                                attachments={formData.attachments}
+                                onUpload={handleAttachmentUpload}
+                                onRemove={handleRemoveAttachment}
+                                id="obs"
+                                title={t('obs.attachments')}
+                            />
+                        </div>
 
                         {/* 人員與位置資訊 */}
                         <div className={styles.formSection}>

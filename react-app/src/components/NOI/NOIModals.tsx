@@ -307,12 +307,14 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
                                 </div>
                             </div>
                         </div>
-                        <FileAttachment
-                            attachments={formData.attachments}
-                            onUpload={handleAttachmentUpload}
-                            onRemove={handleRemoveAttachment}
-                            id="noi"
-                        />
+                        <div className={styles.formSection}>
+                            <FileAttachment
+                                attachments={formData.attachments}
+                                onUpload={handleAttachmentUpload}
+                                onRemove={handleRemoveAttachment}
+                                id="noi"
+                            />
+                        </div>
                         <div className={styles.formSection}>
                             <h3 className={styles.sectionTitle}>{t('noi.sectionQuality')}</h3>
                             <div className={styles.formGrid}>

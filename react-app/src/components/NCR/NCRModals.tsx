@@ -453,13 +453,14 @@ export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingD
 
 
                         {/* Attachments */}
-                        {/* Attachments */}
-                        <FileAttachment
-                            attachments={formData.attachments}
-                            onUpload={handleAttachmentUpload}
-                            onRemove={handleRemoveAttachment}
-                            id="ncr"
-                        />
+                        <div className={styles.formSection}>
+                            <FileAttachment
+                                attachments={formData.attachments}
+                                onUpload={handleAttachmentUpload}
+                                onRemove={handleRemoveAttachment}
+                                id="ncr"
+                            />
+                        </div>
 
                         {/* {t('obs.sectionPersonnelLocation')} */}
                         <div className={styles.formSection}>

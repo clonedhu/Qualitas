@@ -241,12 +241,15 @@ export const PQPDetailModal: React.FC<PQPDetailModalProps> = ({ pqpId, existingI
                             </div>
                         </div>
 
-                        <FileAttachment
-                            attachments={formData.attachments || []}
-                            onUpload={handleFileAttachmentUpload}
-                            onRemove={handleRemoveFileAttachment}
-                            id="pqp"
-                        />
+
+                        <div className={styles.formSection}>
+                            <FileAttachment
+                                attachments={formData.attachments || []}
+                                onUpload={handleFileAttachmentUpload}
+                                onRemove={handleRemoveFileAttachment}
+                                id="pqp"
+                            />
+                        </div>
 
                         <div className={styles.formSection}>
                             <h3 className={styles.sectionTitle}>{t('pqp.qualityAssessment')}</h3>

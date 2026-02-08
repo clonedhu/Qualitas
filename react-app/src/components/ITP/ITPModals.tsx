@@ -205,13 +205,14 @@ export const ITPDetailModal: React.FC<ITPDetailModalProps> = ({ itpId, existingI
                         </div>
 
                         {/* Attachments */}
-                        {/* Attachments */}
-                        <FileAttachment
-                            attachments={formData.attachments || []}
-                            onUpload={handleAttachmentUpload}
-                            onRemove={handleRemoveAttachment}
-                            id="itp"
-                        />
+                        <div className={styles.formSection}>
+                            <FileAttachment
+                                attachments={formData.attachments || []}
+                                onUpload={handleAttachmentUpload}
+                                onRemove={handleRemoveAttachment}
+                                id="itp"
+                            />
+                        </div>
 
                         {/* Quality Assessment */}
                         <div className={styles.formSection}>
