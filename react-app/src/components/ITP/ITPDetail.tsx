@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
 import {
   FileText, Printer, Filter, PenTool, LayoutTemplate, Layers, X, Save, AlertCircle, Plus,
-  ArrowLeft, CheckCircle2, ChevronDown, Calendar, Hash, Tag, FileCheck, ShieldCheck, HardHat, User, Building2, Trash2
+  ArrowLeft, CheckCircle2, ChevronDown, Calendar, Hash, Tag, FileCheck, ShieldCheck, HardHat, User, Building2, Trash2, ArrowDown
 } from 'lucide-react';
 
 // --- 定義施工階段結構 ---
@@ -17,65 +17,65 @@ const PHASES = [
 const INITIAL_ITEMS = [
   // --- Phase A ---
   {
-    phase: "A", id: "A2", activity: { en: "Length", ch: "長度" }, standard: "CNS 2602", criteria: "22m ±0.3% / 25m ±0.3%",
-    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: "Tape measure (捲尺)", frequency: "-",
+    phase: "A", id: "A1", activity: { en: "Length", ch: "長度" }, standard: "CNS 2602", criteria: "22m ±0.3% / 25m ±0.3%",
+    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: { en: "Tape measure", ch: "捲尺" }, frequency: "-",
     vp: { sub: "", teco: "", employer: "", hse: "" }, record: "-"
   },
   {
-    phase: "A", id: "A3", activity: { en: "Thickness", ch: "厚度" }, standard: "CNS 2602", criteria: "100mm -2/+40mm",
-    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: "Tape measure (捲尺)", frequency: "-",
+    phase: "A", id: "A2", activity: { en: "Thickness", ch: "厚度" }, standard: "CNS 2602", criteria: "100mm -2/+40mm",
+    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: { en: "Tape measure", ch: "捲尺" }, frequency: "-",
     vp: { sub: "", teco: "", employer: "", hse: "" }, record: "-"
   },
   {
-    phase: "A", id: "A4", activity: { en: "Outer Diameter", ch: "外徑" }, standard: "CNS 2602", criteria: "600mm -4/+7mm",
-    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: "Tape measure (捲尺)", frequency: "-",
+    phase: "A", id: "A3", activity: { en: "Outer Diameter", ch: "外徑" }, standard: "CNS 2602", criteria: "600mm -4/+7mm",
+    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: { en: "Tape measure", ch: "捲尺" }, frequency: "-",
     vp: { sub: "", teco: "", employer: "", hse: "" }, record: "-"
   },
   {
-    phase: "A", id: "A5", activity: { en: "Quantity", ch: "數量" }, standard: "Shipping Order", criteria: "Meet shipping order",
-    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: "Visual (目視檢查)", frequency: "Each Time",
+    phase: "A", id: "A4", activity: { en: "Quantity", ch: "數量" }, standard: "Shipping Order", criteria: "Meet shipping order",
+    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: { en: "Visual", ch: "目視檢查" }, frequency: "Each Time",
     vp: { sub: "H", teco: "W", employer: "R", hse: "" }, record: "ITP-PL-01"
   },
   {
-    phase: "A", id: "A6", activity: { en: "Stakeout", ch: "放樣" }, standard: "HL-ONS-TECO-STR-DWG-02000", criteria: "Meet design req.",
-    checkTime: { en: "Before construction", ch: "施工前" }, method: "Tape Measure (捲尺)", frequency: "Each Time",
+    phase: "A", id: "A5", activity: { en: "Stakeout", ch: "放樣" }, standard: "HL-ONS-TECO-STR-DWG-02000", criteria: "Meet design req.",
+    checkTime: { en: "Before construction", ch: "施工前" }, method: { en: "Tape Measure", ch: "捲尺" }, frequency: "Each Time",
     vp: { sub: "H", teco: "H", employer: "H", hse: "" }, record: "ITP-SV-01"
   },
   // --- Phase B ---
   {
     phase: "B", id: "B1", activity: { en: "Foundation piling position", ch: "基礎打設座標" }, standard: "HL-ONS-TECO-STR-DWG-02000", criteria: "Tolerance ± 7.5 cm",
-    checkTime: { en: "During Piling", ch: "打樁時" }, method: "Total Station (全站儀)", frequency: "Each Pile",
+    checkTime: { en: "During Piling", ch: "打樁時" }, method: { en: "Total Station", ch: "全站儀" }, frequency: "Each Pile",
     vp: { sub: "H", teco: "H", employer: "H", hse: "" }, record: "ITP-PL-02&03"
   },
   {
     phase: "B", id: "B2", activity: { en: "Pile Elevation", ch: "基礎高程" }, standard: "HL-ONS-TECO-GEO-DWG-08000", criteria: "Tolerance ± 7.5 cm",
-    checkTime: { en: "After Piling", ch: "打樁後" }, method: "Total Station (全站儀)", frequency: "Each Pile",
+    checkTime: { en: "After Piling", ch: "打樁後" }, method: { en: "Total Station", ch: "全站儀" }, frequency: "Each Pile",
     vp: { sub: "H", teco: "W", employer: "R", hse: "" }, record: "ITP-PL-04"
   },
   {
     phase: "B", id: "B3", activity: { en: "Pile Joint", ch: "樁頭檢查" }, standard: "CNS 2602", criteria: "No Oil, Rust, Dust",
-    checkTime: { en: "Before Welding", ch: "焊接前" }, method: "Visual (目視)", frequency: "Each Pile",
+    checkTime: { en: "Before Welding", ch: "焊接前" }, method: { en: "Visual", ch: "目視" }, frequency: "Each Pile",
     vp: { sub: "H", teco: "W", employer: "W", hse: "※" }, record: "ITP-PL-02"
   },
   {
     phase: "B", id: "B4", activity: { en: "Welding", ch: "焊接" }, standard: "CNS 13341", criteria: "No Defect (無缺失)",
-    checkTime: { en: "After Welding", ch: "焊接後" }, method: "NDT - MT", frequency: "1/50 pcs",
+    checkTime: { en: "After Welding", ch: "焊接後" }, method: { en: "NDT - MT", ch: "MT 檢測" }, frequency: "1/50 pcs",
     vp: { sub: "H", teco: "W", employer: "W", hse: "※" }, record: "ITP-PL-02"
   },
   {
     phase: "B", id: "B5", activity: { en: "Verticality of Pile", ch: "基礎垂直度" }, standard: "HL-ONS-TECO-GEO-DWG-08000", criteria: "< 1/75",
-    checkTime: { en: "During Piling", ch: "打樁時" }, method: "Spirit Level Ruler", frequency: "Each Pile",
+    checkTime: { en: "During Piling", ch: "打樁時" }, method: { en: "Spirit Level Ruler", ch: "水平尺" }, frequency: "Each Pile",
     vp: { sub: "H", teco: "W", employer: "W", hse: "" }, record: "ITP-PL-02&04"
   },
   {
     phase: "B", id: "B6", activity: { en: "Hit number of hammers", ch: "打擊次數" }, standard: "HL-ONS-TECO-ENG-PLN-00005", criteria: "< 2000 hits",
-    checkTime: { en: "During Piling", ch: "打樁時" }, method: "Visual (目視)", frequency: "Each Pile",
+    checkTime: { en: "During Piling", ch: "打樁時" }, method: { en: "Visual", ch: "目視" }, frequency: "Each Pile",
     vp: { sub: "H", teco: "W", employer: "W", hse: "" }, record: "ITP-PL-02&04"
   },
   // --- Phase C ---
   {
     phase: "C", id: "C1", activity: { en: "Pile Position", ch: "樁位複測" }, standard: "HL-ONS-TECO-STR-", criteria: "Tolerance < 7.5cm",
-    checkTime: { en: "After Piling", ch: "打樁後" }, method: "Total Station (全站儀)", frequency: "Each Pile",
+    checkTime: { en: "After Piling", ch: "打樁後" }, method: { en: "Total Station", ch: "全站儀" }, frequency: "Each Pile",
     vp: { sub: "H", teco: "W", employer: "W", hse: "" }, record: "ITP-PL-03"
   }
 ];
@@ -88,7 +88,7 @@ const EMPTY_ITEM = {
   standard: "",
   criteria: "",
   checkTime: { en: "", ch: "" },
-  method: "",
+  method: { en: "", ch: "" },
   frequency: "",
   vp: { sub: "", teco: "", employer: "", hse: "" },
   record: "-"
@@ -118,6 +118,7 @@ const ITPDetail: React.FC = () => {
   const [items, setItems] = useState<any[]>(INITIAL_ITEMS);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [workTitle, setWorkTitle] = useState("Piling Work"); // 工項標題狀態
+  const [referenceNo, setReferenceNo] = useState(""); // Form No.
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -131,6 +132,7 @@ const ITPDetail: React.FC = () => {
         const data = response.data;
         if (data) {
           if (data.description) setWorkTitle(data.description);
+          if (data.referenceNo) setReferenceNo(data.referenceNo);
 
           let details: any = {};
           if (typeof data.detail_data === 'string') {
@@ -145,9 +147,9 @@ const ITPDetail: React.FC = () => {
 
           if (details && (details.a || details.b || details.c)) {
             const loadedItems = [
-              ...(details.a || []).map((i: any) => ({ ...i, phase: 'A' })),
-              ...(details.b || []).map((i: any) => ({ ...i, phase: 'B' })),
-              ...(details.c || []).map((i: any) => ({ ...i, phase: 'C' })),
+              ...(details.a || []).map((i: any, index: number) => ({ ...i, phase: 'A', id: `A${index + 1}` })),
+              ...(details.b || []).map((i: any, index: number) => ({ ...i, phase: 'B', id: `B${index + 1}` })),
+              ...(details.c || []).map((i: any, index: number) => ({ ...i, phase: 'C', id: `C${index + 1}` })),
             ];
             setItems(loadedItems);
           }
@@ -189,6 +191,20 @@ const ITPDetail: React.FC = () => {
     }
   };
 
+  // 計算下一個 ID
+  const calculateNextId = (phase: string, insertAfterId: string = 'end') => {
+    const phaseItems = items.filter(i => i.phase === phase);
+    let potentialIndex = phaseItems.length; // Default to end
+
+    if (insertAfterId && insertAfterId !== 'end') {
+      const index = phaseItems.findIndex(i => i.id === insertAfterId);
+      if (index !== -1) {
+        potentialIndex = index + 1;
+      }
+    }
+    return `${phase}${potentialIndex + 1}`;
+  };
+
   // 開啟編輯模式 (Existing Item)
   const handleEditClick = (item: any) => {
     setEditingItem({ ...item, isNew: false });
@@ -196,15 +212,41 @@ const ITPDetail: React.FC = () => {
 
   // 開啟新增模式 (New Item)
   const handleAddNew = () => {
-    setEditingItem({ ...EMPTY_ITEM, isNew: true });
+    const defaultPhase = 'A';
+    setEditingItem({ ...EMPTY_ITEM, phase: defaultPhase, id: calculateNextId(defaultPhase), isNew: true, insertAfter: 'end' });
   };
 
   // 儲存修改
   const handleSave = () => {
     if (editingItem.isNew) {
-      const { isNew, ...newItem } = editingItem;
-      if (!newItem.id) newItem.id = `N${items.length + 1}`;
-      setItems(prev => [...prev, newItem]);
+      const { isNew, insertAfter, ...newItem } = editingItem;
+
+      const currentPhaseItems = items.filter(i => i.phase === newItem.phase);
+      const otherItems = items.filter(i => i.phase !== newItem.phase);
+
+      let newPhaseItems = [];
+      if (!insertAfter || insertAfter === 'end') {
+        newPhaseItems = [...currentPhaseItems, newItem];
+      } else {
+        const insertIndex = currentPhaseItems.findIndex(i => i.id === insertAfter);
+        if (insertIndex !== -1) {
+          newPhaseItems = [
+            ...currentPhaseItems.slice(0, insertIndex + 1),
+            newItem,
+            ...currentPhaseItems.slice(insertIndex + 1)
+          ];
+        } else {
+          newPhaseItems = [...currentPhaseItems, newItem];
+        }
+      }
+
+      // Renumber IDs for the phase
+      newPhaseItems = newPhaseItems.map((item, index) => ({
+        ...item,
+        id: `${item.phase}${index + 1}`
+      }));
+
+      setItems([...otherItems, ...newPhaseItems]);
     } else {
       setItems(prevItems => prevItems.map(item =>
         item.id === editingItem.id ? editingItem : item
@@ -217,7 +259,18 @@ const ITPDetail: React.FC = () => {
     if (subField) {
       setEditingItem((prev: any) => ({ ...prev, [field]: { ...prev[field], [subField]: value } }));
     } else {
-      setEditingItem((prev: any) => ({ ...prev, [field]: value }));
+      setEditingItem((prev: any) => {
+        const updated = { ...prev, [field]: value };
+        // 如果變更 Phase 或 Insert Position，自動更新 ID
+        if (prev.isNew) {
+          if (field === 'phase') {
+            updated.id = calculateNextId(value, prev.insertAfter);
+          } else if (field === 'insertAfter') {
+            updated.id = calculateNextId(prev.phase, value);
+          }
+        }
+        return updated;
+      });
     }
   };
 
@@ -295,9 +348,9 @@ const ITPDetail: React.FC = () => {
       <div className="max-w-[1400px] min-w-[1024px] mx-auto mb-6 flex items-center justify-between no-print">
         <button
           onClick={() => navigate(-1)}
-          className="group flex items-center text-slate-500 hover:text-slate-800 transition-colors font-medium px-4 py-2 rounded-lg hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200"
+          className="group flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-all"
         >
-          <ArrowLeft size={18} className="mr-2 group-hover:-translate-x-1 transition-transform" />
+          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
           Back to List
         </button>
 
@@ -352,125 +405,156 @@ const ITPDetail: React.FC = () => {
                 <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
                 <div>
                   <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                    <Hash size={14} /> Item ID
+                    <Hash size={14} /> Event No.
                   </label>
-                  {editingItem.isNew ? (
-                    <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono font-bold bg-white transition-all shadow-sm"
-                      placeholder="e.g. B7" value={editingItem.id} onChange={(e) => handleChange('id', e.target.value)} />
-                  ) : (
-                    <div className="text-base font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-4 py-2.5 shadow-sm inline-block min-w-[3rem] text-center">
-                      {editingItem.id}
-                    </div>
-                  )}
+                  {/* Event No. is always auto-generated and read-only */}
+                  <div className="text-sm font-bold text-slate-800 bg-slate-100 border border-slate-200 rounded-lg px-4 h-10 flex items-center shadow-sm min-w-[3.5rem] justify-center cursor-not-allowed select-none">
+                    {editingItem.id}
+                  </div>
                 </div>
                 <div>
                   <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
                     <Layers size={14} /> Phase
                   </label>
                   <div className="relative">
-                    <select className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white font-medium text-slate-700 shadow-sm cursor-pointer transition-all hover:border-slate-400"
+                    <select className="w-full border border-slate-300 rounded-lg px-4 h-10 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white font-medium text-slate-700 shadow-sm cursor-pointer transition-all hover:border-slate-400"
                       value={editingItem.phase} onChange={(e) => handleChange('phase', e.target.value)}>
                       {PHASES.map(p => <option key={p.code} value={p.code}>{p.title}</option>)}
                     </select>
                     <ChevronDown className="absolute right-3 top-3 text-slate-400 pointer-events-none" size={16} />
                   </div>
                 </div>
+
+                {/* Insert Position Selection (Only for New Items) */}
+                {editingItem.isNew && (
+                  <div className="col-span-2 border-t border-slate-200 pt-4 mt-2">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                      <ArrowDown size={14} className="text-blue-500" /> Insert After (插入位置)
+                    </label>
+                    <div className="relative">
+                      <select
+                        className="w-full border border-slate-300 rounded-lg px-4 h-10 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white font-medium text-slate-700 shadow-sm cursor-pointer transition-all hover:border-slate-400"
+                        value={editingItem.insertAfter || 'end'}
+                        onChange={(e) => handleChange('insertAfter', e.target.value)}
+                      >
+                        <option value="end">At the End (最後面)</option>
+                        {items.filter(i => i.phase === editingItem.phase).map(item => (
+                          <option key={item.id} value={item.id}>
+                            {item.id} - {item.activity.en}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-3 text-slate-400 pointer-events-none" size={16} />
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Activity Details */}
+              {/* Inspection Details */}
               <div className="space-y-4">
                 <h4 className="text-sm font-bold text-slate-800 border-b border-slate-200 pb-2 flex items-center gap-2">
-                  <FileText size={16} className="text-blue-600" /> Activity Details
+                  <FileText size={16} className="text-blue-600" /> Inspection Details
                 </h4>
+                {/* Activity (EN) & Standard Row */}
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="col-span-1">
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Activity (EN)</label>
-                    <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow"
-                      value={editingItem.activity.en} onChange={(e) => handleChange('activity', e.target.value, 'en')} placeholder="English description..." />
-                  </div>
-                  <div className="col-span-1">
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Activity (CH)</label>
-                    <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow"
-                      value={editingItem.activity.ch} onChange={(e) => handleChange('activity', e.target.value, 'ch')} placeholder="中文描述..." />
-                  </div>
-                </div>
-              </div>
-
-              {/* Standards & Criteria */}
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
-                    <ShieldCheck size={14} /> Standard
-                  </label>
-                  <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow font-mono text-slate-600"
-                    value={editingItem.standard} onChange={(e) => handleChange('standard', e.target.value)} />
-                </div>
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
-                    <CheckCircle2 size={14} /> Acceptance Criteria
-                  </label>
-                  <textarea className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow resize-none" rows={1}
-                    value={editingItem.criteria} onChange={(e) => handleChange('criteria', e.target.value)} />
-                </div>
-              </div>
-
-              {/* Timing & Method */}
-              <div className="grid grid-cols-2 gap-6 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Check Time (EN/CH)</label>
-                  <div className="flex flex-col gap-2">
-                    <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={editingItem.checkTime.en} onChange={(e) => handleChange('checkTime', e.target.value, 'en')} placeholder="Timing (EN)" />
-                    <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-slate-500"
-                      value={editingItem.checkTime.ch} onChange={(e) => handleChange('checkTime', e.target.value, 'ch')} placeholder="Timing (CH)" />
-                  </div>
-                </div>
-                <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Method</label>
-                    <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      value={editingItem.method} onChange={(e) => handleChange('method', e.target.value)} />
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2 ml-1">
+                      <FileText size={14} className="text-blue-500" /> Activity (EN)
+                    </label>
+                    <input type="text" className="w-full border border-slate-300 rounded-lg px-4 h-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all shadow-sm"
+                      value={editingItem.activity.en} onChange={(e) => handleChange('activity', e.target.value, 'en')} />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Frequency</label>
-                    <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2 ml-1">
+                      <ShieldCheck size={14} /> Standard
+                    </label>
+                    <input type="text" className="w-full border border-slate-300 rounded-lg px-4 h-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono text-slate-600 bg-white shadow-sm"
+                      value={editingItem.standard} onChange={(e) => handleChange('standard', e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Activity (CH) & Acceptance Criteria Row */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2 ml-1">
+                      <FileText size={14} className="text-blue-500" /> Activity (CH)
+                    </label>
+                    <input type="text" className="w-full border border-slate-300 rounded-lg px-4 h-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all shadow-sm"
+                      value={editingItem.activity.ch} onChange={(e) => handleChange('activity', e.target.value, 'ch')} />
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2 ml-1">
+                      <CheckCircle2 size={14} /> Acceptance Criteria
+                    </label>
+                    <input type="text" className="w-full border border-slate-300 rounded-lg px-4 h-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm font-medium"
+                      value={editingItem.criteria} onChange={(e) => handleChange('criteria', e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Procedure Specifics (Timing, Method, Frequency, Record) */}
+                <div className="grid grid-cols-2 gap-x-8 gap-y-6 pt-2">
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2 ml-1">
+                      <Calendar size={14} className="text-blue-500" /> Check Time (EN/CH)
+                    </label>
+                    <div className="flex flex-col gap-2">
+                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 h-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm"
+                        value={editingItem.checkTime.en} onChange={(e) => handleChange('checkTime', e.target.value, 'en')} />
+                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 h-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-slate-500 bg-white shadow-sm"
+                        value={editingItem.checkTime.ch} onChange={(e) => handleChange('checkTime', e.target.value, 'ch')} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2 ml-1">
+                      <Filter size={14} className="text-blue-500" /> Method (EN/CH)
+                    </label>
+                    <div className="flex flex-col gap-2">
+                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 h-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm"
+                        value={editingItem.method.en} onChange={(e) => handleChange('method', e.target.value, 'en')} />
+                      <input type="text" className="w-full border border-slate-300 rounded-lg px-4 h-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-slate-500 bg-white shadow-sm"
+                        value={editingItem.method.ch} onChange={(e) => handleChange('method', e.target.value, 'ch')} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2 ml-1">
+                      <AlertCircle size={14} className="text-slate-400" /> Frequency
+                    </label>
+                    <input type="text" className="w-full border border-slate-300 rounded-lg px-4 h-10 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white shadow-sm"
                       value={editingItem.frequency} onChange={(e) => handleChange('frequency', e.target.value)} />
                   </div>
-                </div>
-              </div>
-
-              {/* Record Ref */}
-              <div>
-                <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
-                  <FileCheck size={14} className="text-emerald-600" /> Record Reference / Form No.
-                </label>
-                <div className="relative">
-                  <input type="text" className="w-full border border-slate-300 bg-slate-50 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none font-mono text-slate-700 transition-all"
-                    value={editingItem.record} onChange={(e) => handleChange('record', e.target.value)} placeholder="e.g. ITP-PL-01" />
-                  <Tag className="absolute left-3 top-2.5 text-slate-400" size={16} />
-                </div>
-              </div>
-
-              {/* Verification Points */}
-              <div className="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100">
-                <label className="block text-xs font-bold text-indigo-800 uppercase mb-4 tracking-wide text-center">Verification Points Assigment</label>
-                <div className="grid grid-cols-4 gap-4">
-                  {[
-                    { key: 'sub', label: 'Sub-Con', icon: <HardHat size={14} /> },
-                    { key: 'teco', label: 'Main Con', icon: <Building2 size={14} /> },
-                    { key: 'employer', label: 'Employer', icon: <User size={14} /> },
-                    { key: 'hse', label: 'HSE', icon: <ShieldCheck size={14} /> }
-                  ].map(({ key, label, icon }) => (
-                    <div key={key} className="flex flex-col items-center bg-white p-3 rounded-lg border border-indigo-100 shadow-sm transition-transform hover:-translate-y-1 duration-200">
-                      <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 flex items-center gap-1">
-                        {icon} {label}
-                      </div>
-                      <select className="w-full border-0 bg-slate-50 rounded-md text-sm font-bold py-1.5 text-center cursor-pointer hover:bg-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700"
-                        value={editingItem.vp[key]} onChange={(e) => handleVPChange(key, e.target.value)}>
-                        <option value="">-</option><option value="H">H</option><option value="W">W</option><option value="R">R</option><option value="※">※</option>
-                      </select>
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2 ml-1">
+                      <FileCheck size={14} className="text-emerald-600" /> Record Ref
+                    </label>
+                    <div className="relative">
+                      <input type="text" className="w-full border border-slate-300 bg-white rounded-lg pl-10 pr-4 h-10 text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-mono text-slate-700 shadow-sm"
+                        value={editingItem.record} onChange={(e) => handleChange('record', e.target.value)} />
+                      <Tag className="absolute left-3 top-3 text-slate-400" size={16} />
                     </div>
-                  ))}
+                  </div>
+                </div>
+
+                {/* Verification Points */}
+                <div className="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100">
+                  <label className="block text-xs font-bold text-indigo-800 uppercase mb-4 tracking-wide text-center">Verification Points Assigment</label>
+                  <div className="grid grid-cols-4 gap-4">
+                    {[
+                      { key: 'sub', label: 'Sub-Con', icon: <HardHat size={14} /> },
+                      { key: 'teco', label: 'Main Con', icon: <Building2 size={14} /> },
+                      { key: 'employer', label: 'Employer', icon: <User size={14} /> },
+                      { key: 'hse', label: 'HSE', icon: <ShieldCheck size={14} /> }
+                    ].map(({ key, label, icon }) => (
+                      <div key={key} className="flex flex-col items-center bg-white p-3 rounded-lg border border-indigo-100 shadow-sm transition-transform hover:-translate-y-1 duration-200">
+                        <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 flex items-center gap-1">
+                          {icon} {label}
+                        </div>
+                        <select className="w-full border-0 bg-slate-50 rounded-md text-sm font-bold py-1.5 text-center cursor-pointer hover:bg-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700"
+                          value={editingItem.vp[key]} onChange={(e) => handleVPChange(key, e.target.value)}>
+                          <option value="">-</option><option value="H">H</option><option value="W">W</option><option value="R">R</option><option value="※">※</option>
+                        </select>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -498,11 +582,11 @@ const ITPDetail: React.FC = () => {
       <div className="max-w-[1400px] min-w-[1024px] mx-auto bg-white rounded-xl shadow-lg border-x-0 border-t-0 overflow-hidden print-container">
 
         {/* Document Header Section */}
-        <div className="bg-white px-8 pt-8 pb-4 border-b border-slate-200 relative">
+        <div className="bg-white px-8 pt-8 pb-2 border-b border-slate-200 relative">
           <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600"></div>
 
           {/* Top Row: Title */}
-          <div className="flex justify-between items-center mb-4 pt-2">
+          <div className="flex justify-between items-center mb-1 pt-2">
             <div className="w-48 opacity-40 hover:opacity-100 transition-opacity">
               {/* Placeholder for Logo */}
               <div className="h-12 w-32 bg-slate-100 rounded flex items-center justify-center text-xs text-slate-400 font-medium border border-dashed border-slate-300">
@@ -526,10 +610,13 @@ const ITPDetail: React.FC = () => {
               </div>
             </div>
 
-            <div className="w-48 flex justify-end opacity-40 hover:opacity-100 transition-opacity">
-              <div className="h-12 w-32 bg-slate-100 rounded flex items-center justify-center text-xs text-slate-400 font-medium border border-dashed border-slate-300">
-                Form No.
-              </div>
+
+          </div>
+
+          {/* Form No. - Inside Header, Bottom Right */}
+          <div className="flex justify-end mt-1">
+            <div className="text-xs font-bold text-slate-700">
+              {referenceNo}
             </div>
           </div>
         </div>
@@ -539,7 +626,7 @@ const ITPDetail: React.FC = () => {
           <table className="w-full text-left text-sm border-collapse border border-black border-t-2">
             <thead className="bg-slate-800 text-white font-bold text-xs uppercase tracking-wider border-b-2 border-black leading-tight">
               <tr>
-                <th rowSpan={2} className="px-5 py-4 w-16 border-r border-black bg-slate-800 sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] text-center">No.</th>
+                <th rowSpan={2} className="px-5 py-4 w-16 border-r border-black bg-slate-800 sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] text-center">Event No.</th>
                 <th rowSpan={2} className="px-5 py-4 w-64 border-r border-black text-center">Inspection Activity</th>
                 <th rowSpan={2} className="px-5 py-4 w-56 border-r border-black text-center">Standard / Criteria</th>
                 <th rowSpan={2} className="px-5 py-4 w-40 border-r border-black bg-slate-800 text-center">Check Time</th>
@@ -585,7 +672,10 @@ const ITPDetail: React.FC = () => {
                         <div className="text-black text-sm font-medium">{item.checkTime.en}</div>
                         <div className="text-slate-500 text-xs mt-1">{item.checkTime.ch}</div>
                       </td>
-                      <td className="px-5 py-4 border-r border-black align-top"><div className="text-black text-sm">{item.method}</div></td>
+                      <td className="px-5 py-4 border-r border-black align-top">
+                        <div className="text-black text-sm">{item.method.en}</div>
+                        <div className="text-slate-500 text-xs mt-1">{item.method.ch}</div>
+                      </td>
                       <td className="px-5 py-4 border-r border-black align-top"><div className="text-slate-800 text-xs">{item.frequency}</div></td>
                       <td className="px-5 py-4 border-r border-black bg-slate-50 align-top">
                         {item.record !== '-' ? (
