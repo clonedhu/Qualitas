@@ -20,6 +20,7 @@ import PQP from './components/PQP/PQP';
 import KPI from './components/KPI/KPI';
 import DocumentNamingRules from './components/DocumentNamingRules/DocumentNamingRules';
 import OSD from './components/OSD/OSD';
+import Checklist from './components/Checklist/Checklist';
 import './App.css';
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
@@ -181,6 +182,14 @@ function App() {
           element={
             <PrivateRoute>
               <DocumentNamingRules />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/checklist"
+          element={
+            <PrivateRoute>
+              <Checklist />
             </PrivateRoute>
           }
         />

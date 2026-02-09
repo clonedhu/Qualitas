@@ -48,12 +48,21 @@ const Home = () => {
     },
     {
       id: 'itp',
-      title: 'ITP & Checklist',
-      titleEn: 'ITP & Checklist',
+      title: 'ITP',
+      titleEn: 'ITP',
       description: t('home.itp.description'),
       path: '/itp',
       iconGradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
       icon: '📋',
+    },
+    {
+      id: 'checklist',
+      title: 'Checklist',
+      titleEn: 'Checklist',
+      description: t('home.checklist.description'),
+      path: '/checklist',
+      iconGradient: 'linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)',
+      icon: '✅',
     },
     {
       id: 'noi',

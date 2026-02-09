@@ -47,6 +47,7 @@
   "home.followup.description": "Follow-up Issue Tracking Management",
   "home.pqp.description": "Quality Plan Management",
   "home.itp.description": "Inspection and Test Plan Management",
+  "home.checklist.description": "Quality Checklist Management",
   "home.noi.description": "Inspection Notification Management",
   "home.itr.description": "Inspection and Test Report",
   "home.osd.description": "Over, Short and Damaged Management",
