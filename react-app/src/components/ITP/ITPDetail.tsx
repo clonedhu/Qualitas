@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
+import { useITR } from '../../context/ITRContext';
+import { ITRDetailsViewModal } from '../ITR/ITRModals';
 import {
   FileText, Printer, Filter, PenTool, LayoutTemplate, Layers, X, Save, AlertCircle, Plus,
   ArrowLeft, CheckCircle2, ChevronDown, Calendar, Hash, Tag, FileCheck, ShieldCheck, HardHat, User, Building2, Trash2, ArrowDown
@@ -115,10 +117,12 @@ const VPBadge = ({ type }: { type: string }) => {
 const ITPDetail: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { itrList } = useITR();
   const [items, setItems] = useState<any[]>(INITIAL_ITEMS);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [workTitle, setWorkTitle] = useState("Piling Work"); // 工項標題狀態
   const [referenceNo, setReferenceNo] = useState(""); // Form No.
+  const [viewingItrItem, setViewingItrItem] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -524,12 +528,23 @@ const ITPDetail: React.FC = () => {
                   </div>
                   <div>
                     <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2 ml-1">
-                      <FileCheck size={14} className="text-emerald-600" /> Record Ref
+                      <FileCheck size={14} className="text-emerald-600" /> ITR No.
                     </label>
                     <div className="relative">
-                      <input type="text" className="w-full border border-slate-300 bg-white rounded-lg pl-10 pr-4 h-10 text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-mono text-slate-700 shadow-sm"
-                        value={editingItem.record} onChange={(e) => handleChange('record', e.target.value)} />
+                      <input
+                        type="text"
+                        className="w-full border border-slate-300 bg-white rounded-lg pl-10 pr-4 h-10 text-sm focus:ring-2 focus:ring-emerald-500 outline-none font-mono text-slate-700 shadow-sm"
+                        list="itr-options"
+                        value={editingItem.record}
+                        onChange={(e) => handleChange('record', e.target.value)}
+                        placeholder="Select or enter ITR No."
+                      />
                       <Tag className="absolute left-3 top-3 text-slate-400" size={16} />
+                      <datalist id="itr-options">
+                        {itrList.map((itr) => (
+                          <option key={itr.id} value={itr.documentNumber} />
+                        ))}
+                      </datalist>
                     </div>
                   </div>
                 </div>
@@ -632,7 +647,7 @@ const ITPDetail: React.FC = () => {
                 <th rowSpan={2} className="px-5 py-4 w-40 border-r border-black bg-slate-800 text-center">Check Time</th>
                 <th rowSpan={2} className="px-5 py-4 w-40 border-r border-black text-center">Method</th>
                 <th rowSpan={2} className="px-5 py-4 w-28 border-r border-black text-center">Frequency</th>
-                <th rowSpan={2} className="px-5 py-4 w-32 border-r border-black bg-slate-800 text-center">Records</th>
+                <th rowSpan={2} className="px-5 py-4 w-32 border-r border-black bg-slate-800 text-center">ITR No.</th>
                 <th colSpan={4} className="px-2 py-3 text-center border-b border-black bg-slate-800">Verification Point</th>
                 <th rowSpan={2} className="px-5 py-4 text-center w-32 bg-slate-800 sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] border-l border-black no-print">Operation</th>
               </tr>
@@ -679,9 +694,21 @@ const ITPDetail: React.FC = () => {
                       <td className="px-5 py-4 border-r border-black align-top"><div className="text-slate-800 text-xs">{item.frequency}</div></td>
                       <td className="px-5 py-4 border-r border-black bg-slate-50 align-top">
                         {item.record !== '-' ? (
-                          <div className="inline-flex items-center px-2.5 py-1.5 rounded-md bg-white text-black font-mono text-xs font-bold border border-black whitespace-nowrap shadow-sm">
-                            <FileText size={12} className="mr-1.5 opacity-70" />{item.record}
-                          </div>
+                          <button
+                            onClick={() => {
+                              const found = itrList.find(itr => itr.documentNumber === item.record);
+                              if (found) {
+                                setViewingItrItem(found);
+                              } else {
+                                // Fallback: if not found in context (might be manually entered or not synced), 
+                                // we could still show a basic view or alert
+                                alert('ITR document data not found in current list.');
+                              }
+                            }}
+                            className="inline-flex items-center px-2.5 py-1.5 rounded-md bg-white text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors font-mono text-xs font-bold border border-blue-200 hover:border-blue-400 whitespace-nowrap shadow-sm group/itr"
+                          >
+                            <FileText size={12} className="mr-1.5 opacity-70 group-hover/itr:opacity-100" />{item.record}
+                          </button>
                         ) : <span className="text-slate-400 text-xs pl-2">-</span>}
                       </td>
                       <td className="px-2 py-4 text-center border-r border-black align-middle"><VPBadge type={item.vp.sub} /></td>
@@ -719,6 +746,16 @@ const ITPDetail: React.FC = () => {
           End of Document - Total {items.length} Inspection Items
         </div>
       </div>
+
+      {/* Viewing ITR Details Modal */}
+      {viewingItrItem && (
+        <ITRDetailsViewModal
+          itrId={viewingItrItem.id}
+          itrItem={viewingItrItem}
+          onPrint={() => window.print()}
+          onClose={() => setViewingItrItem(null)}
+        />
+      )}
     </div>
   );
 };
