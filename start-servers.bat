@@ -1,23 +1,23 @@
 @echo off
-cd /d "%~dp0"
-echo 正在啟動 Qualitas 開發伺服器...
+echo Starting Qualitas Development Servers...
 echo.
 
-echo 啟動 Python 後端 (port 8000, ITP 等)...
-start "Python 後端" cmd /k "cd /d %~dp0backend && echo Python 後端運行在 http://localhost:8000 && python -m uvicorn main:app --reload --port 8000"
+echo Starting Python Backend (Port 8000)...
+start "Qualitas Python Backend" cmd /k "cd backend && python -m uvicorn main:app --reload --port 8000"
 
-timeout /t 2 /nobreak >nul
+timeout /t 3
 
-echo 啟動 Node 後端 (port 3001)...
-start "Node 後端" cmd /k "cd /d %~dp0backend && echo Node 後端運行在 http://localhost:3001 && npm start"
+echo Starting Node Backend (Port 3001)...
+start "Qualitas Node Backend" cmd /k "cd backend && npm start"
 
-timeout /t 2 /nobreak >nul
+timeout /t 3
 
-echo 啟動前端伺服器 (port 3000)...
-start "前端伺服器" cmd /k "cd /d %~dp0react-app && echo 前端伺服器運行在 http://localhost:3000 && npm run dev"
+echo Starting React Frontend (Port 3000)...
+start "Qualitas React Frontend" cmd /k "cd react-app && npm run dev"
 
 echo.
-echo 伺服器正在啟動中...
-echo 請稍候幾秒後訪問: http://localhost:3000
+echo All servers launched in separate windows.
+echo Please check the new windows for any error messages if the app doesn't load.
+echo Frontend should be available at http://localhost:3000
 echo.
 pause

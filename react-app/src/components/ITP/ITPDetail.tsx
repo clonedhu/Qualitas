@@ -1,926 +1,632 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
-import { useLanguage } from '../../context/LanguageContext';
-import styles from './ITPDetail.module.css';
+import {
+  FileText, Printer, Filter, PenTool, LayoutTemplate, Layers, X, Save, AlertCircle, Plus,
+  ArrowLeft, CheckCircle2, ChevronDown, Calendar, Hash, Tag, FileCheck, ShieldCheck, HardHat, User, Building2, Trash2
+} from 'lucide-react';
 
-const MIN_TEXTAREA_HEIGHT = 40;
+// --- 定義施工階段結構 ---
+const PHASES = [
+  { code: "A", title: "A. Before Construction (施工前)", color: "bg-slate-200" },
+  { code: "B", title: "B. During Construction (施工中)", color: "bg-blue-100" },
+  { code: "C", title: "C. After Construction (施工後)", color: "bg-emerald-100" }
+];
 
-function resizeTextarea(el: HTMLTextAreaElement) {
-  el.style.height = 'auto';
-  el.style.height = Math.max(el.scrollHeight, MIN_TEXTAREA_HEIGHT) + 'px';
-}
-
-interface ITPItem {
-  id: string;
-  eventNo: string;
-  activity: string;
-  standard: string;
-  acceptanceCriteria: string;
-  checkTiming: string;
-  inspectionMethod: string;
-  frequency: string;
-  nonconformityTreatment: string;
-  records: string;
-  subcon: string;
-  epci: string;
-  employer: string;
-  hse: string;
-}
-
-interface ITPData {
-  a: ITPItem[];
-  b: ITPItem[];
-  c: ITPItem[];
-}
-
-interface ChecklistItem {
-  id: string;
-  label: string;
-  checked: boolean;
-}
-
-interface SelfInspectionHeader {
-  organizingUnit: string;
-  supervisingUnit: string;
-  contractor: string;
-  constructionLocation: string;
-  applicationDate: string;
-  entryType: string;
-  entrySequenceNo: string;
-}
-
-interface QuantityRow {
-  id: string;
-  name: string;
-  contractQty: string;
-  previous: string;
-  current: string;
-  accumulated: string;
-}
-
-interface ChecklistQuestion {
-  id: string;
-  text: string;
-  value: '' | 'yes' | 'no' | 'na';
-  quantityInput?: string;
-  quantityInput2?: string;
-}
-
-interface SelfInspectionAttachments {
-  spec: boolean;
-  submission: boolean;
-  drawing: boolean;
-  other: boolean;
-}
-
-type AuditResult = '' | 'approved' | 'resample' | 'reject';
-
-interface SelfInspectionSignatures {
-  siteSupervisor: string;
-  fieldEngineer: string;
-}
-
-interface MaterialDetailRow {
-  id: string;
-  inspectionItem: string;
-  brand: string;
-  heatNo: string;
-  model: string;
-  number: string;
-  subtotal: string;
-  sampleQty: string;
-  location: string;
-}
-
-interface SelfInspectionData {
-  header: SelfInspectionHeader;
-  quantityRows: QuantityRow[];
-  materialDetails: MaterialDetailRow[];
-  questions: ChecklistQuestion[];
-  attachments: SelfInspectionAttachments;
-  auditResult: AuditResult;
-  auditComment: string;
-  signatures: SelfInspectionSignatures;
-  q7SubItems: { customs: boolean; materialCert: boolean; testReport: boolean; equipmentList: boolean; other: boolean };
-}
-
-const DEFAULT_SELF_INSPECTION: SelfInspectionData = {
-  header: {
-    organizingUnit: '',
-    supervisingUnit: '',
-    contractor: '',
-    constructionLocation: '',
-    applicationDate: '',
-    entryType: '',
-    entrySequenceNo: '',
+// --- 初始資料庫數據 ---
+const INITIAL_ITEMS = [
+  // --- Phase A ---
+  {
+    phase: "A", id: "A2", activity: { en: "Length", ch: "長度" }, standard: "CNS 2602", criteria: "22m ±0.3% / 25m ±0.3%",
+    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: "Tape measure (捲尺)", frequency: "-",
+    vp: { sub: "", teco: "", employer: "", hse: "" }, record: "-"
   },
-  quantityRows: [
-    { id: 'qty-1', name: 'SD280W', contractQty: '', previous: '', current: '', accumulated: '' },
-    { id: 'qty-2', name: 'SD420W', contractQty: '', previous: '', current: '', accumulated: '' },
-  ],
-  materialDetails: [
-    { id: 'md1', inspectionItem: '竹節鋼筋', brand: '', heatNo: '', model: 'SD280W', number: '#3', subtotal: '', sampleQty: '', location: '' },
-    { id: 'md2', inspectionItem: '', brand: '', heatNo: '', model: '', number: '合計', subtotal: '', sampleQty: '', location: '' },
-    { id: 'md3', inspectionItem: '竹節鋼筋', brand: '', heatNo: '', model: 'SD420W', number: '#4', subtotal: '', sampleQty: '', location: '' },
-    { id: 'md4', inspectionItem: '竹節鋼筋', brand: '', heatNo: '', model: 'SD420W', number: '#5', subtotal: '', sampleQty: '', location: '' },
-    { id: 'md5', inspectionItem: '竹節鋼筋', brand: '', heatNo: '', model: 'SD420W', number: '#6', subtotal: '', sampleQty: '', location: '' },
-    { id: 'md6', inspectionItem: '竹節鋼筋', brand: '', heatNo: '', model: 'SD420W', number: '#8', subtotal: '', sampleQty: '', location: '' },
-    { id: 'md7', inspectionItem: '', brand: '', heatNo: '', model: '', number: '合計', subtotal: '', sampleQty: '', location: '' },
-    { id: 'md8', inspectionItem: '續接器', brand: '', heatNo: '', model: 'SD420W', number: '續接器', subtotal: '', sampleQty: '', location: '' },
-    { id: 'md9', inspectionItem: '', brand: '', heatNo: '', model: '', number: '合計', subtotal: '', sampleQty: '', location: '' },
-  ],
-  questions: [
-    { id: 'q1', text: '本項進場設備材料，其廠牌型號是否符合規定', value: '' },
-    { id: 'q2', text: '本項進場設備材料，其數量為 SD280W【 】噸；SD420W【 】噸', value: '', quantityInput: '', quantityInput2: '' },
-    { id: 'q3', text: '本項進場設備材料，其規格尺寸是否符合規定', value: '' },
-    { id: 'q4', text: '本項進場設備材料，其顏色、附屬配件是否齊全符合要求', value: '' },
-    { id: 'q5', text: '本項進場設備材料，其外觀是否無不當損壞', value: '' },
-    { id: 'q6', text: '本項進場設備材料，貯放位置及保存方式是否符合要求', value: '' },
-    { id: 'q7', text: '本項進場設備材料，其檢附資料是否齊全', value: '' },
-  ],
-  attachments: { spec: false, submission: false, drawing: false, other: false },
-  auditResult: '',
-  auditComment: '',
-  signatures: { siteSupervisor: '', fieldEngineer: '' },
-  q7SubItems: { customs: false, materialCert: false, testReport: false, equipmentList: false, other: false },
+  {
+    phase: "A", id: "A3", activity: { en: "Thickness", ch: "厚度" }, standard: "CNS 2602", criteria: "100mm -2/+40mm",
+    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: "Tape measure (捲尺)", frequency: "-",
+    vp: { sub: "", teco: "", employer: "", hse: "" }, record: "-"
+  },
+  {
+    phase: "A", id: "A4", activity: { en: "Outer Diameter", ch: "外徑" }, standard: "CNS 2602", criteria: "600mm -4/+7mm",
+    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: "Tape measure (捲尺)", frequency: "-",
+    vp: { sub: "", teco: "", employer: "", hse: "" }, record: "-"
+  },
+  {
+    phase: "A", id: "A5", activity: { en: "Quantity", ch: "數量" }, standard: "Shipping Order", criteria: "Meet shipping order",
+    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: "Visual (目視檢查)", frequency: "Each Time",
+    vp: { sub: "H", teco: "W", employer: "R", hse: "" }, record: "ITP-PL-01"
+  },
+  {
+    phase: "A", id: "A6", activity: { en: "Stakeout", ch: "放樣" }, standard: "HL-ONS-TECO-STR-DWG-02000", criteria: "Meet design req.",
+    checkTime: { en: "Before construction", ch: "施工前" }, method: "Tape Measure (捲尺)", frequency: "Each Time",
+    vp: { sub: "H", teco: "H", employer: "H", hse: "" }, record: "ITP-SV-01"
+  },
+  // --- Phase B ---
+  {
+    phase: "B", id: "B1", activity: { en: "Foundation piling position", ch: "基礎打設座標" }, standard: "HL-ONS-TECO-STR-DWG-02000", criteria: "Tolerance ± 7.5 cm",
+    checkTime: { en: "During Piling", ch: "打樁時" }, method: "Total Station (全站儀)", frequency: "Each Pile",
+    vp: { sub: "H", teco: "H", employer: "H", hse: "" }, record: "ITP-PL-02&03"
+  },
+  {
+    phase: "B", id: "B2", activity: { en: "Pile Elevation", ch: "基礎高程" }, standard: "HL-ONS-TECO-GEO-DWG-08000", criteria: "Tolerance ± 7.5 cm",
+    checkTime: { en: "After Piling", ch: "打樁後" }, method: "Total Station (全站儀)", frequency: "Each Pile",
+    vp: { sub: "H", teco: "W", employer: "R", hse: "" }, record: "ITP-PL-04"
+  },
+  {
+    phase: "B", id: "B3", activity: { en: "Pile Joint", ch: "樁頭檢查" }, standard: "CNS 2602", criteria: "No Oil, Rust, Dust",
+    checkTime: { en: "Before Welding", ch: "焊接前" }, method: "Visual (目視)", frequency: "Each Pile",
+    vp: { sub: "H", teco: "W", employer: "W", hse: "※" }, record: "ITP-PL-02"
+  },
+  {
+    phase: "B", id: "B4", activity: { en: "Welding", ch: "焊接" }, standard: "CNS 13341", criteria: "No Defect (無缺失)",
+    checkTime: { en: "After Welding", ch: "焊接後" }, method: "NDT - MT", frequency: "1/50 pcs",
+    vp: { sub: "H", teco: "W", employer: "W", hse: "※" }, record: "ITP-PL-02"
+  },
+  {
+    phase: "B", id: "B5", activity: { en: "Verticality of Pile", ch: "基礎垂直度" }, standard: "HL-ONS-TECO-GEO-DWG-08000", criteria: "< 1/75",
+    checkTime: { en: "During Piling", ch: "打樁時" }, method: "Spirit Level Ruler", frequency: "Each Pile",
+    vp: { sub: "H", teco: "W", employer: "W", hse: "" }, record: "ITP-PL-02&04"
+  },
+  {
+    phase: "B", id: "B6", activity: { en: "Hit number of hammers", ch: "打擊次數" }, standard: "HL-ONS-TECO-ENG-PLN-00005", criteria: "< 2000 hits",
+    checkTime: { en: "During Piling", ch: "打樁時" }, method: "Visual (目視)", frequency: "Each Pile",
+    vp: { sub: "H", teco: "W", employer: "W", hse: "" }, record: "ITP-PL-02&04"
+  },
+  // --- Phase C ---
+  {
+    phase: "C", id: "C1", activity: { en: "Pile Position", ch: "樁位複測" }, standard: "HL-ONS-TECO-STR-", criteria: "Tolerance < 7.5cm",
+    checkTime: { en: "After Piling", ch: "打樁後" }, method: "Total Station (全站儀)", frequency: "Each Pile",
+    vp: { sub: "H", teco: "W", employer: "W", hse: "" }, record: "ITP-PL-03"
+  }
+];
+
+// --- 空白項目模板 ---
+const EMPTY_ITEM = {
+  phase: "B",
+  id: "",
+  activity: { en: "", ch: "" },
+  standard: "",
+  criteria: "",
+  checkTime: { en: "", ch: "" },
+  method: "",
+  frequency: "",
+  vp: { sub: "", teco: "", employer: "", hse: "" },
+  record: "-"
+};
+
+// --- VP 標籤元件 ---
+const VPBadge = ({ type }: { type: string }) => {
+  const styles: { [key: string]: string } = {
+    H: "bg-rose-100 text-rose-700 border-rose-200 font-bold ring-1 ring-rose-200 shadow-sm",
+    W: "bg-amber-100 text-amber-700 border-amber-200 font-bold ring-1 ring-amber-200 shadow-sm",
+    R: "bg-sky-100 text-sky-700 border-sky-200 font-bold ring-1 ring-sky-200 shadow-sm",
+    "※": "bg-slate-100 text-slate-600 border-slate-200 font-medium ring-1 ring-slate-200"
+  };
+
+  if (!type) return <span className="text-slate-200 font-light">-</span>;
+
+  return (
+    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm transition-all ${styles[type] || ""}`}>
+      {type}
+    </span>
+  );
 };
 
 const ITPDetail: React.FC = () => {
-  // 簽名 canvas (預留功能)
-  const sigCanvas1 = useRef<HTMLCanvasElement>(null);
-  const sigCanvas2 = useRef<HTMLCanvasElement>(null);
-  const sigCanvas3 = useRef<HTMLCanvasElement>(null);
-
-  // File Attachments
-  const [fileAttachments, setFileAttachments] = useState<string[]>([]);
-
   const navigate = useNavigate();
-  const { t } = useLanguage();
-  const { id: itpId } = useParams<{ id: string }>();
-  const [itpTitle, setItpTitle] = useState<string>('');
+  const { id } = useParams<{ id: string }>();
+  const [items, setItems] = useState<any[]>(INITIAL_ITEMS);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [workTitle, setWorkTitle] = useState("Piling Work"); // 工項標題狀態
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const defaultItpData: ITPData = {
-    a: [{ id: 'a1', eventNo: 'A1', activity: '', standard: '', acceptanceCriteria: '', checkTiming: '', inspectionMethod: '', frequency: '', nonconformityTreatment: '', records: '', subcon: '', epci: '', employer: '', hse: '' }],
-    b: [{ id: 'b1', eventNo: 'B1', activity: '', standard: '', acceptanceCriteria: '', checkTiming: '', inspectionMethod: '', frequency: '', nonconformityTreatment: '', records: '', subcon: '', epci: '', employer: '', hse: '' }],
-    c: [{ id: 'c1', eventNo: 'C1', activity: '', standard: '', acceptanceCriteria: '', checkTiming: '', inspectionMethod: '', frequency: '', nonconformityTreatment: '', records: '', subcon: '', epci: '', employer: '', hse: '' }],
-  };
-
-  const [itpData, setItpData] = useState<ITPData>(defaultItpData);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
-  const [selfInspection, setSelfInspection] = useState<SelfInspectionData>(DEFAULT_SELF_INSPECTION);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const loadedFromApiRef = useRef(false);
-
-  const autoResizeTextarea = (e: React.FormEvent<HTMLTextAreaElement>) => {
-    resizeTextarea(e.currentTarget);
-  };
-
-  const handleTextareaChange = (
-    section: 'a' | 'b' | 'c',
-    itemId: string,
-    field: keyof ITPItem,
-    e: React.ChangeEvent<HTMLTextAreaElement>
-  ) => {
-    updateItem(section, itemId, field, e.target.value);
-    resizeTextarea(e.target);
-  };
-
-  const norm = (arr: ITPItem[] | undefined, section: 'a' | 'b' | 'c'): ITPItem[] => {
-    const def = defaultItpData[section];
-    if (!Array.isArray(arr) || arr.length === 0) return def;
-    const pre = section.toUpperCase();
-    return arr.map((x: Partial<ITPItem>, i: number) => ({
-      id: x.id ?? `${section}${i + 1}`,
-      eventNo: x.eventNo ?? `${pre}${i + 1}`,
-      activity: x.activity ?? '',
-      standard: x.standard ?? '',
-      acceptanceCriteria: x.acceptanceCriteria ?? '',
-      checkTiming: x.checkTiming ?? '',
-      inspectionMethod: x.inspectionMethod ?? '',
-      frequency: x.frequency ?? '',
-      nonconformityTreatment: x.nonconformityTreatment ?? '',
-      records: x.records ?? '',
-      subcon: x.subcon ?? '',
-      epci: x.epci ?? '',
-      employer: x.employer ?? '',
-      hse: x.hse ?? '',
-    }));
-  };
-
-  const parseDetailData = (raw: unknown): { a?: ITPItem[]; b?: ITPItem[]; c?: ITPItem[]; checklist?: ChecklistItem[]; self_inspection?: unknown } | null => {
-    if (raw == null) return null;
-    if (typeof raw === 'string') {
-      try {
-        return JSON.parse(raw) as { a?: ITPItem[]; b?: ITPItem[]; c?: ITPItem[]; checklist?: ChecklistItem[]; self_inspection?: unknown };
-      } catch {
-        return null;
-      }
-    }
-    if (typeof raw === 'object' && raw !== null && ('a' in raw || 'b' in raw || 'c' in raw)) {
-      return raw as { a?: ITPItem[]; b?: ITPItem[]; c?: ITPItem[]; checklist?: ChecklistItem[]; self_inspection?: unknown };
-    }
-    return null;
-  };
-
-  const normChecklist = (arr: unknown): ChecklistItem[] => {
-    if (!Array.isArray(arr)) return [];
-    return arr.map((x: Partial<ChecklistItem>, i: number) => ({
-      id: x.id ?? `cl-${i + 1}`,
-      label: typeof x.label === 'string' ? x.label : '',
-      checked: !!x.checked,
-    }));
-  };
-
-  const normSelfInspection = (raw: unknown): SelfInspectionData => {
-    if (raw == null || typeof raw !== 'object') return DEFAULT_SELF_INSPECTION;
-    const o = raw as Record<string, unknown>;
-    const h = o.header as Record<string, unknown> | undefined;
-    const header: SelfInspectionHeader = {
-      organizingUnit: typeof h?.organizingUnit === 'string' ? h.organizingUnit : '',
-      supervisingUnit: typeof h?.supervisingUnit === 'string' ? h.supervisingUnit : '',
-      contractor: typeof h?.contractor === 'string' ? h.contractor : '',
-      constructionLocation: typeof h?.constructionLocation === 'string' ? h.constructionLocation : '',
-      applicationDate: typeof h?.applicationDate === 'string' ? h.applicationDate : '',
-      entryType: typeof h?.entryType === 'string' ? h.entryType : '',
-      entrySequenceNo: typeof h?.entrySequenceNo === 'string' ? h.entrySequenceNo : '',
-    };
-    const qRows = Array.isArray(o.quantityRows) ? o.quantityRows : DEFAULT_SELF_INSPECTION.quantityRows;
-    const quantityRows: QuantityRow[] = qRows.map((r: Partial<QuantityRow>, i: number) => ({
-      id: r?.id ?? `qty-${i + 1}`,
-      name: typeof r?.name === 'string' ? r.name : '',
-      contractQty: typeof r?.contractQty === 'string' ? r.contractQty : '',
-      previous: typeof r?.previous === 'string' ? r.previous : '',
-      current: typeof r?.current === 'string' ? r.current : '',
-      accumulated: typeof r?.accumulated === 'string' ? r.accumulated : '',
-    }));
-    const mdList = Array.isArray(o.materialDetails) ? o.materialDetails : DEFAULT_SELF_INSPECTION.materialDetails;
-    const materialDetails: MaterialDetailRow[] = mdList.map((r: Partial<MaterialDetailRow>, i: number) => ({
-      id: r?.id ?? `md-${i + 1}`,
-      inspectionItem: typeof r?.inspectionItem === 'string' ? r.inspectionItem : '',
-      brand: typeof r?.brand === 'string' ? r.brand : '',
-      heatNo: typeof r?.heatNo === 'string' ? r.heatNo : '',
-      model: typeof r?.model === 'string' ? r.model : '',
-      number: typeof r?.number === 'string' ? r.number : '',
-      subtotal: typeof r?.subtotal === 'string' ? r.subtotal : '',
-      sampleQty: typeof r?.sampleQty === 'string' ? r.sampleQty : '',
-      location: typeof r?.location === 'string' ? r.location : '',
-    }));
-    const qList = Array.isArray(o.questions) ? o.questions : DEFAULT_SELF_INSPECTION.questions;
-    const questions: ChecklistQuestion[] = qList.map((q: Partial<ChecklistQuestion>, i: number) => ({
-      id: q?.id ?? `q${i + 1}`,
-      text: typeof q?.text === 'string' ? q.text : DEFAULT_SELF_INSPECTION.questions[i]?.text ?? '',
-      value: (q?.value === 'yes' || q?.value === 'no' || q?.value === 'na' ? q.value : '') as '' | 'yes' | 'no' | 'na',
-      quantityInput: typeof (q as ChecklistQuestion).quantityInput === 'string' ? (q as ChecklistQuestion).quantityInput : '',
-      quantityInput2: typeof (q as ChecklistQuestion).quantityInput2 === 'string' ? (q as ChecklistQuestion).quantityInput2 : '',
-    }));
-    const att = o.attachments as Record<string, unknown> | undefined;
-    const attachments: SelfInspectionAttachments = {
-      spec: !!att?.spec,
-      submission: !!att?.submission,
-      drawing: !!att?.drawing,
-      other: !!att?.other,
-    };
-    const sig = o.signatures as Record<string, unknown> | undefined;
-    const signatures: SelfInspectionSignatures = {
-      siteSupervisor: typeof sig?.siteSupervisor === 'string' ? sig.siteSupervisor : '',
-      fieldEngineer: typeof sig?.fieldEngineer === 'string' ? sig.fieldEngineer : '',
-    };
-    const q7 = o.q7SubItems as Record<string, unknown> | undefined;
-    const q7SubItems = {
-      customs: !!q7?.customs,
-      materialCert: !!q7?.materialCert,
-      testReport: !!q7?.testReport,
-      equipmentList: !!q7?.equipmentList,
-      other: !!q7?.other,
-    };
-    const auditResult: AuditResult = (o.auditResult === 'approved' || o.auditResult === 'resample' || o.auditResult === 'reject') ? o.auditResult : '';
-    const auditComment = typeof o.auditComment === 'string' ? o.auditComment : '';
-    return { header, quantityRows, materialDetails, questions, attachments, auditResult, auditComment, signatures, q7SubItems };
-  };
-
+  // Fetch data on mount
   useEffect(() => {
-    if (!itpId) return;
-    const fetchItp = async () => {
+    const fetchITP = async () => {
+      if (!id) return;
+      setLoading(true);
       try {
-        const res = await api.get(`/itp/${itpId}`);
-        // 標題使用 Title (description)，不用 Reference no. (workingFlow)
-        setItpTitle((res.data?.description ?? '').trim());
-        const parsed = parseDetailData(res.data?.detail_data);
-        if (parsed) {
-          loadedFromApiRef.current = true;
-          setItpData({
-            a: norm(parsed.a, 'a'),
-            b: norm(parsed.b, 'b'),
-            c: norm(parsed.c, 'c'),
-          });
-          setChecklist(normChecklist(parsed.checklist));
-          setSelfInspection(normSelfInspection(parsed.self_inspection));
-        }
+        const response = await api.get(`/itp/${id}`);
+        const data = response.data;
+        if (data) {
+          if (data.description) setWorkTitle(data.description);
 
-        // Set attachments
-        setFileAttachments(res.data.attachments || []);
-
-      } catch (error) {
-        setItpTitle('');
-      }
-    };
-    fetchItp();
-  }, [itpId]);
-
-  useEffect(() => {
-    if (!loadedFromApiRef.current || !contentRef.current) return;
-    loadedFromApiRef.current = false;
-    contentRef.current.querySelectorAll('textarea').forEach((el) => resizeTextarea(el as HTMLTextAreaElement));
-  }, [itpData]);
-
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-
-  const addItem = (section: 'a' | 'b' | 'c') => {
-    const items = itpData[section];
-    const lastItem = items[items.length - 1];
-    const lastEventNo = lastItem.eventNo;
-    const prefix = section.toUpperCase();
-    const nextNum = parseInt(lastEventNo.substring(1)) + 1;
-    const newEventNo = `${prefix}${nextNum}`;
-
-    const newItem: ITPItem = {
-      id: `${section}${nextNum}`,
-      eventNo: newEventNo,
-      activity: '',
-      standard: '',
-      acceptanceCriteria: '',
-      checkTiming: '',
-      inspectionMethod: '',
-      frequency: '',
-      nonconformityTreatment: '',
-      records: '',
-      subcon: '',
-      epci: '',
-      employer: '',
-      hse: '',
-    };
-
-    setItpData({
-      ...itpData,
-      [section]: [...items, newItem],
-    });
-  };
-
-  const deleteItem = (section: 'a' | 'b' | 'c', id: string) => {
-    if (itpData[section].length <= 1) {
-      return; // 至少保留一行
-    }
-    setItpData({
-      ...itpData,
-      [section]: itpData[section].filter(item => item.id !== id),
-    });
-    if (editingItemId === id) {
-      setEditingItemId(null);
-    }
-  };
-
-  const handleEditItem = (id: string) => {
-    setEditingItemId(editingItemId === id ? null : id);
-  };
-
-  const handleSaveItem = () => {
-    setEditingItemId(null);
-  };
-
-  const updateItem = (section: 'a' | 'b' | 'c', id: string, field: keyof ITPItem, value: string) => {
-    setItpData({
-      ...itpData,
-      [section]: itpData[section].map(item =>
-        item.id === id ? { ...item, [field]: value } : item
-      ),
-    });
-  };
-
-  const handlePrintPreview = () => {
-    window.print();
-  };
-
-  const setSelfInspectionHeader = (field: keyof SelfInspectionHeader, value: string) => {
-    setSelfInspection(prev => ({ ...prev, header: { ...prev.header, [field]: value } }));
-  };
-  const setQuantityRow = (id: string, field: keyof QuantityRow, value: string) => {
-    setSelfInspection(prev => ({
-      ...prev,
-      quantityRows: prev.quantityRows.map(r => r.id === id ? { ...r, [field]: value } : r),
-    }));
-  };
-  const setQuestion = (id: string, field: keyof ChecklistQuestion, value: string | '' | 'yes' | 'no' | 'na') => {
-    setSelfInspection(prev => ({
-      ...prev,
-      questions: prev.questions.map(q => q.id === id ? { ...q, [field]: value } : q),
-    }));
-  };
-  const setAttachments = (field: keyof SelfInspectionAttachments, value: boolean) => {
-    setSelfInspection(prev => ({ ...prev, attachments: { ...prev.attachments, [field]: value } }));
-  };
-  const setAuditResult = (value: AuditResult) => {
-    setSelfInspection(prev => ({ ...prev, auditResult: value }));
-  };
-  const setSignatures = (field: keyof SelfInspectionSignatures, value: string) => {
-    setSelfInspection(prev => ({ ...prev, signatures: { ...prev.signatures, [field]: value } }));
-  };
-  const setQ7SubItem = (field: keyof SelfInspectionData['q7SubItems'], value: boolean) => {
-    setSelfInspection(prev => ({ ...prev, q7SubItems: { ...prev.q7SubItems, [field]: value } }));
-  };
-  const setMaterialDetailRow = (id: string, field: keyof MaterialDetailRow, value: string) => {
-    setSelfInspection(prev => ({
-      ...prev,
-      materialDetails: prev.materialDetails.map(r => r.id === id ? { ...r, [field]: value } : r),
-    }));
-  };
-  const setAuditComment = (value: string) => {
-    setSelfInspection(prev => ({ ...prev, auditComment: value }));
-  };
-
-  const handleFileAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const newAttachments: string[] = [];
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === 'string') {
-            newAttachments.push(reader.result);
-            if (newAttachments.length === files.length) {
-              setFileAttachments(prev => [...prev, ...newAttachments]);
+          let details: any = {};
+          if (typeof data.detail_data === 'string') {
+            try {
+              details = JSON.parse(data.detail_data);
+            } catch (e) {
+              console.error("Failed to parse detail_data", e);
             }
+          } else if (typeof data.detail_data === 'object') {
+            details = data.detail_data;
           }
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-  };
 
-  const handleRemoveFileAttachment = (index: number) => {
-    setFileAttachments(prev => prev.filter((_, i) => i !== index));
-  };
+          if (details && (details.a || details.b || details.c)) {
+            const loadedItems = [
+              ...(details.a || []).map((i: any) => ({ ...i, phase: 'A' })),
+              ...(details.b || []).map((i: any) => ({ ...i, phase: 'B' })),
+              ...(details.c || []).map((i: any) => ({ ...i, phase: 'C' })),
+            ];
+            setItems(loadedItems);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch ITP:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const handleSaveAll = async () => {
-    if (!itpId) {
-      alert(t('itp.detail.missingId'));
-      return;
-    }
+    fetchITP();
+  }, [id]);
+
+  // Save changes to backend
+  const saveToBackend = async () => {
+    if (!id) return;
+    setSaving(true);
     try {
-      const payload = { a: itpData.a, b: itpData.b, c: itpData.c, checklist, self_inspection: selfInspection };
-      // 1. Update detail_data
-      await api.put(`/itp/${itpId}/detail`, payload);
-      // 2. Update attachments (standard column)
-      await api.put(`/itp/${itpId}`, { attachments: fileAttachments });
+      // 1. Update Title (Description)
+      await api.put(`/itp/${id}`, { description: workTitle });
 
-      alert(t('itp.detail.saveSuccess'));
-      navigate('/itp');
-    } catch (err) {
-      console.error('Save ITP detail failed:', err);
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      alert(msg ? `${t('itp.detail.saveError')}${typeof msg === 'string' ? msg : JSON.stringify(msg)}` : t('itp.detail.saveErrorGeneric'));
+      // 2. Update Details
+      const payload = {
+        a: items.filter(i => i.phase === 'A').map(({ phase, ...rest }) => rest),
+        b: items.filter(i => i.phase === 'B').map(({ phase, ...rest }) => rest),
+        c: items.filter(i => i.phase === 'C').map(({ phase, ...rest }) => rest),
+        checklist: [],
+        self_inspection: null
+      };
+
+      await api.put(`/itp/${id}/detail`, payload);
+      alert("Saved successfully!");
+    } catch (error) {
+      console.error("Failed to save ITP:", error);
+      alert("Failed to save document.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const renderSection = (section: 'a' | 'b' | 'c', title: string) => {
-    const items = itpData[section];
-    return (
-      <>
-        <tr className={styles.sectionHeader}>
-          <td colSpan={14} className={styles.sectionHeaderCell}>
-            <div className={styles.sectionHeaderContent}>
-              <span className={styles.sectionTitle}>{title}</span>
-              <button
-                className={styles.addButton}
-                onClick={() => addItem(section)}
-                type="button"
-              >
-                <span className={styles.addIcon}>+</span>
-                {t('common.add')}
-              </button>
-            </div>
-          </td>
-        </tr>
-        {items.map((item, index) => (
-          <tr key={item.id} className={styles.dataRow}>
-            <td className={styles.eventNoCell}>
-              <input
-                type="text"
-                value={item.eventNo}
-                onChange={(e) => updateItem(section, item.id, 'eventNo', e.target.value)}
-                className={styles.input}
-                disabled={editingItemId !== item.id}
-              />
-            </td>
-            <td>
-              <textarea
-                value={item.activity}
-                onChange={(e) => handleTextareaChange(section, item.id, 'activity', e)}
-                onInput={autoResizeTextarea}
-                className={styles.input}
-                disabled={editingItemId !== item.id}
-                rows={2}
-              />
-            </td>
-            <td>
-              <textarea
-                value={item.standard}
-                onChange={(e) => handleTextareaChange(section, item.id, 'standard', e)}
-                onInput={autoResizeTextarea}
-                className={styles.input}
-                disabled={editingItemId !== item.id}
-                rows={2}
-              />
-            </td>
-            <td>
-              <textarea
-                value={item.acceptanceCriteria}
-                onChange={(e) => handleTextareaChange(section, item.id, 'acceptanceCriteria', e)}
-                onInput={autoResizeTextarea}
-                className={styles.input}
-                disabled={editingItemId !== item.id}
-                rows={2}
-              />
-            </td>
-            <td>
-              <textarea
-                value={item.checkTiming}
-                onChange={(e) => handleTextareaChange(section, item.id, 'checkTiming', e)}
-                onInput={autoResizeTextarea}
-                className={styles.input}
-                disabled={editingItemId !== item.id}
-                rows={2}
-              />
-            </td>
-            <td>
-              <textarea
-                value={item.inspectionMethod}
-                onChange={(e) => handleTextareaChange(section, item.id, 'inspectionMethod', e)}
-                onInput={autoResizeTextarea}
-                className={styles.input}
-                disabled={editingItemId !== item.id}
-                rows={2}
-              />
-            </td>
-            <td>
-              <textarea
-                value={item.frequency}
-                onChange={(e) => handleTextareaChange(section, item.id, 'frequency', e)}
-                onInput={autoResizeTextarea}
-                className={styles.input}
-                disabled={editingItemId !== item.id}
-                rows={2}
-              />
-            </td>
-            <td>
-              <textarea
-                value={item.nonconformityTreatment}
-                onChange={(e) => handleTextareaChange(section, item.id, 'nonconformityTreatment', e)}
-                onInput={autoResizeTextarea}
-                className={styles.input}
-                disabled={editingItemId !== item.id}
-                rows={2}
-              />
-            </td>
-            <td>
-              <textarea
-                value={item.records}
-                onChange={(e) => handleTextareaChange(section, item.id, 'records', e)}
-                onInput={autoResizeTextarea}
-                className={styles.input}
-                disabled={editingItemId !== item.id}
-                rows={2}
-              />
-            </td>
-            <td className={styles.verticalHeaderCell}>
-              {editingItemId === item.id ? (
-                <select
-                  value={item.subcon}
-                  onChange={(e) => updateItem(section, item.id, 'subcon', e.target.value)}
-                  className={styles.input}
-                >
-                  <option value="">-</option>
-                  <option value="W">W</option>
-                  <option value="H">H</option>
-                </select>
-              ) : (
-                <span className={styles.readOnlyValue}>{item.subcon || '-'}</span>
-              )}
-            </td>
-            <td className={styles.verticalHeaderCell}>
-              {editingItemId === item.id ? (
-                <select
-                  value={item.epci}
-                  onChange={(e) => updateItem(section, item.id, 'epci', e.target.value)}
-                  className={styles.input}
-                >
-                  <option value="">-</option>
-                  <option value="W">W</option>
-                  <option value="H">H</option>
-                </select>
-              ) : (
-                <span className={styles.readOnlyValue}>{item.epci || '-'}</span>
-              )}
-            </td>
-            <td className={styles.verticalHeaderCell}>
-              {editingItemId === item.id ? (
-                <select
-                  value={item.employer}
-                  onChange={(e) => updateItem(section, item.id, 'employer', e.target.value)}
-                  className={styles.input}
-                >
-                  <option value="">-</option>
-                  <option value="W">W</option>
-                  <option value="H">H</option>
-                </select>
-              ) : (
-                <span className={styles.readOnlyValue}>{item.employer || '-'}</span>
-              )}
-            </td>
-            <td className={styles.verticalHeaderCell}>
-              {editingItemId === item.id ? (
-                <select
-                  value={item.hse}
-                  onChange={(e) => updateItem(section, item.id, 'hse', e.target.value)}
-                  className={styles.input}
-                >
-                  <option value="">-</option>
-                  <option value="W">W</option>
-                  <option value="H">H</option>
-                </select>
-              ) : (
-                <span className={styles.readOnlyValue}>{item.hse || '-'}</span>
-              )}
-            </td>
-            <td className={styles.actionCell}>
-              <div className={styles.actionButtons}>
-                {editingItemId === item.id ? (
-                  <button
-                    className={styles.saveButton}
-                    onClick={handleSaveItem}
-                    type="button"
-                  >
-                    {t('common.save')}
-                  </button>
-                ) : (
-                  <button
-                    className={styles.editButton}
-                    onClick={() => handleEditItem(item.id)}
-                    type="button"
-                  >
-                    {t('common.edit')}
-                  </button>
-                )}
-                <button
-                  className={styles.deleteButton}
-                  onClick={() => deleteItem(section, item.id)}
-                  type="button"
-                  disabled={items.length <= 1}
-                  title={items.length <= 1 ? '至少需要保留一行' : ''}
-                >
-                  {t('common.delete')}
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </>
-    );
+  // 開啟編輯模式 (Existing Item)
+  const handleEditClick = (item: any) => {
+    setEditingItem({ ...item, isNew: false });
+  };
+
+  // 開啟新增模式 (New Item)
+  const handleAddNew = () => {
+    setEditingItem({ ...EMPTY_ITEM, isNew: true });
+  };
+
+  // 儲存修改
+  const handleSave = () => {
+    if (editingItem.isNew) {
+      const { isNew, ...newItem } = editingItem;
+      if (!newItem.id) newItem.id = `N${items.length + 1}`;
+      setItems(prev => [...prev, newItem]);
+    } else {
+      setItems(prevItems => prevItems.map(item =>
+        item.id === editingItem.id ? editingItem : item
+      ));
+    }
+    setEditingItem(null);
+  };
+
+  const handleChange = (field: string, value: string, subField: string | null = null) => {
+    if (subField) {
+      setEditingItem((prev: any) => ({ ...prev, [field]: { ...prev[field], [subField]: value } }));
+    } else {
+      setEditingItem((prev: any) => ({ ...prev, [field]: value }));
+    }
+  };
+
+  const handleVPChange = (role: string, value: string) => {
+    setEditingItem((prev: any) => ({ ...prev, vp: { ...prev.vp, [role]: value } }));
+  };
+
+  const handleDelete = (itemId: string) => {
+    if (window.confirm("確定要刪除此項目嗎？")) {
+      setItems(prev => prev.filter(item => item.id !== itemId));
+    }
   };
 
   return (
-    <div className={styles.container}>
-      <div ref={contentRef} className={styles.detailModalContent}>
-        <div className={styles.header}>
-          <h2>{t('itp.detail.title')}{itpTitle ? ` - ${itpTitle}` : ''}</h2>
+    <div className="min-h-screen bg-slate-50/50 font-sans text-slate-800 p-4 md:p-8 overflow-x-auto relative selection:bg-blue-100 selection:text-blue-900">
+      <style>
+        {`
+          @media print {
+            @page {
+              size: landscape;
+              margin: 1cm;
+            }
+            
+            /* Hide non-print elements */
+            .no-print {
+              display: none !important;
+            }
+
+            /* Reset body and container for printing */
+            body {
+              background: white !important;
+              color: black !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+
+            .print-container {
+              width: 100% !important;
+              max-width: none !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              box-shadow: none !important;
+              border: none !important;
+              display: block !important;
+            }
+
+            /* Force black borders for table */
+            table, th, td {
+              border: 1px solid black !important;
+              border-collapse: collapse !important;
+            }
+
+            /* Ensure all cells are visible */
+            th, td {
+              overflow: visible !important;
+              white-space: normal !important;
+            }
+
+            /* Avoid page breaks inside rows */
+            tr {
+              page-break-inside: avoid;
+              break-inside: avoid;
+            }
+
+            /* Ensure the blue top bar prints (if desired) or remove it */
+            .bg-gradient-to-r {
+              print-color-adjust: exact;
+              -webkit-print-color-adjust: exact;
+            }
+          }
+        `}
+      </style>
+
+      {/* Back Button & Toolbar */}
+      <div className="max-w-[1400px] min-w-[1024px] mx-auto mb-6 flex items-center justify-between no-print">
+        <button
+          onClick={() => navigate(-1)}
+          className="group flex items-center text-slate-500 hover:text-slate-800 transition-colors font-medium px-4 py-2 rounded-lg hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200"
+        >
+          <ArrowLeft size={18} className="mr-2 group-hover:-translate-x-1 transition-transform" />
+          Back to List
+        </button>
+
+        <div className="flex gap-3">
+          <button
+            onClick={saveToBackend}
+            disabled={saving}
+            className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-emerald-700 shadow-sm hover:shadow active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? <LayoutTemplate size={14} className="animate-spin" /> : <Save size={14} strokeWidth={3} />}
+            {saving ? "Saving..." : "Save Document"}
+          </button>
+          <button onClick={handleAddNew} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-blue-700 shadow-sm hover:shadow active:scale-95 transition-all">
+            <Plus size={14} strokeWidth={3} /> Add New Item
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-all"
+          >
+            <Printer size={14} /> Print / PDF
+          </button>
         </div>
+      </div>
 
-        <div className={styles.tableContainer}>
-          <table className={styles.table}>
-            <thead>
-              <tr className={styles.tableHeader}>
-                <th rowSpan={2} className={styles.eventNoHeader}>
-                  <div className={styles.verticalText}>{t('itp.detail.eventNo')}</div>
-                </th>
-                <th rowSpan={2}>{t('itp.detail.activity')}</th>
-                <th rowSpan={2}>{t('itp.detail.standard')}</th>
-                <th rowSpan={2}>{t('itp.detail.acceptanceCriteria')}</th>
-                <th rowSpan={2}>{t('itp.detail.checkTiming')}</th>
-                <th rowSpan={2}>{t('itp.detail.inspectionMethod')}</th>
-                <th rowSpan={2}>{t('itp.detail.frequency')}</th>
-                <th rowSpan={2}>{t('itp.detail.nonconformityTreatment')}</th>
-                <th rowSpan={2}>{t('itp.detail.records')}</th>
-                <th colSpan={4} className={styles.verificationHeader}>
-                  <div className={styles.verificationTitle}>{t('itp.detail.verificationPoint')}</div>
-                  <div className={styles.verificationSubtitle}>H, W, R, MS</div>
-                </th>
-                <th rowSpan={2} className={styles.operationsHeader}>{t('common.operations')}</th>
-              </tr>
-              <tr className={styles.tableHeader}>
-                <th className={styles.verticalHeader}>
-                  <div className={styles.verticalText}>{t('itp.detail.subcon')}</div>
-                </th>
-                <th className={styles.verticalHeader}>
-                  <div className={styles.verticalText}>{t('itp.detail.epci')}</div>
-                </th>
-                <th className={styles.verticalHeader}>
-                  <div className={styles.verticalText}>{t('itp.detail.employer')}</div>
-                </th>
-                <th className={styles.verticalHeader}>
-                  <div className={styles.verticalText}>{t('itp.detail.hse')}</div>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {renderSection('a', t('itp.detail.beforeConstruction'))}
-              {renderSection('b', t('itp.detail.duringConstruction'))}
-              {renderSection('c', t('itp.detail.afterConstruction'))}
-            </tbody>
-          </table>
-        </div>
+      {/* Subject Header */}
 
-        <section className={styles.checklistSection} id="self-inspection">
-          <h3 className={styles.selfInspectionMainTitle}>{t('selfInspection.title')}</h3>
 
-          <div className={styles.selfInspectionHeaderRow}>
-            <table className={styles.selfInspectionTable}>
-              <tbody>
-                <tr><th className={styles.selfInspectionTh}>{t('itp.selfInspection.organizingUnit')}</th><td><input type="text" className={styles.selfInspectionInput} value={selfInspection.header.organizingUnit} onChange={(e) => setSelfInspectionHeader('organizingUnit', e.target.value)} /></td></tr>
-                <tr><th className={styles.selfInspectionTh}>{t('itp.selfInspection.supervisingUnit')}</th><td><input type="text" className={styles.selfInspectionInput} value={selfInspection.header.supervisingUnit} onChange={(e) => setSelfInspectionHeader('supervisingUnit', e.target.value)} /></td></tr>
-                <tr><th className={styles.selfInspectionTh}>{t('itp.selfInspection.contractor')}</th><td><input type="text" className={styles.selfInspectionInput} value={selfInspection.header.contractor} onChange={(e) => setSelfInspectionHeader('contractor', e.target.value)} /></td></tr>
-                <tr><th className={styles.selfInspectionTh}>{t('itp.selfInspection.location')}</th><td><input type="text" className={styles.selfInspectionInput} value={selfInspection.header.constructionLocation} onChange={(e) => setSelfInspectionHeader('constructionLocation', e.target.value)} /></td></tr>
-                <tr><th className={styles.selfInspectionTh}>{t('itp.selfInspection.applicationDate')}</th><td><input type="text" className={styles.selfInspectionInput} placeholder={t('itp.selfInspection.datePlaceholder')} value={selfInspection.header.applicationDate} onChange={(e) => setSelfInspectionHeader('applicationDate', e.target.value)} /></td></tr>
-              </tbody>
-            </table>
-            <table className={styles.selfInspectionTable}>
-              <tbody>
-                <tr><td className={styles.selfInspectionTdLabel}>{t('itp.selfInspection.sd280')}</td><th className={styles.selfInspectionTh}>{t('itp.selfInspection.entryType')}</th><td><input type="text" className={styles.selfInspectionInputShort} value={selfInspection.header.entryType} onChange={(e) => setSelfInspectionHeader('entryType', e.target.value)} /></td></tr>
-                <tr><td className={styles.selfInspectionTdLabel}>{t('itp.selfInspection.sd420')}</td><th className={styles.selfInspectionTh}>{t('itp.selfInspection.entrySequence')}</th><td><input type="text" className={styles.selfInspectionInputShort} value={selfInspection.header.entrySequenceNo} onChange={(e) => setSelfInspectionHeader('entrySequenceNo', e.target.value)} /></td></tr>
-              </tbody>
-            </table>
-          </div>
+      {/* 編輯視窗 (Modal) */}
+      {editingItem && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-100 animate-in fade-in zoom-in duration-300">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-5 flex justify-between items-center text-white shadow-md relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+              <h3 className="font-bold text-xl flex items-center gap-3 relative z-10">
+                <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                  <PenTool size={20} className="text-white" />
+                </div>
+                {editingItem.isNew ? "Add New Inspection Item" : `Edit Item (${editingItem.id})`}
+              </h3>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="hover:bg-white/20 p-2 rounded-full transition-colors relative z-10"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-          <table className={styles.selfInspectionTable}>
-            <thead>
-              <tr><th className={styles.selfInspectionTh}></th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.contractQty')}</th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.previous')}</th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.current')}</th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.accumulated')}</th></tr>
-            </thead>
-            <tbody>
-              {selfInspection.quantityRows.map((row) => (
-                <tr key={row.id}>
-                  <td className={styles.selfInspectionTdLabel}>{row.name}</td>
-                  <td><input type="text" className={styles.selfInspectionInput} value={row.contractQty} onChange={(e) => setQuantityRow(row.id, 'contractQty', e.target.value)} /></td>
-                  <td><input type="text" className={styles.selfInspectionInput} value={row.previous} onChange={(e) => setQuantityRow(row.id, 'previous', e.target.value)} /></td>
-                  <td><input type="text" className={styles.selfInspectionInput} value={row.current} onChange={(e) => setQuantityRow(row.id, 'current', e.target.value)} /></td>
-                  <td><input type="text" className={styles.selfInspectionInput} value={row.accumulated} onChange={(e) => setQuantityRow(row.id, 'accumulated', e.target.value)} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            <div className="p-8 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              {/* Basic Info Card */}
+              <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 shadow-sm grid grid-cols-2 gap-6 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    <Hash size={14} /> Item ID
+                  </label>
+                  {editingItem.isNew ? (
+                    <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-mono font-bold bg-white transition-all shadow-sm"
+                      placeholder="e.g. B7" value={editingItem.id} onChange={(e) => handleChange('id', e.target.value)} />
+                  ) : (
+                    <div className="text-base font-bold text-slate-800 bg-white border border-slate-200 rounded-lg px-4 py-2.5 shadow-sm inline-block min-w-[3rem] text-center">
+                      {editingItem.id}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                    <Layers size={14} /> Phase
+                  </label>
+                  <div className="relative">
+                    <select className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white font-medium text-slate-700 shadow-sm cursor-pointer transition-all hover:border-slate-400"
+                      value={editingItem.phase} onChange={(e) => handleChange('phase', e.target.value)}>
+                      {PHASES.map(p => <option key={p.code} value={p.code}>{p.title}</option>)}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-3 text-slate-400 pointer-events-none" size={16} />
+                  </div>
+                </div>
+              </div>
 
-          <table className={styles.selfInspectionTable}>
-            <thead>
-              <tr>
-                <th className={styles.selfInspectionTh}>{t('itp.selfInspection.inspectionItem')}</th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.brand')}</th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.heatNo')}</th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.model')}</th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.number')}</th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.subtotal')}</th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.sampleQty')}</th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.inspectionLocation')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {selfInspection.materialDetails.map((r) => (
-                <tr key={r.id}>
-                  <td className={styles.selfInspectionTdLabel}>
-                    {r.inspectionItem === '竹節鋼筋' ? t('itp.selfInspection.deformedBar') :
-                      r.inspectionItem === '續接器' ? t('itp.selfInspection.coupler') :
-                        r.inspectionItem}
-                  </td>
-                  <td><input type="text" className={styles.selfInspectionInput} value={r.brand} onChange={(e) => setMaterialDetailRow(r.id, 'brand', e.target.value)} /></td>
-                  <td><input type="text" className={styles.selfInspectionInput} value={r.heatNo} onChange={(e) => setMaterialDetailRow(r.id, 'heatNo', e.target.value)} /></td>
-                  <td className={styles.selfInspectionTdLabel}>{r.model}</td>
-                  <td className={styles.selfInspectionTdLabel}>{r.number === '合計' ? t('common.total') : r.number}</td>
-                  <td><input type="text" className={styles.selfInspectionInput} value={r.subtotal} onChange={(e) => setMaterialDetailRow(r.id, 'subtotal', e.target.value)} /></td>
-                  <td><input type="text" className={styles.selfInspectionInput} value={r.sampleQty} onChange={(e) => setMaterialDetailRow(r.id, 'sampleQty', e.target.value)} /></td>
-                  <td><input type="text" className={styles.selfInspectionInput} value={r.location} onChange={(e) => setMaterialDetailRow(r.id, 'location', e.target.value)} /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              {/* Activity Details */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-bold text-slate-800 border-b border-slate-200 pb-2 flex items-center gap-2">
+                  <FileText size={16} className="text-blue-600" /> Activity Details
+                </h4>
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="col-span-1">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Activity (EN)</label>
+                    <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow"
+                      value={editingItem.activity.en} onChange={(e) => handleChange('activity', e.target.value, 'en')} placeholder="English description..." />
+                  </div>
+                  <div className="col-span-1">
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Activity (CH)</label>
+                    <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow"
+                      value={editingItem.activity.ch} onChange={(e) => handleChange('activity', e.target.value, 'ch')} placeholder="中文描述..." />
+                  </div>
+                </div>
+              </div>
 
-          <div className={styles.selfInspectionBlock}>
-            <span className={styles.selfInspectionLabel}>{t('common.attachments')}</span>
-            <div className={styles.photoUploadContainer}>
-              <input
-                type="file"
-                accept="*"
-                multiple
-                onChange={handleFileAttachmentUpload}
-                className={styles.photoInput}
-                id="itp-attachment-upload"
-              />
-              <label htmlFor="itp-attachment-upload" className={styles.photoUploadButton}>
-                <span>{t('obs.uploadFiles')}</span>
-              </label>
-              {fileAttachments.length > 0 && (
-                <div className={styles.photoPreviewGrid}>
-                  {fileAttachments.map((attachment, index) => (
-                    <div key={index} className={styles.photoPreviewItem}>
-                      <span style={{ fontSize: 12, wordBreak: 'break-all', padding: 4, display: 'block' }}>Attachment {index + 1}</span>
-                      <a href={attachment} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, marginLeft: 4, display: 'block', textAlign: 'center' }}>View</a>
-                      <button
-                        type="button"
-                        className={styles.photoRemoveButton}
-                        onClick={() => handleRemoveFileAttachment(index)}
-                        aria-label="Remove attachment"
-                      >
-                        ×
-                      </button>
+              {/* Standards & Criteria */}
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
+                    <ShieldCheck size={14} /> Standard
+                  </label>
+                  <input type="text" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow font-mono text-slate-600"
+                    value={editingItem.standard} onChange={(e) => handleChange('standard', e.target.value)} />
+                </div>
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
+                    <CheckCircle2 size={14} /> Acceptance Criteria
+                  </label>
+                  <textarea className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-shadow resize-none" rows={1}
+                    value={editingItem.criteria} onChange={(e) => handleChange('criteria', e.target.value)} />
+                </div>
+              </div>
+
+              {/* Timing & Method */}
+              <div className="grid grid-cols-2 gap-6 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Check Time (EN/CH)</label>
+                  <div className="flex flex-col gap-2">
+                    <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={editingItem.checkTime.en} onChange={(e) => handleChange('checkTime', e.target.value, 'en')} placeholder="Timing (EN)" />
+                    <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none text-slate-500"
+                      value={editingItem.checkTime.ch} onChange={(e) => handleChange('checkTime', e.target.value, 'ch')} placeholder="Timing (CH)" />
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Method</label>
+                    <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={editingItem.method} onChange={(e) => handleChange('method', e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1">Frequency</label>
+                    <input type="text" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={editingItem.frequency} onChange={(e) => handleChange('frequency', e.target.value)} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Record Ref */}
+              <div>
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">
+                  <FileCheck size={14} className="text-emerald-600" /> Record Reference / Form No.
+                </label>
+                <div className="relative">
+                  <input type="text" className="w-full border border-slate-300 bg-slate-50 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none font-mono text-slate-700 transition-all"
+                    value={editingItem.record} onChange={(e) => handleChange('record', e.target.value)} placeholder="e.g. ITP-PL-01" />
+                  <Tag className="absolute left-3 top-2.5 text-slate-400" size={16} />
+                </div>
+              </div>
+
+              {/* Verification Points */}
+              <div className="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100">
+                <label className="block text-xs font-bold text-indigo-800 uppercase mb-4 tracking-wide text-center">Verification Points Assigment</label>
+                <div className="grid grid-cols-4 gap-4">
+                  {[
+                    { key: 'sub', label: 'Sub-Con', icon: <HardHat size={14} /> },
+                    { key: 'teco', label: 'Main Con', icon: <Building2 size={14} /> },
+                    { key: 'employer', label: 'Employer', icon: <User size={14} /> },
+                    { key: 'hse', label: 'HSE', icon: <ShieldCheck size={14} /> }
+                  ].map(({ key, label, icon }) => (
+                    <div key={key} className="flex flex-col items-center bg-white p-3 rounded-lg border border-indigo-100 shadow-sm transition-transform hover:-translate-y-1 duration-200">
+                      <div className="text-[10px] uppercase font-bold text-slate-400 mb-2 flex items-center gap-1">
+                        {icon} {label}
+                      </div>
+                      <select className="w-full border-0 bg-slate-50 rounded-md text-sm font-bold py-1.5 text-center cursor-pointer hover:bg-slate-100 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700"
+                        value={editingItem.vp[key]} onChange={(e) => handleVPChange(key, e.target.value)}>
+                        <option value="">-</option><option value="H">H</option><option value="W">W</option><option value="R">R</option><option value="※">※</option>
+                      </select>
                     </div>
                   ))}
                 </div>
-              )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 px-8 py-5 border-t border-slate-200 flex justify-end gap-4">
+              <button
+                onClick={() => setEditingItem(null)}
+                className="px-6 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 hover:bg-slate-50 rounded-lg shadow-sm transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                className="px-6 py-2.5 text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 transform active:scale-95"
+              >
+                <Save size={18} /> Save Changes
+              </button>
             </div>
           </div>
+        </div>
+      )}
 
-          <div className={styles.selfInspectionBlock}>
-            <span className={styles.selfInspectionLabel}>{t('itp.selfInspection.attachments')} (Checklist)</span>
-            <div className={styles.selfInspectionCheckRow}>
-              <label><input type="checkbox" checked={selfInspection.attachments.spec} onChange={(e) => setAttachments('spec', e.target.checked)} /> {t('itp.selfInspection.attachment.spec')}</label>
-              <label><input type="checkbox" checked={selfInspection.attachments.submission} onChange={(e) => setAttachments('submission', e.target.checked)} /> {t('itp.selfInspection.attachment.submission')}</label>
-              <label><input type="checkbox" checked={selfInspection.attachments.drawing} onChange={(e) => setAttachments('drawing', e.target.checked)} /> {t('itp.selfInspection.attachment.drawing')}</label>
-              <label><input type="checkbox" checked={selfInspection.attachments.other} onChange={(e) => setAttachments('other', e.target.checked)} /> {t('itp.selfInspection.attachment.other')}</label>
+      {/* --- Main Document Container --- */}
+      <div className="max-w-[1400px] min-w-[1024px] mx-auto bg-white rounded-xl shadow-lg border-x-0 border-t-0 overflow-hidden print-container">
+
+        {/* Document Header Section */}
+        <div className="bg-white px-8 pt-8 pb-4 border-b border-slate-200 relative">
+          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600"></div>
+
+          {/* Top Row: Title */}
+          <div className="flex justify-between items-center mb-4 pt-2">
+            <div className="w-48 opacity-40 hover:opacity-100 transition-opacity">
+              {/* Placeholder for Logo */}
+              <div className="h-12 w-32 bg-slate-100 rounded flex items-center justify-center text-xs text-slate-400 font-medium border border-dashed border-slate-300">
+                Logo Area
+              </div>
+            </div>
+
+            <div className="flex-1 text-center">
+              <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight flex flex-col items-center gap-2">
+                Inspection & Test Plan
+              </h1>
+              <div className="mt-2 text-xl font-bold text-slate-700">
+                <span
+                  className="border-b-2 border-dashed border-slate-300 px-2 py-0.5 hover:border-blue-500 hover:bg-blue-50 transition-all outline-none cursor-text min-w-[200px] inline-block"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => setWorkTitle(e.currentTarget.innerText)}
+                >
+                  {workTitle}
+                </span>
+              </div>
+            </div>
+
+            <div className="w-48 flex justify-end opacity-40 hover:opacity-100 transition-opacity">
+              <div className="h-12 w-32 bg-slate-100 rounded flex items-center justify-center text-xs text-slate-400 font-medium border border-dashed border-slate-300">
+                Form No.
+              </div>
             </div>
           </div>
+        </div>
 
-          <table className={styles.selfInspectionTable}>
-            <thead>
-              <tr><th className={styles.selfInspectionTh}>{t('itp.selfInspection.questionNo')}</th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.inspectionItem')}</th><th className={styles.selfInspectionTh}>{t('common.yes')}</th><th className={styles.selfInspectionTh}>{t('common.no')}</th><th className={styles.selfInspectionTh}>{t('itp.selfInspection.na')}</th></tr>
+        {/* Table Content */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm border-collapse border border-black border-t-2">
+            <thead className="bg-slate-800 text-white font-bold text-xs uppercase tracking-wider border-b-2 border-black leading-tight">
+              <tr>
+                <th rowSpan={2} className="px-5 py-4 w-16 border-r border-black bg-slate-800 sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] text-center">No.</th>
+                <th rowSpan={2} className="px-5 py-4 w-64 border-r border-black text-center">Inspection Activity</th>
+                <th rowSpan={2} className="px-5 py-4 w-56 border-r border-black text-center">Standard / Criteria</th>
+                <th rowSpan={2} className="px-5 py-4 w-40 border-r border-black bg-slate-800 text-center">Check Time</th>
+                <th rowSpan={2} className="px-5 py-4 w-40 border-r border-black text-center">Method</th>
+                <th rowSpan={2} className="px-5 py-4 w-28 border-r border-black text-center">Frequency</th>
+                <th rowSpan={2} className="px-5 py-4 w-32 border-r border-black bg-slate-800 text-center">Records</th>
+                <th colSpan={4} className="px-2 py-3 text-center border-b border-black bg-slate-800">Verification Point</th>
+                <th rowSpan={2} className="px-5 py-4 text-center w-32 bg-slate-800 sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] border-l border-black no-print">Operation</th>
+              </tr>
+              <tr>
+                <th className="px-2 py-2 text-center border-r border-black w-12 bg-slate-800 text-[11px] font-bold">Sub.</th>
+                <th className="px-2 py-2 text-center border-r border-black w-12 bg-slate-800 text-[11px] font-bold">TECO</th>
+                <th className="px-2 py-2 text-center border-r border-black w-12 bg-slate-800 text-[11px] font-bold">Emp.</th>
+                <th className="px-2 py-2 text-center w-12 bg-slate-800 text-[11px] font-bold">HSE</th>
+              </tr>
             </thead>
-            <tbody>
-              {selfInspection.questions.map((q, idx) => (
-                <tr key={q.id}>
-                  <td className={styles.selfInspectionTdCenter}>{idx + 1}</td>
-                  <td className={styles.selfInspectionTdQuestion}>
-                    {t(`itp.selfInspection.${q.id}`)}
-                    {q.id === 'q2' && (
-                      <span className={styles.selfInspectionInline}>
-                        SD280W【<input type="text" className={styles.selfInspectionInputTiny} value={q.quantityInput ?? ''} onChange={(e) => setQuestion(q.id, 'quantityInput', e.target.value)} />】噸；SD420W【<input type="text" className={styles.selfInspectionInputTiny} value={q.quantityInput2 ?? ''} onChange={(e) => setQuestion(q.id, 'quantityInput2', e.target.value)} />】噸
-                      </span>
-                    )}
-                  </td>
-                  {idx === 0 ? (
-                    <><td className={styles.selfInspectionTdRadio}><input type="radio" name={`si-${q.id}`} checked={q.value === 'yes'} onChange={() => setQuestion(q.id, 'value', 'yes')} /> {t('common.yes')}</td><td className={styles.selfInspectionTdRadio}><input type="radio" name={`si-${q.id}`} checked={q.value === 'no'} onChange={() => setQuestion(q.id, 'value', 'no')} /> {t('common.no')}</td><td className={styles.selfInspectionTdRadio}></td></>
-                  ) : (
-                    <><td className={styles.selfInspectionTdRadio}><input type="radio" name={`si-${q.id}`} checked={q.value === 'yes'} onChange={() => setQuestion(q.id, 'value', 'yes')} /></td><td className={styles.selfInspectionTdRadio}><input type="radio" name={`si-${q.id}`} checked={q.value === 'no'} onChange={() => setQuestion(q.id, 'value', 'no')} /></td><td className={styles.selfInspectionTdRadio}><input type="radio" name={`si-${q.id}`} checked={q.value === 'na'} onChange={() => setQuestion(q.id, 'value', 'na')} /></td></>
-                  )}
-                </tr>
+            <tbody className="divide-y divide-black">
+              {PHASES.map((phase) => (
+                <React.Fragment key={phase.code}>
+                  <tr className="border-y border-black sticky top-[60px] z-[5]">
+                    <td colSpan={12} className={`px-0 py-0 border-b border-black ${phase.color}`}>
+                      <div className="px-6 py-3 font-bold text-sm flex items-center gap-2 uppercase tracking-wide w-full text-black">
+                        {phase.title}
+                      </div>
+                    </td>
+                  </tr>
+                  {items.filter(item => item.phase === phase.code).map((item) => (
+                    <tr key={item.id} className="hover:bg-blue-50/40 transition-colors group border-b border-black last:border-0 relative">
+                      <td className="px-5 py-4 font-mono text-slate-900 font-bold border-r border-black bg-slate-50/30 group-hover:bg-blue-50/50 sticky left-0 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)] align-top pt-5">
+                        {item.id}
+                      </td>
+                      <td className="px-5 py-4 border-r border-black align-top group-hover:text-black text-slate-800 transition-colors">
+                        <div className="font-bold text-sm mb-1">{item.activity.en}</div>
+                        <div className="text-slate-600 text-xs font-medium">{item.activity.ch}</div>
+                      </td>
+                      <td className="px-5 py-4 border-r border-black align-top">
+                        <div className="inline-block bg-slate-100 text-slate-600 text-[11px] font-mono px-2 py-0.5 rounded mb-2 border border-black">
+                          {item.standard}
+                        </div>
+                        <div className="text-slate-800 text-sm leading-relaxed font-medium">{item.criteria}</div>
+                      </td>
+                      <td className="px-5 py-4 border-r border-black bg-slate-50 align-top">
+                        <div className="text-black text-sm font-medium">{item.checkTime.en}</div>
+                        <div className="text-slate-500 text-xs mt-1">{item.checkTime.ch}</div>
+                      </td>
+                      <td className="px-5 py-4 border-r border-black align-top"><div className="text-black text-sm">{item.method}</div></td>
+                      <td className="px-5 py-4 border-r border-black align-top"><div className="text-slate-800 text-xs">{item.frequency}</div></td>
+                      <td className="px-5 py-4 border-r border-black bg-slate-50 align-top">
+                        {item.record !== '-' ? (
+                          <div className="inline-flex items-center px-2.5 py-1.5 rounded-md bg-white text-black font-mono text-xs font-bold border border-black whitespace-nowrap shadow-sm">
+                            <FileText size={12} className="mr-1.5 opacity-70" />{item.record}
+                          </div>
+                        ) : <span className="text-slate-400 text-xs pl-2">-</span>}
+                      </td>
+                      <td className="px-2 py-4 text-center border-r border-black align-middle"><VPBadge type={item.vp.sub} /></td>
+                      <td className="px-2 py-4 text-center border-r border-black align-middle"><VPBadge type={item.vp.teco} /></td>
+                      <td className="px-2 py-4 text-center border-r border-black align-middle"><VPBadge type={item.vp.employer} /></td>
+                      <td className="px-2 py-4 text-center border-r border-black align-middle"><VPBadge type={item.vp.hse} /></td>
+                      <td className="px-4 py-4 text-center align-middle sticky right-0 bg-white shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.05)] transition-all border-l border-black no-print">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleEditClick(item)}
+                            className="text-slate-500 hover:text-blue-600 p-2 rounded-lg hover:bg-blue-50 transition-all"
+                            title="Edit"
+                          >
+                            <PenTool size={16} strokeWidth={2.5} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item.id)}
+                            className="text-slate-500 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-all"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} strokeWidth={2.5} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
-          <div className={styles.selfInspectionQ7Sub}>
-            <span className={styles.selfInspectionQ7SubLabel}>{t('itp.selfInspection.attachedInfo')}:</span>
-            <label><input type="checkbox" checked={selfInspection.q7SubItems.customs} onChange={(e) => setQ7SubItem('customs', e.target.checked)} /> {t('itp.selfInspection.attachment.customs')}</label>
-            <label><input type="checkbox" checked={selfInspection.q7SubItems.materialCert} onChange={(e) => setQ7SubItem('materialCert', e.target.checked)} /> {t('itp.selfInspection.attachment.materialCert')}</label>
-            <label><input type="checkbox" checked={selfInspection.q7SubItems.testReport} onChange={(e) => setQ7SubItem('testReport', e.target.checked)} /> {t('itp.selfInspection.attachment.testReport')}</label>
-            <label><input type="checkbox" checked={selfInspection.q7SubItems.equipmentList} onChange={(e) => setQ7SubItem('equipmentList', e.target.checked)} /> {t('itp.selfInspection.attachment.equipmentList')}</label>
-            <label><input type="checkbox" checked={selfInspection.q7SubItems.other} onChange={(e) => setQ7SubItem('other', e.target.checked)} /> {t('itp.selfInspection.attachment.other')}</label>
-          </div>
+        </div>
 
-          <div className={styles.selfInspectionBlock}>
-            <span className={styles.selfInspectionAuditTitle}>{t('itp.selfInspection.auditResult')}：</span>
-            <div className={styles.selfInspectionCheckRow}>
-              <label className={styles.selfInspectionAuditLabel}>
-                <input type="radio" name="auditResult" checked={selfInspection.auditResult === 'approved'} onChange={() => setAuditResult('approved')} />
-                <span className={styles.auditStatusApproved}>{t('itp.selfInspection.audit.approved')}</span>
-              </label>
-              <label className={styles.selfInspectionAuditLabel}>
-                <input type="radio" name="auditResult" checked={selfInspection.auditResult === 'resample'} onChange={() => setAuditResult('resample')} />
-                <span className={styles.auditStatusResample}>{t('itp.selfInspection.audit.resample')}</span>
-              </label>
-              <label className={styles.selfInspectionAuditLabel}>
-                <input type="radio" name="auditResult" checked={selfInspection.auditResult === 'reject'} onChange={() => setAuditResult('reject')} />
-                <span className={styles.auditStatusReject}>{t('itp.selfInspection.audit.reject')}</span>
-              </label>
-            </div>
-            <textarea className={styles.selfInspectionComment} value={selfInspection.auditComment} onChange={(e) => setAuditComment(e.target.value)} placeholder={t('itp.selfInspection.auditComment')} rows={3} />
-          </div>
-
-          <div className={styles.selfInspectionSignaturesRow}>
-            <div className={styles.selfInspectionSignatureCol}><span className={styles.selfInspectionLabel}>{t('itp.selfInspection.siteSupervisor')}</span><input type="text" className={styles.selfInspectionInput} value={selfInspection.signatures.siteSupervisor} onChange={(e) => setSignatures('siteSupervisor', e.target.value)} /></div>
-            <div className={styles.selfInspectionSignatureCol}><span className={styles.selfInspectionLabel}>{t('itp.selfInspection.fieldEngineer')}</span><input type="text" className={styles.selfInspectionInput} value={selfInspection.signatures.fieldEngineer} onChange={(e) => setSignatures('fieldEngineer', e.target.value)} /></div>
-          </div>
-        </section>
-
-        <p className={styles.saveHint}>
-          請按下方「Save」按鈕將資料儲存至伺服器，否則重新整理或重新登入後會消失。
-        </p>
-        <div className={styles.buttonGroup}>
-          <button
-            className={styles.printButton}
-            onClick={handlePrintPreview}
-            type="button"
-          >
-            Print Preview
-          </button>
-          <button type="button" className={styles.saveAllButton} onClick={handleSaveAll}>{t('common.save')}</button>
-          <button type="button" className={styles.printButton} onClick={handlePrintPreview}>{t('common.print')}</button>
-          <button type="button" className={styles.closeButton} onClick={() => navigate('/itp')}>{t('common.close')}</button>
+        {/* Footer info */}
+        <div className="bg-slate-50 border-t border-black p-4 text-center text-xs text-slate-500 font-medium">
+          End of Document - Total {items.length} Inspection Items
         </div>
       </div>
     </div>
