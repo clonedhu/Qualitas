@@ -16,7 +16,7 @@ export const createColumns = (
         },
         {
             accessorKey: "recordsNo",
-            header: "Records No.",
+            header: "Reference No.",
             cell: ({ row }) => <span className="font-mono font-bold text-slate-700">{row.original.recordsNo}</span>
         },
         {

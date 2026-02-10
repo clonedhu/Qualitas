@@ -309,7 +309,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
             {/* A4 Content */}
             <div className={styles.printablePage}>
                 <div className={styles.formHeader}>
-                    <div className={styles.formNo}>{currentItp.recordForm}</div>
+                    <div className={styles.formNo}>{displayNo}</div>
                     <h1>Checklist for {currentItp.activity}</h1>
                 </div>
 
@@ -321,7 +321,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                         </div>
                     </div>
                     <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>Records No.</div>
+                        <div className={styles.infoLabel}>Reference No.</div>
                         <div className={styles.infoValue}>{displayNo}</div>
                     </div>
                     <div className={styles.infoItem}>
