@@ -234,6 +234,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
         inspectionDate: new Date().toISOString().slice(0, 10),
         location: "Foundation Area",
         stage: "Before",
+        revision: 0,
         items: [],
         reInspectionDate: "",
         ncrNo: "",
@@ -295,6 +296,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                             status: formData.items.every((i: any) => i.result === 'O') ? 'Pass' : 'Fail',
                             packageName: formData.packageName || 'RKS', // Ensure default value
                             location: formData.location,
+                            revision: formData.revision,
                             data: { ...formData, recordsNo: record ? record.recordsNo : "[AUTO-GENERATE]" }
                         })} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm disabled:opacity-50"
                     >
@@ -340,6 +342,17 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                         <div className={styles.infoLabel}>Inspection Location</div>
                         <div className={styles.infoValue}>
                             <input value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
+                        </div>
+                    </div>
+                    <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>Revision</div>
+                        <div className={styles.infoValue}>
+                            <input
+                                type="number"
+                                min="0"
+                                value={formData.revision}
+                                onChange={e => setFormData({ ...formData, revision: parseInt(e.target.value) || 0 })}
+                            />
                         </div>
                     </div>
                     <div className={styles.infoItem}>

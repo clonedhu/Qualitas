@@ -10,6 +10,7 @@ export interface ChecklistRecord {
     status: 'Pass' | 'Fail' | 'Ongoing';
     packageName: string;
     location: string;
+    revision: number;
     data: any;
 }
 
@@ -41,6 +42,7 @@ export const ChecklistProvider: React.FC<{ children: ReactNode }> = ({ children 
                 status: r.status as any,
                 packageName: r.packageName,
                 location: r.location || '',
+                revision: r.detail_data ? (JSON.parse(r.detail_data).revision || 0) : 0,
                 data: r.detail_data ? JSON.parse(r.detail_data) : {}
             })));
         } catch (e) {
