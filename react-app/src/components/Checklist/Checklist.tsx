@@ -30,7 +30,7 @@ const itpDatabase: ItpItemDefinition[] = [
         standard: "HL-ONS-TECO-STR-DWG-02000",
         criteria: "Meet design requirement",
         stage: "Before",
-        recordForm: "ITP-SV-01",
+        recordForm: "CHK-SV-01",
         defaultItems: [
             { item: "Drawing Number", criteria: "Ref: HL-ONS-TECO-STR-DWG-02000\nMeet design requirement", situation: "NA", result: "O" },
             { item: "Control Point - Coordinate N", criteria: "Drawing Spec", situation: "", result: "O" },
