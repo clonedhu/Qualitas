@@ -24,6 +24,7 @@ const DEFAULT_RULES: NamingRule[] = [
   { id: 'followup', moduleName: 'Follow up Issue', prefix: 'QTS-RKS-[ABBREV]-FUI-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-FUI-6位流水號' },
   { id: 'fat', moduleName: 'FAT', prefix: 'QTS-RKS-[ABBREV]-FAT-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-FAT-6位流水號' },
   { id: 'audit', moduleName: 'Audit', prefix: 'QTS-RKS-[ABBREV]-AUD-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-AUD-6位流水號' },
+  { id: 'checklist', moduleName: 'Checklist', prefix: 'QTS-RKS-[ABBREV]-CHK-', sequenceDigits: 6, description: '專案-RKS-廠商縮寫-CHK-6位流水號' },
 ];
 
 

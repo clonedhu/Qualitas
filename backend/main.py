@@ -12,6 +12,7 @@ from passlib.context import CryptContext
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+import uuid
 import models, schemas, crud
 from database import engine, get_db
 from sqlalchemy import text
@@ -109,6 +110,7 @@ DEFAULT_NAMING_RULES = [
     {"doc_type": "pqp", "prefix": "QTS-[ABBREV]-PQP-", "sequence_digits": 6},
     {"doc_type": "followup", "prefix": "QTS-[ABBREV]-FUI-", "sequence_digits": 6},
     {"doc_type": "fat", "prefix": "QTS-[ABBREV]-FAT-", "sequence_digits": 6},
+    {"doc_type": "checklist", "prefix": "QTS-[ABBREV]-CHK-", "sequence_digits": 6},
 ]
 
 # Migration: Add missing columns to itp, obs, followup, itr
@@ -340,6 +342,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
+    # 確保 token 中包含 user_id
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -382,7 +385,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.username, "user_id": user.id}, 
+        expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
@@ -456,7 +460,7 @@ def update_naming_rules(
 # app.include_router(api) # Old monolithic router
 
 # Include Module Routers
-from routers import itp, ncr, noi, itr, pqp, obs, contractors, followup, iam, audit
+from routers import itp, ncr, noi, itr, pqp, obs, contractors, followup, iam, audit, checklist
 
 api.include_router(itp.router)
 api.include_router(ncr.router)
@@ -468,6 +472,7 @@ api.include_router(contractors.router)
 api.include_router(followup.router)
 api.include_router(iam.router)
 api.include_router(audit.router)
+api.include_router(checklist.router)
 
 app.include_router(api)
 
@@ -507,6 +512,46 @@ def seed_initial_data():
                 role_id=admin_role.id
             ), hashed_password=get_password_hash("admin"))
             print("Seeded admin user.")
+
+        # 4. Create Seed Checklist Records if none exists
+        from models import Checklist
+        import json
+        if db.query(Checklist).count() == 0:
+            seed_data = {
+                "recordsNo": "QTS-RKS-HL-CHK-000001",
+                "packageName": "RKS",
+                "activity": "Stakeout 放樣",
+                "itpIndex": 0,
+                "date": "2024-03-20",
+                "status": "Pass",
+                "location": "基礎區",
+                "detail_data": json.dumps({
+                    "projectTitle": "Hai Long Offshore Wind Farm Project",
+                    "recordsNo": "QTS-RKS-HL-CHK-000001",
+                    "packageName": "RKS",
+                    "inspectionDate": "2024-03-20",
+                    "location": "基礎區",
+                    "stage": "Before",
+                    "items": [
+                        {"id": 1, "item": "Drawing Number 圖說編號", "criteria": "As per drawing", "situation": "NA", "result": "O"},
+                        {"id": 2, "item": "Control Point N 控制點 N", "criteria": "Drawing Spec", "situation": "", "result": "O"},
+                        {"id": 3, "item": "Control Point E 控制點 E", "criteria": "Drawing Spec", "situation": "", "result": "O"},
+                        {"id": 4, "item": "Control Point Elevation 高程", "criteria": "Drawing Spec", "situation": "", "result": "O"},
+                        {"id": 5, "item": "Survey Records 施工放樣", "criteria": "Submit Survey Records", "situation": "詳附件", "result": "O"}
+                    ],
+                    "remarks": "1. 檢查結果合格者註明「O」，不合格者註明「X」，如無需檢查之項目則打「/」。",
+                    "signatures": {
+                        "siteEngineer": "柯博松",
+                        "constructionLeader": "賴同勇",
+                        "subcontractorRep": "孫筱恩"
+                    }
+                })
+            }
+            db_chk = Checklist(**seed_data)
+            db_chk.id = str(uuid.uuid4())
+            db.add(db_chk)
+            db.commit()
+            print("Seeded initial Checklist record.")
             
     except Exception as e:
         print(f"Error seeding data: {e}")

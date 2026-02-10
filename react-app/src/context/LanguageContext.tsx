@@ -27,6 +27,8 @@ const translations: Record<Language, Record<string, string>> = {
     'common.details': 'Details',
     'common.delete': 'Delete',
     'common.save': 'Save',
+    'common.saving': 'Saving...',
+    'common.saveFailed': 'Save Failed',
     'common.cancel': 'Cancel',
     'common.add': 'Add',
     'common.addDate': 'Add Date',
@@ -90,6 +92,7 @@ const translations: Record<Language, Record<string, string>> = {
     'home.followup.description': 'Follow Up Issues',
     'home.pqp.description': 'Quality Plan Management',
     'home.itp.description': 'Inspection and Test Plan Management',
+    'home.checklist.description': 'Quality Inspection Checklist Management',
     'home.noi.description': 'Inspection Notification Management',
     'home.itr.description': 'Inspection and Test Report',
     'home.osd.description': 'Overage Shortage Damage Management',
@@ -272,6 +275,14 @@ const translations: Record<Language, Record<string, string>> = {
     'itr.selectNOI': 'Select NOI',
     'itr.confirmDelete': 'Are you sure you want to delete this ITR item?',
     'itr.saveError': 'ITR save failed, please ensure backend is running and try again.',
+
+    // Checklist
+    'checklist.title': 'Checklist',
+    'checklist.listTitle': 'Checklist Records',
+    'checklist.addNew': 'New Checklist',
+    'checklist.status.pass': 'Pass',
+    'checklist.status.ongoing': 'Ongoing',
+    'checklist.status.fail': 'Fail',
 
     // NCR
     'ncr.title': 'NCR List',
@@ -719,6 +730,8 @@ const translations: Record<Language, Record<string, string>> = {
     'common.details': '詳情',
     'common.delete': '刪除',
     'common.save': '儲存',
+    'common.saving': '儲存中...',
+    'common.saveFailed': '儲存失敗',
     'common.cancel': '取消',
     'common.add': '新增',
     'common.addDate': '插入日期',
@@ -787,6 +800,7 @@ const translations: Record<Language, Record<string, string>> = {
     'home.followup.description': '後續問題追蹤管理',
     'home.pqp.description': '品質計劃管理',
     'home.itp.description': '檢驗與測試計劃管理',
+    'home.checklist.description': '品質查驗紀錄與表格管理',
     'home.noi.description': '檢驗通知管理',
     'home.itr.description': '檢驗與測試報告',
     'home.osd.description': '溢短損管理',
@@ -1141,6 +1155,14 @@ const translations: Record<Language, Record<string, string>> = {
     'status.open': '開啟',
     'status.closed': '已關閉',
     'status.void': '廢止',
+
+    // Checklist
+    'checklist.title': 'Checklist',
+    'checklist.listTitle': 'Checklist Records',
+    'checklist.addNew': 'New Checklist',
+    'checklist.status.pass': 'Pass',
+    'checklist.status.ongoing': 'Ongoing',
+    'checklist.status.fail': 'Fail',
 
     // ITP
     'itp.title': 'ITP 列表',

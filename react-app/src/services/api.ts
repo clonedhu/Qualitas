@@ -216,4 +216,48 @@ export const deleteRole = async (id: number): Promise<void> => {
   await api.delete(`/roles/${id}`);
 };
 
+// --- Checklist API ---
+
+export interface ChecklistRecordApi {
+  id: string;
+  recordsNo: string;
+  activity: string;
+  date: string;
+  status: string;
+  packageName: string;
+  location?: string;
+  itpIndex: number;
+  detail_data?: string;
+}
+
+export interface CreateChecklistPayload {
+  recordsNo: string;
+  activity: string;
+  date: string;
+  status: string;
+  packageName: string;
+  location?: string;
+  itpIndex: number;
+  detail_data?: string;
+}
+
+export const getChecklists = async (): Promise<ChecklistRecordApi[]> => {
+  const response = await api.get<ChecklistRecordApi[]>('/checklist');
+  return response.data;
+};
+
+export const createChecklist = async (data: CreateChecklistPayload): Promise<ChecklistRecordApi> => {
+  const response = await api.post<ChecklistRecordApi>('/checklist', data);
+  return response.data;
+};
+
+export const updateChecklist = async (id: string, data: Partial<CreateChecklistPayload>): Promise<ChecklistRecordApi> => {
+  const response = await api.put<ChecklistRecordApi>(`/checklist/${id}`, data);
+  return response.data;
+};
+
+export const deleteChecklist = async (id: string): Promise<void> => {
+  await api.delete(`/checklist/${id}`);
+};
+
 export default api;

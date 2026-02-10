@@ -46,6 +46,7 @@
   "home.followup.description": "後續問題追蹤管理",
   "home.pqp.description": "品質計劃管理",
   "home.itp.description": "檢驗與測試計劃管理",
+  "home.checklist.description": "自主檢查表管理",
   "home.noi.description": "檢驗通知管理",
   "home.itr.description": "檢驗與測試報告",
   "home.osd.description": "超短損壞管理",

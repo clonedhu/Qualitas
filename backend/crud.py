@@ -18,6 +18,7 @@ from models import (
     ReferenceSequence,
     DocumentNamingRule,
     FollowUp,
+    Checklist,
 )
 # NOTE: 移除重複的 import (uuid, json, re 已在上方匯入)
 
@@ -90,7 +91,7 @@ def generate_reference_no(db: Session, vendor_name: str, doc_type: str) -> str:
 
     # Fallback：維持舊有格式 QTS-A-DOC-000001
     seq_str = str(next_seq).zfill(6)
-    return f"{PROJECT_CODE}-{vendor_abbrev}-{doc_type}-{seq_str}"
+    return f"{PROJECT_CODE}-{vendor_abbrev}-{doc_type.upper()}-{seq_str}"
 
 # ---- ITP ----
 def get_itp(db: Session, itp_id: str):
@@ -548,3 +549,42 @@ def delete_audit(db: Session, audit_id: str):
         db.delete(db_audit)
         db.commit()
     return db_audit
+
+# ---- Checklist ----
+def get_checklist(db: Session, checklist_id: str):
+    return db.query(Checklist).filter(Checklist.id == checklist_id).first()
+
+def get_checklists(db: Session, skip: int = 0, limit: int = 500):
+    return db.query(Checklist).offset(skip).limit(limit).all()
+
+def create_checklist(db: Session, chk: schemas.ChecklistCreate):
+    data = chk.dict()
+    # 自動產生 Records No（若未提供或由前端傳來的佔位符）
+    if not data.get('recordsNo') or data.get('recordsNo') == "[AUTO-GENERATE]":
+        # 注意這裡傳給 generate_reference_no 的 doc_type 建議統一為 CHECKLIST 或 CHK
+        data['recordsNo'] = generate_reference_no(db, data.get('packageName', ''), 'CHECKLIST')
+    
+    db_chk = Checklist(**data)
+    if not db_chk.id:
+        db_chk.id = str(uuid.uuid4())
+    db.add(db_chk)
+    db.commit()
+    db.refresh(db_chk)
+    return db_chk
+
+def update_checklist(db: Session, checklist_id: str, chk: schemas.ChecklistUpdate):
+    db_chk = db.query(Checklist).filter(Checklist.id == checklist_id).first()
+    if db_chk:
+        for key, value in chk.dict(exclude_unset=True).items():
+            setattr(db_chk, key, value)
+        db.commit()
+        db.refresh(db_chk)
+    return db_chk
+
+def delete_checklist(db: Session, checklist_id: str):
+    db_chk = db.query(Checklist).filter(Checklist.id == checklist_id).first()
+    if db_chk:
+        db.delete(db_chk)
+        db.commit()
+        return db_chk
+    return None

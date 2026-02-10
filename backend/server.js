@@ -195,7 +195,7 @@ const { sendEmailNotification } = require('./mailService');
 // Proxy CRUD paths to Python FastAPI backend (port 8000)
 // ...
 
-['/itp', '/ncr', '/noi', '/itr', '/pqp', '/obs', '/contractors', '/settings', '/followup', '/users', '/roles', '/permissions'].forEach(p => app.use('/api' + p, createCrudProxy('/api' + p)));
+['/itp', '/ncr', '/noi', '/itr', '/pqp', '/obs', '/contractors', '/settings', '/followup', '/users', '/roles', '/permissions', '/checklist', '/audit'].forEach(p => app.use('/api' + p, createCrudProxy('/api' + p)));
 
 /**
  * 自動提醒邏輯：檢查 3 天後到期的案件

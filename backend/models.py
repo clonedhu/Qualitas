@@ -245,6 +245,19 @@ class Audit(Base):
     contractor = Column(String, nullable=True)
 
 
+class Checklist(Base):
+    __tablename__ = "checklist"
+
+    id = Column(String, primary_key=True, index=True)
+    recordsNo = Column(String, index=True, unique=True)
+    activity = Column(String, index=True)
+    date = Column(String)
+    status = Column(String)
+    packageName = Column(String, index=True)
+    location = Column(String, nullable=True)
+    itpIndex = Column(Integer)
+    detail_data = Column(Text, nullable=True) # JSON 數據
+
 # 審計日誌 - 記錄所有 CRUD 操作
 class AuditLog(Base):
     __tablename__ = "audit_logs"

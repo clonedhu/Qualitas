@@ -57,7 +57,7 @@ const Home = () => {
     },
     {
       id: 'checklist',
-      title: 'Checklist',
+      title: t('checklist.title'),
       titleEn: 'Checklist',
       description: t('home.checklist.description'),
       path: '/checklist',

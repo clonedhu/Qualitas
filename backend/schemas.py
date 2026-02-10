@@ -544,6 +544,36 @@ class Role(RoleBase):
         from_attributes = True
 
 # User
+class ChecklistBase(BaseModel):
+    recordsNo: Optional[str] = None  # 改為 Optional 以支援後端自動產生
+    activity: str
+    date: str
+    status: str
+    packageName: str
+    location: Optional[str] = None
+    itpIndex: int
+    detail_data: Optional[str] = None
+
+class ChecklistCreate(ChecklistBase):
+    pass
+
+class ChecklistUpdate(BaseModel):
+    """Checklist 更新用 schema"""
+    recordsNo: Optional[str] = None
+    activity: Optional[str] = None
+    date: Optional[str] = None
+    status: Optional[str] = None
+    packageName: Optional[str] = None
+    location: Optional[str] = None
+    itpIndex: Optional[int] = None
+    detail_data: Optional[str] = None
+
+class Checklist(ChecklistBase):
+    id: str
+
+    class Config:
+        from_attributes = True
+
 class UserBase(BaseModel):
     username: str
     email: EmailStr

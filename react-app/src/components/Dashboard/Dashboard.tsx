@@ -10,6 +10,7 @@ import { useContractors, Contractor } from '../../context/ContractorsContext';
 import { DashboardFilterProvider, useDashboardFilter } from '../../context/DashboardFilterContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useFollowUp } from '../../context/FollowUpContext';
+import { useChecklist } from '../../context/ChecklistContext';
 import { useMemo, useState } from 'react';
 import ITPGaugeChart from './ITPGaugeChart';
 import ITPStatsCard from './ITPStatsCard';
@@ -54,8 +55,10 @@ const DashboardContent: React.FC<{
   const { pqpList } = usePQP();
   const { obsList } = useOBS();
   const { followUpList } = useFollowUp();
+  const { records: checklistRecords } = useChecklist();
 
   // Upcoming Tasks Calculation
+  // ... (previous logic)
   const upcomingTasks = useMemo(() => {
     const today = new Date();
     const next7Days = new Date();
@@ -106,6 +109,13 @@ const DashboardContent: React.FC<{
     const filteredItrList = filterByVendor(itrList);
     const filteredObsList = filterByVendor(obsList);
     const filteredPqpList = filterByVendor(pqpList);
+    const filteredChecklistRecords = filterByVendor(checklistRecords as any);
+
+    // Checklist 統計
+    const checklistTotal = filteredChecklistRecords.length;
+    const checklistPassed = filteredChecklistRecords.filter((item: any) => item.status === 'Pass').length;
+    const checklistOngoing = filteredChecklistRecords.filter((item: any) => item.status === 'Ongoing').length;
+    const checklistPassRate = checklistTotal > 0 ? Math.round((checklistPassed / checklistTotal) * 100) : 0;
 
     // ITP 統計
     const itpTotal = filteredItpList.filter(item => item.status.toLowerCase() !== 'void').length;
@@ -205,6 +215,12 @@ const DashboardContent: React.FC<{
         approved: pqpApproved,
         reject: pqpReject,
         maturity: pqpMaturity,
+      },
+      checklist: {
+        total: checklistTotal,
+        passed: checklistPassed,
+        ongoing: checklistOngoing,
+        passRate: checklistPassRate,
       },
     };
   }, [itpList, ncrList, noiList, itrList, pqpList, obsList, selectedVendor]);
@@ -318,6 +334,30 @@ const DashboardContent: React.FC<{
                 </div>
               </div>
               <button className={styles.viewButton} onClick={(e) => { e.stopPropagation(); navigate('/itp'); }}>
+                {t('common.viewDetails')}
+              </button>
+            </div>
+
+            <div className={styles.kpiCard} onClick={() => navigate('/checklist')}>
+              <div className={styles.kpiCardContent}>
+                <div className={styles.kpiHeader}>
+                  <span className={styles.kpiLabel}>{t('checklist.title')}</span>
+                  <span className={styles.kpiValue} style={{ color: '#8b5cf6' }}>{statistics.checklist.total}</span>
+                </div>
+                <div className={styles.kpiHeader}>
+                  <span className={styles.kpiLabel}>{t('status.pass') || 'Pass'}</span>
+                  <span className={styles.kpiValue} style={{ color: '#10b981', fontSize: '20px' }}>
+                    {statistics.checklist.passed} ({statistics.checklist.passRate}%)
+                  </span>
+                </div>
+                <div className={styles.kpiHeader}>
+                  <span className={styles.kpiLabel}>{t('status.ongoing') || 'Ongoing'}</span>
+                  <span className={styles.kpiValue} style={{ color: '#f59e0b', fontSize: '20px' }}>
+                    {statistics.checklist.ongoing}
+                  </span>
+                </div>
+              </div>
+              <button className={styles.viewButton} onClick={(e) => { e.stopPropagation(); navigate('/checklist'); }}>
                 {t('common.viewDetails')}
               </button>
             </div>

@@ -20,11 +20,11 @@ if not SECRET_KEY:
         "SECRET_KEY 未設定，使用預設值。請在 .env 檔案中設定 SECRET_KEY。",
         UserWarning
     )
-    SECRET_KEY = "dev-only-insecure-key"  # NOTE: 僅供開發使用
+    SECRET_KEY = "qualitas-dev-secret-key-change-in-production"  # 與 main.py 保持一致
 
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
 # 權限常數
 class Permission:

@@ -15,6 +15,7 @@ import { FollowUpProvider } from './context/FollowUpContext.tsx'
 import { AuditProvider } from './context/AuditContext.tsx'
 import { FATProvider } from './context/FATContext.tsx'
 import { IAMProvider } from './context/IAMContext.tsx'
+import { ChecklistProvider } from './context/ChecklistContext.tsx'
 import { ErrorBoundary } from './components/Shared/ErrorBoundary'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -33,7 +34,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                           <AuditProvider>
                             <FATProvider>
                               <IAMProvider>
-                                <App />
+                                <ChecklistProvider>
+                                  <App />
+                                </ChecklistProvider>
                               </IAMProvider>
                             </FATProvider>
                           </AuditProvider>
