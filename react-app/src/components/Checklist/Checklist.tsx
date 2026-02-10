@@ -357,17 +357,6 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                         </div>
                     </div>
                     <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>Revision</div>
-                        <div className={styles.infoValue}>
-                            <input
-                                type="number"
-                                min="0"
-                                value={formData.revision}
-                                onChange={e => setFormData({ ...formData, revision: parseInt(e.target.value) || 0 })}
-                            />
-                        </div>
-                    </div>
-                    <div className={styles.infoItem}>
                         <div className={styles.infoLabel}>Inspection Stage</div>
                         <div className={styles.infoValue}>
                             <div className="flex gap-4">
