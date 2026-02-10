@@ -250,15 +250,13 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
 
     const currentItp = itpDatabase[selectedItpIndex];
 
-    // NOTE: Record No 不含版本後綴，版本資訊由列表 Version 欄位獨立顯示
+    // NOTE: Record No 由後端自動產生，前端僅負責顯示
     const displayNo = useMemo(() => {
         if (record) {
-            // Strip any existing _Rev. suffix from old records
-            return record.recordsNo.split('_Rev.')[0];
+            return record.recordsNo;
         }
-        const dateStr = formData.inspectionDate.replace(/-/g, '').slice(4); // MMDD
-        return `${currentItp.recordForm}-${dateStr}-01`;
-    }, [formData.inspectionDate, record, currentItp]);
+        return '[Auto-Generated on Save]';
+    }, [record]);
 
     React.useEffect(() => {
         if (!record || (record && selectedItpIndex !== record.itpIndex)) {
@@ -293,14 +291,13 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                         disabled={saving}
                         onClick={() => onSave({
                             itpIndex: selectedItpIndex,
-                            recordsNo: displayNo,
                             activity: itpDatabase[selectedItpIndex].activity,
                             date: formData.inspectionDate,
                             status: formData.items.every((i: any) => i.result === 'O') ? 'Pass' : 'Fail',
-                            packageName: formData.packageName || 'RKS', // Ensure default value
+                            packageName: formData.packageName || 'RKS',
                             location: formData.location,
                             revision: formData.revision,
-                            data: { ...formData, recordsNo: displayNo }
+                            data: { ...formData }
                         })} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm disabled:opacity-50"
                     >
                         {saving ? (t('common.saving') || 'Saving...') : t('common.save')}

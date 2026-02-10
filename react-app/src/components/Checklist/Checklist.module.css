@@ -297,6 +297,31 @@
     font-weight: 500;
 }
 
+.infoValue textarea {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    outline: none;
+    font-size: 13px;
+    background: #f8fafc;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: inherit;
+    resize: none;
+    transition: all 0.2s;
+    line-height: 1.5;
+}
+
+.infoValue textarea:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.infoValue textarea:focus {
+    background: #fff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
 .infoValue input,
 .reInspectionItem input {
     width: 100%;

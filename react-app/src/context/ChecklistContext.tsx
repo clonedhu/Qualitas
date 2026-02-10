@@ -59,7 +59,7 @@ export const ChecklistProvider: React.FC<{ children: ReactNode }> = ({ children 
     const addRecord = useCallback(async (record: Omit<ChecklistRecord, 'id' | 'recordsNo'>) => {
         try {
             await api.createChecklist({
-                recordsNo: (record as any).recordsNo || "[AUTO-GENERATE]",
+                recordsNo: "[AUTO-GENERATE]",
                 activity: record.activity,
                 date: record.date,
                 status: record.status,
