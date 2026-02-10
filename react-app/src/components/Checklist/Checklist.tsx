@@ -235,6 +235,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
         location: "Foundation Area",
         stage: "Before",
         revision: 0,
+        referenceNo: "",
         items: [],
         reInspectionDate: "",
         ncrNo: "",
@@ -328,8 +329,14 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                         </div>
                     </div>
                     <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>Record No</div>
-                        <div className={styles.infoValue}>{displayNo}</div>
+                        <div className={styles.infoLabel}>Reference No.</div>
+                        <div className={styles.infoValue}>
+                            <input
+                                value={formData.referenceNo}
+                                onChange={e => setFormData({ ...formData, referenceNo: e.target.value })}
+                                placeholder="Manual Entry"
+                            />
+                        </div>
                     </div>
                     <div className={styles.infoItem}>
                         <div className={styles.infoLabel}>Subcontractor</div>
