@@ -250,18 +250,15 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
 
     const currentItp = itpDatabase[selectedItpIndex];
 
+    // NOTE: Record No 不含版本後綴，版本資訊由列表 Version 欄位獨立顯示
     const displayNo = useMemo(() => {
-        let baseNo = record ? record.recordsNo : "";
-
-        if (!record) {
-            const dateStr = formData.inspectionDate.replace(/-/g, '').slice(4); // MMDD
-            baseNo = `${currentItp.recordForm}-${dateStr}-01`;
+        if (record) {
+            // Strip any existing _Rev. suffix from old records
+            return record.recordsNo.split('_Rev.')[0];
         }
-
-        // Strip existing Rev suffix if any (to handle updates gracefully)
-        const cleanBase = baseNo.split('_Rev.')[0];
-        return `${cleanBase}_Rev.${formData.revision}`;
-    }, [formData.inspectionDate, record, currentItp, formData.revision]);
+        const dateStr = formData.inspectionDate.replace(/-/g, '').slice(4); // MMDD
+        return `${currentItp.recordForm}-${dateStr}-01`;
+    }, [formData.inspectionDate, record, currentItp]);
 
     React.useEffect(() => {
         if (!record || (record && selectedItpIndex !== record.itpIndex)) {
@@ -335,8 +332,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                     <div className={styles.infoItem}>
                         <div className={styles.infoLabel}>Reference No.</div>
                         <div className={styles.infoValue}>
-                            <textarea
-                                rows={1}
+                            <input
                                 value={formData.referenceNo}
                                 onChange={e => setFormData({ ...formData, referenceNo: e.target.value })}
                                 placeholder="Manual Entry"

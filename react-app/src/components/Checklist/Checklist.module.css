@@ -293,13 +293,11 @@
     padding: 10px;
     font-size: 15px;
     display: flex;
-    align-items: flex-start;
-    justify-content: flex-end;
+    align-items: center;
     font-weight: 500;
 }
 
 .infoValue input,
-.infoValue textarea,
 .reInspectionItem input {
     width: 100%;
     border: 1px solid #e2e8f0;
@@ -308,11 +306,9 @@
     background: #f8fafc;
     border-radius: 4px;
     transition: all 0.2s;
-    text-align: right;
 }
 
-.infoValue input,
-.infoValue textarea {
+.infoValue input {
     padding: 4px 8px;
 }
 
