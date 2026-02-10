@@ -332,10 +332,12 @@
 @media print {
 
     .infoValue input,
+    .infoValue textarea,
     .reInspectionItem input {
         background: transparent !important;
         border: none !important;
         padding: 0 !important;
+        resize: none !important;
     }
 }
 

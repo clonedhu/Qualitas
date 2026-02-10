@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
-import { Plus, Printer, ArrowLeft, ClipboardCheck, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Plus, Printer, ArrowLeft } from 'lucide-react';
 import { useChecklist, ChecklistRecord } from '../../context/ChecklistContext';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
@@ -85,7 +85,7 @@ const Checklist: React.FC = () => {
     };
 
     const handleDelete = async (id: string) => {
-        if (window.confirm("確定要刪除此筆紀錄嗎？")) {
+        if (window.confirm("Are you sure you want to delete this record?")) {
             await deleteRecord(id);
         }
     };
@@ -98,7 +98,7 @@ const Checklist: React.FC = () => {
                 <div className={styles.header}>
                     <div className={styles.headerLeft}>
                         <button onClick={() => setView('list')} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors">
-                            <ArrowLeft size={20} /> 返回清單
+                            <ArrowLeft size={20} /> Back to List
                         </button>
                     </div>
                 </div>
