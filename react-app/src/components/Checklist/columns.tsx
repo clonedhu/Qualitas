@@ -36,15 +36,10 @@ export const createColumns = (
             accessorKey: "status",
             header: "Version",
             cell: ({ row }) => {
-                const status = row.original.status;
                 const rev = row.original.revision ?? 0;
-                const statusClass = status === 'Pass' ? styles.pass : status === 'Ongoing' ? styles.ongoing : styles.fail;
                 return (
-                    <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rev. {rev}</span>
-                        <span className={`${styles.statusBadge} ${statusClass}`}>
-                            {status}
-                        </span>
+                    <div className="text-center font-bold text-slate-600 uppercase tracking-wider">
+                        Rev. {rev}
                     </div>
                 );
             }
