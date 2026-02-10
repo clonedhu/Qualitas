@@ -325,13 +325,18 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                     <div className={styles.infoItem}>
                         <div className={styles.infoLabel}>Project Title</div>
                         <div className={styles.infoValue}>
-                            <input value={formData.projectTitle} onChange={e => setFormData({ ...formData, projectTitle: e.target.value })} />
+                            <textarea
+                                value={formData.projectTitle}
+                                onChange={e => setFormData({ ...formData, projectTitle: e.target.value })}
+                                rows={1}
+                            />
                         </div>
                     </div>
                     <div className={styles.infoItem}>
                         <div className={styles.infoLabel}>Reference No.</div>
                         <div className={styles.infoValue}>
-                            <input
+                            <textarea
+                                rows={1}
                                 value={formData.referenceNo}
                                 onChange={e => setFormData({ ...formData, referenceNo: e.target.value })}
                                 placeholder="Manual Entry"
@@ -341,7 +346,11 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                     <div className={styles.infoItem}>
                         <div className={styles.infoLabel}>Subcontractor</div>
                         <div className={styles.infoValue}>
-                            <input value={formData.packageName} onChange={e => setFormData({ ...formData, packageName: e.target.value })} />
+                            <textarea
+                                value={formData.packageName}
+                                onChange={e => setFormData({ ...formData, packageName: e.target.value })}
+                                rows={1}
+                            />
                         </div>
                     </div>
                     <div className={styles.infoItem}>
@@ -353,7 +362,11 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                     <div className={styles.infoItem}>
                         <div className={styles.infoLabel}>Inspection Location</div>
                         <div className={styles.infoValue}>
-                            <input value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} />
+                            <textarea
+                                value={formData.location}
+                                onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                rows={1}
+                            />
                         </div>
                     </div>
                     <div className={styles.infoItem}>
