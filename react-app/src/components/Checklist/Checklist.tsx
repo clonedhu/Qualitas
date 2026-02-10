@@ -250,12 +250,17 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
     const currentItp = itpDatabase[selectedItpIndex];
 
     const displayNo = useMemo(() => {
-        if (record) return record.recordsNo;
-        const pkgAbbrev = (formData.packageName || "NA").slice(0, 3).toUpperCase();
-        // Format: ITP-SV-01-0210-01
-        const dateStr = formData.inspectionDate.replace(/-/g, '').slice(4); // MMDD
-        return `${currentItp.recordForm}-${dateStr}-01`;
-    }, [formData.packageName, formData.inspectionDate, record, currentItp]);
+        let baseNo = record ? record.recordsNo : "";
+
+        if (!record) {
+            const dateStr = formData.inspectionDate.replace(/-/g, '').slice(4); // MMDD
+            baseNo = `${currentItp.recordForm}-${dateStr}-01`;
+        }
+
+        // Strip existing Rev suffix if any (to handle updates gracefully)
+        const cleanBase = baseNo.split('_Rev.')[0];
+        return `${cleanBase}_Rev.${formData.revision}`;
+    }, [formData.inspectionDate, record, currentItp, formData.revision]);
 
     React.useEffect(() => {
         if (!record || (record && selectedItpIndex !== record.itpIndex)) {
@@ -290,14 +295,14 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                         disabled={saving}
                         onClick={() => onSave({
                             itpIndex: selectedItpIndex,
-                            recordsNo: record ? record.recordsNo : "[AUTO-GENERATE]",
+                            recordsNo: displayNo,
                             activity: itpDatabase[selectedItpIndex].activity,
                             date: formData.inspectionDate,
                             status: formData.items.every((i: any) => i.result === 'O') ? 'Pass' : 'Fail',
                             packageName: formData.packageName || 'RKS', // Ensure default value
                             location: formData.location,
                             revision: formData.revision,
-                            data: { ...formData, recordsNo: record ? record.recordsNo : "[AUTO-GENERATE]" }
+                            data: { ...formData, recordsNo: displayNo }
                         })} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm disabled:opacity-50"
                     >
                         {saving ? (t('common.saving') || 'Saving...') : t('common.save')}
