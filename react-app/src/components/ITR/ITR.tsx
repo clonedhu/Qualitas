@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BackButton } from '@/components/ui/BackButton';
+import { useDebounce } from '../../hooks/useDebounce';
 import { useLanguage } from '../../context/LanguageContext';
 import { useITR, ITRItem } from '../../context/ITRContext';
 import { useContractors } from '../../context/ContractorsContext';
@@ -17,6 +18,12 @@ const ITR: React.FC = () => {
   const { getActiveContractors } = useContractors();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  // Trigger server-side refetch when debounced search changes
+  React.useEffect(() => {
+    refetch({ search: debouncedSearch });
+  }, [debouncedSearch, refetch]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [currentItrId, setCurrentItrId] = useState<string | null>(null);
@@ -26,19 +33,10 @@ const ITR: React.FC = () => {
     id: null,
   });
 
+  // Data is now primarily filtered by backend.
   const filteredList = useMemo(() => {
-    let filtered = [...itrList];
-    if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
-      filtered = filtered.filter(item =>
-        (item.documentNumber && item.documentNumber.toLowerCase().includes(lowerQuery)) ||
-        (item.vendor && item.vendor.toLowerCase().includes(lowerQuery)) ||
-        (item.subject && item.subject.toLowerCase().includes(lowerQuery)) ||
-        (item.description && item.description.toLowerCase().includes(lowerQuery))
-      );
-    }
-    return filtered;
-  }, [itrList, searchQuery]);
+    return itrList;
+  }, [itrList]);
 
   const statistics = useMemo(() => {
     const total = itrList.length;
@@ -105,13 +103,18 @@ const ITR: React.FC = () => {
       attachments: details.attachments,
     };
 
-    if (currentItrId) {
-      await updateITR(currentItrId, itemData);
-    } else {
-      await addITR(itemData);
+    try {
+      if (currentItrId) {
+        await updateITR(currentItrId, itemData);
+      } else {
+        await addITR(itemData);
+      }
+      setIsEditModalOpen(false);
+      setCurrentItrId(null);
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail || t('common.saveFailed') || 'Save failed';
+      alert(detail);
     }
-    setIsEditModalOpen(false);
-    setCurrentItrId(null);
   };
 
   return (

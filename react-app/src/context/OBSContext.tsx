@@ -35,10 +35,13 @@ function normalizeItem(item: unknown): OBSItem {
   return parseJsonFields(record, ['defectPhotos', 'improvementPhotos', 'attachments']) as unknown as OBSItem;
 }
 
+import { FilterParams } from '../types/api';
+
 interface OBSContextType {
   obsList: OBSItem[];
   loading: boolean;
   error: string | null;
+  refetch: (params?: FilterParams) => Promise<void>;
   addOBS: (obs: Omit<OBSItem, 'id'>) => Promise<OBSItem>;
   updateOBS: (id: string, obs: Partial<OBSItem>) => Promise<void>;
   deleteOBS: (id: string) => Promise<void>;
@@ -54,22 +57,23 @@ export const OBSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [error, setError] = useState<string | null>(null);
   const { handleError } = useErrorHandler();
 
-  useEffect(() => {
-    const fetchOBSs = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await api.get('/obs/');
-        setObsList((response.data || []).map(normalizeItem));
-      } catch (err) {
-        const msg = handleError(err, 'Failed to fetch OBSs');
-        setError(msg);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchOBSs();
+  const fetchOBSs = useCallback(async (params?: FilterParams) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get('/obs/', { params });
+      setObsList((response.data || []).map(normalizeItem));
+    } catch (err) {
+      const msg = handleError(err, 'Failed to fetch OBSs');
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   }, [handleError]);
+
+  useEffect(() => {
+    fetchOBSs();
+  }, [fetchOBSs]);
 
   const addOBS = useCallback(async (obs: Omit<OBSItem, 'id'>): Promise<OBSItem> => {
     try {
@@ -108,8 +112,8 @@ export const OBSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const getOBSByVendor = (vendor: string) => obsList.filter(obs => obs.vendor === vendor);
 
   const value = useMemo(
-    () => ({ obsList, loading, error, addOBS, updateOBS, deleteOBS, getOBSList, getOBSByVendor }),
-    [obsList, loading, error, addOBS, updateOBS, deleteOBS]
+    () => ({ obsList, loading, error, refetch: fetchOBSs, addOBS, updateOBS, deleteOBS, getOBSList, getOBSByVendor }),
+    [obsList, loading, error, fetchOBSs]
   );
 
   return (

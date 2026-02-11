@@ -1,12 +1,13 @@
 from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey
+from sqlalchemy.orm import relationship
 from database import Base
 
 class ITP(Base):
     __tablename__ = "itp"
 
     id = Column(String, primary_key=True, index=True)
-    vendor = Column(String, index=True)
-    referenceNo = Column(String, index=True)  # 由後端自動產生
+    vendor = Column(String, ForeignKey("contractors.name"), index=True)
+    referenceNo = Column(String, index=True, unique=True)  # 由後端自動產生
     description = Column(String, nullable=True)
     rev = Column(String, nullable=True)
     submit = Column(String, nullable=True)
@@ -19,16 +20,20 @@ class ITP(Base):
     last_reminded_at = Column(String, nullable=True)
     dueDate = Column(String, nullable=True)
 
+    # Relationships
+    vendor_ref = relationship("Contractor", back_populates="itps")
+    nois = relationship("NOI", back_populates="itp_ref")
+
 
 class NCR(Base):
     __tablename__ = "ncr"
 
     id = Column(String, primary_key=True, index=True)
-    vendor = Column(String, index=True)
-    documentNumber = Column(String, index=True)
-    description = Column(String)
-    rev = Column(String)
-    submit = Column(String)
+    vendor = Column(String, ForeignKey("contractors.name"), index=True)
+    documentNumber = Column(String, index=True, unique=True)  # 由後端自動產生
+    description = Column(String, nullable=True)
+    rev = Column(String, nullable=True)
+    submit = Column(String, nullable=True)
     status = Column(String)
     remark = Column(String, nullable=True)
     hasDetails = Column(Boolean, default=False)
@@ -46,23 +51,27 @@ class NCR(Base):
     impactToOM = Column(String, nullable=True)
     defectPhotos = Column(Text, nullable=True)  # JSON array as string
     improvementPhotos = Column(Text, nullable=True)
-    noiNumber = Column(String, nullable=True, index=True)  # 連結到觸發此 NCR 的 NOI
+    noiNumber = Column(String, ForeignKey("noi.referenceNo"), nullable=True)
     dueDate = Column(String, nullable=True)  # 到期日 (YYYY-MM-DD)
     attachments = Column(Text, nullable=True)
     last_reminded_at = Column(String, nullable=True)
+
+    # Relationships
+    vendor_ref = relationship("Contractor", back_populates="ncrs")
+    noi_ref = relationship("NOI", back_populates="ncrs")
 
 
 class FollowUp(Base):
     __tablename__ = "followup"
 
     id = Column(String, primary_key=True, index=True)
-    issueNo = Column(String, index=True)
+    issueNo = Column(String, index=True, unique=True)
     title = Column(String)
     description = Column(String)
     status = Column(String)
     priority = Column(String, nullable=True)
     assignedTo = Column(String, nullable=True)
-    vendor = Column(String, nullable=True, index=True) # 關聯廠商
+    vendor = Column(String, ForeignKey("contractors.name"), nullable=True, index=True) # 關聯廠商
     dueDate = Column(String, nullable=True)
     createdAt = Column(String)
     updatedAt = Column(String)
@@ -71,21 +80,24 @@ class FollowUp(Base):
     sourceReferenceNo = Column(String, nullable=True)  # 來源單號
     last_reminded_at = Column(String, nullable=True)
 
+    # Relationships
+    vendor_ref = relationship("Contractor", back_populates="followups")
+
 
 class NOI(Base):
     __tablename__ = "noi"
 
     id = Column(String, primary_key=True, index=True)
     package = Column(String, index=True)
-    referenceNo = Column(String, index=True)
+    referenceNo = Column(String, index=True, unique=True)
     issueDate = Column(String)
     inspectionTime = Column(String)
-    itpNo = Column(String, index=True)  # 連結到 ITP referenceNo
+    itpNo = Column(String, ForeignKey("itp.referenceNo"), index=True)  # 連結到 ITP referenceNo
     eventNumber = Column(String, nullable=True)
     checkpoint = Column(String, nullable=True)
     inspectionDate = Column(String)
     type = Column(String)
-    contractor = Column(String, index=True)
+    contractor = Column(String, ForeignKey("contractors.name"), index=True)
     contacts = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     email = Column(String, nullable=True)
@@ -97,13 +109,20 @@ class NOI(Base):
     last_reminded_at = Column(String, nullable=True)
     dueDate = Column(String, nullable=True)
 
+    # Relationships
+    itp_ref = relationship("ITP", back_populates="nois")
+    vendor_ref = relationship("Contractor", back_populates="nois")
+    ncrs = relationship("NCR", back_populates="noi_ref")
+    itrs = relationship("ITR", back_populates="noi_ref")
+    checklists = relationship("Checklist", back_populates="noi_ref")
+
 
 class ITR(Base):
     __tablename__ = "itr"
 
     id = Column(String, primary_key=True, index=True)
-    vendor = Column(String, index=True)
-    documentNumber = Column(String, index=True)
+    vendor = Column(String, ForeignKey("contractors.name"), index=True)
+    documentNumber = Column(String, index=True, unique=True)
     description = Column(String)
     rev = Column(String)
     submit = Column(String)
@@ -118,35 +137,44 @@ class ITR(Base):
     ncrNumber = Column(String, nullable=True, index=True)  # 若檢驗失敗，連結到產生的 NCR
     raisedBy = Column(String, nullable=True)
     foundLocation = Column(String, nullable=True)
-    noiNumber = Column(String, nullable=True, index=True)  # 連結到產生此 ITR 的 NOI（取代舊的 itpNo）
+    noiNumber = Column(String, ForeignKey("noi.referenceNo"), nullable=True, index=True)  # 連結到產生此 ITR 的 NOI
     eventNumber = Column(String, nullable=True)
     checkpoint = Column(String, nullable=True)
     defectPhotos = Column(Text, nullable=True)
     improvementPhotos = Column(Text, nullable=True)
     attachments = Column(Text, nullable=True)
+    last_reminded_at = Column(String, nullable=True)
+    dueDate = Column(String, nullable=True)
+
+    # Relationships
+    vendor_ref = relationship("Contractor", back_populates="itrs")
+    noi_ref = relationship("NOI", back_populates="itrs")
 
 
 class PQP(Base):
     __tablename__ = "pqp"
 
     id = Column(String, primary_key=True, index=True)
-    pqpNo = Column(String, index=True)
+    pqpNo = Column(String, index=True, unique=True)
     title = Column(String)
     description = Column(String)
-    vendor = Column(String, index=True)
+    vendor = Column(String, ForeignKey("contractors.name"), index=True)
     status = Column(String)
     version = Column(String)
     createdAt = Column(String)
     updatedAt = Column(String)
     attachments = Column(Text, nullable=True)
 
+    # Relationships
+    vendor_ref = relationship("Contractor", back_populates="pqps")
+
 
 class OBS(Base):
     __tablename__ = "obs"
 
     id = Column(String, primary_key=True, index=True)
-    vendor = Column(String, index=True)
-    documentNumber = Column(String, index=True)
+    vendor = Column(String, ForeignKey("contractors.name"), index=True)
+    documentNumber = Column(String, index=True, unique=True)
     description = Column(String)
     rev = Column(String)
     submit = Column(String)
@@ -171,13 +199,16 @@ class OBS(Base):
     last_reminded_at = Column(String, nullable=True)
     dueDate = Column(String, nullable=True)
 
+    # Relationships
+    vendor_ref = relationship("Contractor", back_populates="obss")
+
 
 class Contractor(Base):
     __tablename__ = "contractors"
 
     id = Column(String, primary_key=True, index=True)
     package = Column(String, nullable=True)
-    name = Column(String, index=True)
+    name = Column(String, index=True, unique=True)
     abbreviation = Column(String, nullable=True)
     scope = Column(String, nullable=True)
     contactPerson = Column(String, nullable=True)
@@ -185,6 +216,15 @@ class Contractor(Base):
     phone = Column(String, nullable=True)
     address = Column(String, nullable=True)
     status = Column(String, default="active")
+
+    # Relationships
+    itps = relationship("ITP", back_populates="vendor_ref")
+    ncrs = relationship("NCR", back_populates="vendor_ref")
+    nois = relationship("NOI", back_populates="vendor_ref")
+    itrs = relationship("ITR", back_populates="vendor_ref")
+    pqps = relationship("PQP", back_populates="vendor_ref")
+    obss = relationship("OBS", back_populates="vendor_ref")
+    followups = relationship("FollowUp", back_populates="vendor_ref")
 
 
 class ReferenceSequence(Base):
@@ -257,6 +297,10 @@ class Checklist(Base):
     location = Column(String, nullable=True)
     itpIndex = Column(Integer)
     detail_data = Column(Text, nullable=True) # JSON 數據
+    noiNumber = Column(String, ForeignKey("noi.referenceNo"), nullable=True, index=True)
+
+    # Relationships
+    noi_ref = relationship("NOI", back_populates="checklists")
 
 # 審計日誌 - 記錄所有 CRUD 操作
 class AuditLog(Base):
@@ -276,5 +320,27 @@ class AuditLog(Base):
     details = Column(Text, nullable=True)  # 額外資訊
 
 
-# 軟刪除基礎欄位 - 未來可透過 Mixin 實作
 # 目前透過遷移腳本新增 is_deleted 和 deleted_at 欄位
+
+
+class KPIWeight(Base):
+    __tablename__ = "kpi_weights"
+
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    pqp_weight = Column(Integer, default=25)
+    itp_weight = Column(Integer, default=25)
+    obs_weight = Column(Integer, default=25)
+    ncr_weight = Column(Integer, default=25)
+    updated_at = Column(String, nullable=True)
+
+
+class OwnerPerformance(Base):
+    """業主績效追蹤模型"""
+    __tablename__ = "owner_performance"
+
+    id = Column(String, primary_key=True, index=True)
+    owner_name = Column(String, index=True)
+    month = Column(String, index=True)  # YYYY-MM
+    score = Column(Integer, default=0)
+    details = Column(Text, nullable=True)  # JSON blob
+    updated_at = Column(String, nullable=True)

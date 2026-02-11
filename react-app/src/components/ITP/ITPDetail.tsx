@@ -5,8 +5,9 @@ import { useITR } from '../../context/ITRContext';
 import { ITRDetailsViewModal } from '../ITR/ITRModals';
 import {
   FileText, Printer, Filter, PenTool, LayoutTemplate, Layers, X, Save, AlertCircle, Plus,
-  ArrowLeft, CheckCircle2, ChevronDown, Calendar, Hash, Tag, FileCheck, ShieldCheck, HardHat, User, Building2, Trash2, ArrowDown
+  CheckCircle2, ChevronDown, Calendar, Hash, Tag, FileCheck, ShieldCheck, HardHat, User, Building2, Trash2, ArrowDown
 } from 'lucide-react';
+import { BackButton } from '../ui/BackButton';
 
 // --- 定義施工階段結構 ---
 const PHASES = [
@@ -350,13 +351,10 @@ const ITPDetail: React.FC = () => {
 
       {/* Back Button & Toolbar */}
       <div className="max-w-[1400px] min-w-[1024px] mx-auto mb-6 flex items-center justify-between no-print">
-        <button
-          onClick={() => navigate(-1)}
-          className="group flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-all"
-        >
-          <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-          Back to List
-        </button>
+        <BackButton
+          label="Back to List"
+          onClick={() => navigate('/itp')}
+        />
 
         <div className="flex gap-3">
           <button

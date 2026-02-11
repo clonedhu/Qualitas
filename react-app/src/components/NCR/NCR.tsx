@@ -12,6 +12,7 @@ import { NCRDetailModal, NCRDetailsViewModal, NCRDetailData } from './NCRModals'
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
 import { BackButton } from '@/components/ui/BackButton';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const NCR: React.FC = () => {
   const navigate = useNavigate();
@@ -21,28 +22,18 @@ const NCR: React.FC = () => {
   const { itrList } = useITR();
 
   // Search & Filter States
-
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 500);
 
-  // Pre-filter data by Date Range and Global Search
+  // Trigger server-side refetch when debounced search changes
+  React.useEffect(() => {
+    refetch({ search: debouncedSearch });
+  }, [debouncedSearch, refetch]);
+
+  // Data is now primarily filtered by backend.
   const filteredList = useMemo(() => {
-    let filtered = [...ncrList];
-
-
-    // Global Search
-    if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
-      filtered = filtered.filter(item =>
-        (item.documentNumber && item.documentNumber.toLowerCase().includes(lowerQuery)) ||
-        (item.vendor && item.vendor.toLowerCase().includes(lowerQuery)) ||
-        (item.description && item.description.toLowerCase().includes(lowerQuery)) ||
-        (item.status && item.status.toLowerCase().includes(lowerQuery)) ||
-        (item.subject && item.subject.toLowerCase().includes(lowerQuery))
-      );
-    }
-
-    return filtered;
-  }, [ncrList, searchQuery]);
+    return ncrList;
+  }, [ncrList]);
 
   // Modal States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -135,19 +126,24 @@ const NCR: React.FC = () => {
         attachments: details.attachments,
       };
 
-      if (existingItem) {
-        await updateNCR(currentNcrId, updatedItem);
-      } else {
-        const newNCR = await addNCR(updatedItem as Omit<NCRItem, 'id'>);
-        setNcrDetails(prev => {
-          const newDetails = { ...prev };
-          newDetails[newNCR.id] = details;
-          return newDetails;
-        });
+      try {
+        if (existingItem) {
+          await updateNCR(currentNcrId, updatedItem);
+        } else {
+          const newNCR = await addNCR(updatedItem as Omit<NCRItem, 'id'>);
+          setNcrDetails(prev => {
+            const newDetails = { ...prev };
+            newDetails[newNCR.id] = details;
+            return newDetails;
+          });
+        }
+        setIsEditModalOpen(false);
+        setCurrentNcrId(null);
+      } catch (error: any) {
+        const detail = error?.response?.data?.detail || t('common.saveFailed') || 'Save failed';
+        alert(detail);
       }
     }
-    setIsEditModalOpen(false);
-    setCurrentNcrId(null);
   };
 
   const confirmDelete = (id: string) => {

@@ -32,6 +32,8 @@ export interface NCRItem {
   attachments?: string[];
 }
 
+import { FilterParams } from '../types/api';
+
 function normalizeItem(item: unknown): NCRItem {
   const record = (typeof item === 'object' && item !== null ? { ...item } : {}) as Record<string, unknown>;
   return parseJsonFields(record, ['defectPhotos', 'improvementPhotos', 'attachments']) as unknown as NCRItem;
@@ -41,7 +43,7 @@ interface NCRContextType {
   ncrList: NCRItem[];
   loading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetch: (params?: FilterParams) => Promise<void>;
   addNCR: (ncr: Omit<NCRItem, 'id'>) => Promise<NCRItem>;
   updateNCR: (id: string, ncr: Partial<NCRItem>) => Promise<void>;
   deleteNCR: (id: string) => Promise<void>;
@@ -57,11 +59,11 @@ export const NCRProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [error, setError] = useState<string | null>(null);
   const { handleError } = useErrorHandler();
 
-  const fetchNCRs = React.useCallback(async () => {
+  const fetchNCRs = React.useCallback(async (params?: FilterParams) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get('/ncr/');
+      const response = await api.get('/ncr/', { params });
       setNcrList((response.data || []).map(normalizeItem));
     } catch (err) {
       const msg = handleError(err, 'Failed to fetch NCRs');

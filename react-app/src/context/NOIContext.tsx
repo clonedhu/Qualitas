@@ -24,11 +24,13 @@ export interface NOIItem {
   ncrNumber?: string;  // 若此 NOI 是針對 NCR 的重新檢驗
 }
 
+import { FilterParams } from '../types/api';
+
 interface NOIContextType {
   noiList: NOIItem[];
   loading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetch: (params?: FilterParams) => Promise<void>;
   addNOI: (noi: Omit<NOIItem, 'id'>, id?: string) => Promise<NOIItem>;
   addBulkNOI: (nois: Omit<NOIItem, 'id'>[]) => Promise<NOIItem[]>;
   updateNOI: (id: string, noi: Partial<NOIItem>) => Promise<void>;
@@ -45,11 +47,11 @@ export const NOIProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const { handleError } = useErrorHandler();
 
-  const fetchNOIs = React.useCallback(async () => {
+  const fetchNOIs = React.useCallback(async (params?: FilterParams) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get('/noi/');
+      const response = await api.get('/noi/', { params });
       setNoiList(response.data || []);
     } catch (err) {
       const msg = handleError(err, 'Failed to fetch NOIs');

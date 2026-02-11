@@ -15,6 +15,7 @@ import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
 import { RowSelectionState } from '@tanstack/react-table';
 import { BackButton } from '@/components/ui/BackButton';
+import { useDebounce } from '../../hooks/useDebounce';
 
 import {
   NOIDetailModal,
@@ -34,33 +35,21 @@ const NOI: React.FC = () => {
   // Search and Filter States
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  // Trigger server-side refetch when debounced search or status filter changes
+  useEffect(() => {
+    refetch({
+      search: debouncedSearch,
+      status: statusFilter === 'all' ? undefined : statusFilter
+    });
+  }, [debouncedSearch, statusFilter, refetch]);
 
 
-  // 套用篩選後的資料
+  // Data is now primarily filtered by backend.
   const filteredData = useMemo(() => {
-    let data = [...noiList];
-
-    // 狀態篩選
-    if (statusFilter !== 'all') {
-      data = data.filter(item =>
-        (item.status || 'Open').toLowerCase() === statusFilter.toLowerCase()
-      );
-    }
-
-
-    // Global Search
-    if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
-      data = data.filter(item =>
-        (item.referenceNo && item.referenceNo.toLowerCase().includes(lowerQuery)) ||
-        (item.contractor && item.contractor.toLowerCase().includes(lowerQuery)) ||
-        (item.package && item.package.toLowerCase().includes(lowerQuery)) ||
-        (item.itpNo && item.itpNo.toLowerCase().includes(lowerQuery))
-      );
-    }
-
-    return data;
-  }, [noiList, statusFilter, searchQuery]);
+    return noiList;
+  }, [noiList]);
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -205,14 +194,19 @@ const NOI: React.FC = () => {
         ncrNumber: details.ncrNumber || '',
       };
 
-      if (existingItem) {
-        await updateNOI(currentNoiId, updatedItem);
-      } else {
-        await addNOI(updatedItem, currentNoiId);
+      try {
+        if (existingItem) {
+          await updateNOI(currentNoiId, updatedItem);
+        } else {
+          await addNOI(updatedItem, currentNoiId);
+        }
+        setIsModalOpen(false);
+        setCurrentNoiId(null);
+      } catch (error: any) {
+        const detail = error?.response?.data?.detail || t('common.saveFailed') || 'Save failed';
+        alert(detail);
       }
     }
-    setIsModalOpen(false);
-    setCurrentNoiId(null);
   };
 
   const handleDeleteClick = (id: string) => {

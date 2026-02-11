@@ -34,11 +34,13 @@ function normalizeItem(item: unknown): ITRItem {
   return parseJsonFields(record, ['defectPhotos', 'improvementPhotos', 'attachments']) as unknown as ITRItem;
 }
 
+import { FilterParams } from '../types/api';
+
 interface ITRContextType {
   itrList: ITRItem[];
   loading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetch: (params?: FilterParams) => Promise<void>;
   addITR: (itr: Omit<ITRItem, 'id'>) => Promise<ITRItem>;
   updateITR: (id: string, itr: Partial<ITRItem>) => Promise<void>;
   deleteITR: (id: string) => Promise<void>;
@@ -55,11 +57,11 @@ export const ITRProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [error, setError] = useState<string | null>(null);
   const { handleError } = useErrorHandler();
 
-  const fetchITRs = useCallback(async () => {
+  const fetchITRs = useCallback(async (params?: FilterParams) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get('/itr/');
+      const response = await api.get('/itr/', { params });
       setItrList((response.data || []).map(normalizeItem));
     } catch (err) {
       const msg = handleError(err, 'Failed to fetch ITRs');

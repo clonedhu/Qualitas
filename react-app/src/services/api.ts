@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { FilterParams } from '../types/api';
 
 const baseURL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined) || '/api';
@@ -241,8 +242,8 @@ export interface CreateChecklistPayload {
   detail_data?: string;
 }
 
-export const getChecklists = async (): Promise<ChecklistRecordApi[]> => {
-  const response = await api.get<ChecklistRecordApi[]>('/checklist');
+export const getChecklists = async (params?: FilterParams): Promise<ChecklistRecordApi[]> => {
+  const response = await api.get<ChecklistRecordApi[]>('/checklist', { params });
   return response.data;
 };
 

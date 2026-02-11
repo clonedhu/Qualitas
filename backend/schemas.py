@@ -553,6 +553,7 @@ class ChecklistBase(BaseModel):
     location: Optional[str] = None
     itpIndex: int
     detail_data: Optional[str] = None
+    noiNumber: Optional[str] = None
 
 class ChecklistCreate(ChecklistBase):
     pass
@@ -567,6 +568,7 @@ class ChecklistUpdate(BaseModel):
     location: Optional[str] = None
     itpIndex: Optional[int] = None
     detail_data: Optional[str] = None
+    noiNumber: Optional[str] = None
 
 class Checklist(ChecklistBase):
     id: str
@@ -631,5 +633,43 @@ class AuditUpdate(BaseModel):
 
 class Audit(AuditBase):
     id: str
+    class Config:
+        from_attributes = True
+
+
+# --- KPI & Performance Schemas ---
+class KPIWeightBase(BaseModel):
+    pqp_weight: int = 25
+    itp_weight: int = 25
+    obs_weight: int = 25
+    ncr_weight: int = 25
+
+class KPIWeightUpdate(KPIWeightBase):
+    pass
+
+class KPIWeight(KPIWeightBase):
+    id: int
+    updated_at: Optional[str] = None
+    class Config:
+        from_attributes = True
+
+class OwnerPerformanceBase(BaseModel):
+    owner_name: str
+    month: str
+    score: int = 0
+    details: Optional[str] = None
+
+class OwnerPerformanceCreate(OwnerPerformanceBase):
+    id: Optional[str] = None
+
+class OwnerPerformanceUpdate(BaseModel):
+    owner_name: Optional[str] = None
+    month: Optional[str] = None
+    score: Optional[int] = None
+    details: Optional[str] = None
+
+class OwnerPerformance(OwnerPerformanceBase):
+    id: str
+    updated_at: Optional[str] = None
     class Config:
         from_attributes = True

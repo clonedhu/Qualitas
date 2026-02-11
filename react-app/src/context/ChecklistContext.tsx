@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import * as api from '../services/api';
+import { FilterParams } from '../types/api';
 
 export interface ChecklistRecord {
     id: string;
@@ -11,6 +12,7 @@ export interface ChecklistRecord {
     packageName: string;
     location: string;
     revision: number;
+    noiNumber?: string;
     data: any;
 }
 
@@ -20,7 +22,7 @@ interface ChecklistContextType {
     addRecord: (record: Omit<ChecklistRecord, 'id' | 'recordsNo'>) => Promise<void>;
     updateRecord: (id: string, updates: Partial<ChecklistRecord>) => Promise<void>;
     deleteRecord: (id: string) => Promise<void>;
-    refreshRecords: () => Promise<void>;
+    refreshRecords: (params?: FilterParams) => Promise<void>;
 }
 
 const ChecklistContext = createContext<ChecklistContextType | undefined>(undefined);
@@ -29,10 +31,10 @@ export const ChecklistProvider: React.FC<{ children: ReactNode }> = ({ children 
     const [records, setRecords] = useState<ChecklistRecord[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchRecords = useCallback(async () => {
+    const fetchRecords = useCallback(async (params?: FilterParams) => {
         setLoading(true);
         try {
-            const data = await api.getChecklists();
+            const data = await api.getChecklists(params);
             setRecords(data.map(r => ({
                 id: r.id,
                 itpIndex: r.itpIndex,
@@ -43,6 +45,7 @@ export const ChecklistProvider: React.FC<{ children: ReactNode }> = ({ children 
                 packageName: r.packageName,
                 location: r.location || '',
                 revision: r.detail_data ? (JSON.parse(r.detail_data).revision || 0) : 0,
+                noiNumber: (r as any).noiNumber,
                 data: r.detail_data ? JSON.parse(r.detail_data) : {}
             })));
         } catch (e) {

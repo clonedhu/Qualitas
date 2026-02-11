@@ -23,6 +23,8 @@ import os
 
 # Import Routers
 from routers import contractors as contractors_router
+from middleware.rate_limiter import RateLimitMiddleware
+from scheduler import start_scheduler
 
 # Setup Logger
 logging.basicConfig(level=logging.INFO)
@@ -229,6 +231,17 @@ try:
 except Exception:
     pass
 
+# Migration: Add noiNumber column to checklist table
+try:
+    with engine.connect() as conn:
+        result = conn.execute(text("PRAGMA table_info(checklist)"))
+        columns = [row[1] for row in result]
+        if "noiNumber" not in columns:
+            conn.execute(text("ALTER TABLE checklist ADD COLUMN noiNumber VARCHAR"))
+            conn.commit()
+except Exception:
+    pass
+
 # Migration: Create document_naming_rules table if not exists
 try:
     with engine.connect() as conn:
@@ -284,6 +297,14 @@ def seed_default_pqp():
 seed_default_pqp()
 
 app = FastAPI()
+
+# 註冊 Rate Limiting Middleware
+app.add_middleware(RateLimitMiddleware)
+
+@app.on_event("startup")
+async def startup_event():
+    start_scheduler()
+    logger.info("Background scheduler started.")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -460,7 +481,7 @@ def update_naming_rules(
 # app.include_router(api) # Old monolithic router
 
 # Include Module Routers
-from routers import itp, ncr, noi, itr, pqp, obs, contractors, followup, iam, audit, checklist
+from routers import itp, ncr, noi, itr, pqp, obs, contractors, followup, iam, audit, checklist, kpi
 
 api.include_router(itp.router)
 api.include_router(ncr.router)
@@ -473,6 +494,7 @@ api.include_router(followup.router)
 api.include_router(iam.router)
 api.include_router(audit.router)
 api.include_router(checklist.router)
+api.include_router(kpi.router)
 
 app.include_router(api)
 

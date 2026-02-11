@@ -9,33 +9,22 @@ import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
 import { PQPDetailModal, PQPDetailsViewModal } from './PQPModals';
 import { BackButton } from '@/components/ui/BackButton';
-
-type SortKey = keyof PQPItem;
-type SortDirection = 'asc' | 'desc';
-
-interface SortConfig {
-  key: SortKey;
-  direction: SortDirection;
-}
-
-const getLocalizedStatus = (status: string, t: (key: string) => string) => {
-  const s = (status || '').toLowerCase();
-  if (s === 'approved') return t('pqp.status.approved');
-  if (s === 'reject') return t('pqp.status.reject');
-  if (s === 'not submit') return t('pqp.status.notSubmit');
-  if (s === 'under review') return t('pqp.status.underReview');
-  return status;
-};
+import { useDebounce } from '../../hooks/useDebounce';
 
 const PQP: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { getActiveContractors } = useContractors();
-  const { pqpList, addPQP, updatePQP, deletePQP } = usePQP();
-
+  const { pqpList, loading, error, refetch, addPQP, updatePQP, deletePQP } = usePQP();
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  // Trigger server-side refetch when debounced search changes
+  React.useEffect(() => {
+    refetch({ search: debouncedSearch });
+  }, [debouncedSearch, refetch]);
 
   // Modal States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -49,24 +38,10 @@ const PQP: React.FC = () => {
     id: null,
   });
 
-  // Filter by Date Range and Global Search
+  // Data is now primarily filtered by backend.
   const filteredList = useMemo(() => {
-    let result = [...pqpList];
-
-
-    // Global Search
-    if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
-      result = result.filter(item =>
-        (item.pqpNo && item.pqpNo.toLowerCase().includes(lowerQuery)) ||
-        (item.title && item.title.toLowerCase().includes(lowerQuery)) ||
-        (item.vendor && item.vendor.toLowerCase().includes(lowerQuery)) ||
-        (item.status && item.status.toLowerCase().includes(lowerQuery))
-      );
-    }
-
-    return result;
-  }, [pqpList, searchQuery]);
+    return pqpList;
+  }, [pqpList]);
 
   const statistics = useMemo(() => {
     const statusCounts = {
@@ -111,22 +86,28 @@ const PQP: React.FC = () => {
   const handleSavePQPDetails = async (updates: Partial<PQPItem>) => {
     const existingItem = currentPqpId && currentPqpId !== 'new' ? pqpList.find(item => item.id === currentPqpId) : undefined;
     const today = new Date().toISOString().split('T')[0];
-    if (existingItem) {
-      const merged = { ...existingItem, ...updates, updatedAt: today };
-      const { id: _omit, pqpNo: _pqpNo, ...payload } = merged;  // 移除 pqpNo，不允許更新
-      await updatePQP(existingItem.id, payload);
-    } else {
-      // pqpNo 由後端自動產生，不需要前端送
-      await addPQP({
-        title: updates.title || '',
-        description: updates.description || '',
-        vendor: updates.vendor || '',
-        status: updates.status || 'Approved',
-        version: updates.version || 'Rev1.0',
-        createdAt: today,
-        updatedAt: today,
-        attachments: updates.attachments || [],
-      } as Omit<PQPItem, 'id'>);
+    try {
+      if (existingItem) {
+        const merged = { ...existingItem, ...updates, updatedAt: today };
+        const { id: _omit, pqpNo: _pqpNo, ...payload } = merged;
+        await updatePQP(existingItem.id, payload);
+      } else {
+        await addPQP({
+          title: updates.title || '',
+          description: updates.description || '',
+          vendor: updates.vendor || '',
+          status: updates.status || 'Approved',
+          version: updates.version || 'Rev1.0',
+          createdAt: today,
+          updatedAt: today,
+          attachments: updates.attachments || [],
+        } as Omit<PQPItem, 'id'>);
+      }
+      setIsEditModalOpen(false);
+      setCurrentPqpId(null);
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail || t('common.saveFailed') || 'Save failed';
+      alert(detail);
     }
   };
 
@@ -217,27 +198,36 @@ const PQP: React.FC = () => {
       </div>
 
       <div className={styles.content}>
-        <DataTable
-          title={t('pqp.title')}
-          actions={
-            <button
-              type="button"
-              className={styles.addNewButton}
-              onClick={handleAddNew}
-            >
-              {t('pqp.addNew')}
-            </button>
-          }
-          columns={createColumns(handleEdit, handleViewDetails, confirmDelete, t, getActiveContractors)}
-          data={filteredList}
-          searchKey=""
-          searchPlaceholder={t('pqp.searchPlaceholder')}
-          getRowClassName={(row) =>
-            (row.status || 'Approved').toLowerCase() === 'reject'
-              ? 'bg-emerald-100/50 text-gray-500 hover:bg-emerald-200/50'
-              : ''
-          }
-        />
+        {loading && <p className={styles.loadingMessage}>{t('common.loading')}</p>}
+        {error && (
+          <div className={styles.loadingError}>
+            <p>{error}</p>
+            <button type="button" className={styles.retryButton} onClick={() => refetch()}>{t('common.retry')}</button>
+          </div>
+        )}
+        {!loading && !error && (
+          <DataTable
+            title={t('pqp.title')}
+            actions={
+              <button
+                type="button"
+                className={styles.addNewButton}
+                onClick={handleAddNew}
+              >
+                {t('pqp.addNew')}
+              </button>
+            }
+            columns={createColumns(handleEdit, handleViewDetails, confirmDelete, t, getActiveContractors)}
+            data={filteredList}
+            searchKey=""
+            searchPlaceholder={t('pqp.searchPlaceholder')}
+            getRowClassName={(row) =>
+              (row.status || 'Approved').toLowerCase() === 'reject'
+                ? 'bg-emerald-100/50 text-gray-500 hover:bg-emerald-200/50'
+                : ''
+            }
+          />
+        )}
       </div>
 
       <ConfirmModal
@@ -250,35 +240,30 @@ const PQP: React.FC = () => {
         cancelText={t('common.cancel')}
       />
 
-      {
-        isEditModalOpen && currentPqpId && (
-          <PQPDetailModal
-            pqpId={currentPqpId}
-            existingItem={currentPqpId !== 'new' ? pqpList.find(item => item.id === currentPqpId) : undefined}
-            onSave={handleSavePQPDetails}
-            onClose={() => {
-              setIsEditModalOpen(false);
-              setCurrentPqpId(null);
-            }}
-          />
-        )
-      }
+      {isEditModalOpen && currentPqpId && (
+        <PQPDetailModal
+          pqpId={currentPqpId}
+          existingItem={currentPqpId !== 'new' ? pqpList.find(item => item.id === currentPqpId) : undefined}
+          onSave={handleSavePQPDetails}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setCurrentPqpId(null);
+          }}
+        />
+      )}
 
-      {
-        isDetailsModalOpen && viewingPqpId && (
-          <PQPDetailsViewModal
-            pqpId={viewingPqpId}
-            pqpItem={pqpList.find(item => item.id === viewingPqpId)}
-            onClose={() => {
-              setIsDetailsModalOpen(false);
-              setViewingPqpId(null);
-            }}
-          />
-        )
-      }
-    </div >
+      {isDetailsModalOpen && viewingPqpId && (
+        <PQPDetailsViewModal
+          pqpId={viewingPqpId}
+          pqpItem={pqpList.find(item => item.id === viewingPqpId)}
+          onClose={() => {
+            setIsDetailsModalOpen(false);
+            setViewingPqpId(null);
+          }}
+        />
+      )}
+    </div>
   );
 };
 
 export default PQP;
-

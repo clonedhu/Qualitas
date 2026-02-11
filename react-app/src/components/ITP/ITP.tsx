@@ -12,6 +12,7 @@ import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
 import { ITPDetailModal, ITPDetailsViewModal } from './ITPModals';
 import { BackButton } from '@/components/ui/BackButton';
+import { useDebounce } from '../../hooks/useDebounce';
 
 const ITP: React.FC = () => {
   const navigate = useNavigate();
@@ -22,27 +23,18 @@ const ITP: React.FC = () => {
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState<string>('');
-  // Vendor and Status filters are now handled by DataTable
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  // Trigger server-side refetch when debounced search changes
+  React.useEffect(() => {
+    refetch({ search: debouncedSearch });
+  }, [debouncedSearch, refetch]);
 
 
-  // Pre-filter data by Date Range and Global Search
+  // Data is now primarily filtered by backend.
   const processedData = useMemo(() => {
-    let filtered = [...itpList];
-
-
-    // Global Search (if search query exists)
-    if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
-      filtered = filtered.filter(item =>
-        (item.referenceNo && item.referenceNo.toLowerCase().includes(lowerQuery)) ||
-        (item.vendor && item.vendor.toLowerCase().includes(lowerQuery)) ||
-        (item.description && item.description.toLowerCase().includes(lowerQuery)) ||
-        (item.status && item.status.toLowerCase().includes(lowerQuery))
-      );
-    }
-
-    return filtered;
-  }, [itpList, searchQuery]);
+    return itpList;
+  }, [itpList]);
 
   // Modal States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -378,8 +370,9 @@ const ITP: React.FC = () => {
               await updateITP(currentItpId, updates);
               setIsEditModalOpen(false);
               setCurrentItpId(null);
-            } catch (error) {
-              alert(t('itp.updateError'));
+            } catch (error: any) {
+              const detail = error?.response?.data?.detail || t('itp.updateError');
+              alert(detail);
             }
           }}
           onClose={() => {

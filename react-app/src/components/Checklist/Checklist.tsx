@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
-import { Plus, Printer, ArrowLeft } from 'lucide-react';
+import { Plus, Printer } from 'lucide-react';
 import { useChecklist, ChecklistRecord } from '../../context/ChecklistContext';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
 import { BackButton } from '@/components/ui/BackButton';
 import styles from './Checklist.module.css';
+import { useDebounce } from '../../hooks/useDebounce';
+import { useNOI } from '../../context/NOIContext';
+import { useITP } from '../../context/ITPContext';
 
 // --- ITP 資料庫定義 ---
 interface ItpItemDefinition {
@@ -45,27 +48,22 @@ const itpDatabase: ItpItemDefinition[] = [
 const Checklist: React.FC = () => {
     const { t } = useLanguage();
     const navigate = useNavigate();
-    const { records, loading, deleteRecord, addRecord, updateRecord } = useChecklist();
+    const { records, loading, deleteRecord, addRecord, updateRecord, refreshRecords } = useChecklist();
     const [view, setView] = useState<'list' | 'editor'>('list');
     const [editingRecord, setEditingRecord] = useState<ChecklistRecord | null>(null);
     const [saving, setSaving] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const debouncedSearch = useDebounce(searchQuery, 500);
 
-    // Pre-filter data by Search Query
+    // Trigger server-side refetch when debounced search changes
+    React.useEffect(() => {
+        refreshRecords({ search: debouncedSearch });
+    }, [debouncedSearch, refreshRecords]);
+
+    // Data is now primarily filtered by backend.
     const filteredList = useMemo(() => {
-        let filtered = [...records];
-        if (searchQuery) {
-            const lowerQuery = searchQuery.toLowerCase();
-            filtered = filtered.filter(item =>
-                (item.recordsNo && item.recordsNo.toLowerCase().includes(lowerQuery)) ||
-                (item.data?.referenceNo && item.data.referenceNo.toLowerCase().includes(lowerQuery)) ||
-                (item.activity && item.activity.toLowerCase().includes(lowerQuery)) ||
-                (item.packageName && item.packageName.toLowerCase().includes(lowerQuery)) ||
-                (item.status && item.status.toLowerCase().includes(lowerQuery))
-            );
-        }
-        return filtered;
-    }, [records, searchQuery]);
+        return records;
+    }, [records]);
 
     // Check for query param 'recordNo' to open specific record
     const [searchParams] = useSearchParams();
@@ -82,7 +80,7 @@ const Checklist: React.FC = () => {
                 alert(t('checklist.recordNotFound') || 'Record not found');
             }
         }
-    }, [recordNoParam, records]);
+    }, [recordNoParam, records, t]);
 
     const handleBack = () => {
         if (fromSource === 'itp') {
@@ -126,9 +124,10 @@ const Checklist: React.FC = () => {
             <div className={styles.container}>
                 <div className={styles.header}>
                     <div className={styles.headerLeft}>
-                        <button onClick={handleBack} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors">
-                            <ArrowLeft size={20} /> {fromSource === 'itp' ? 'Back to ITP' : 'Back to List'}
-                        </button>
+                        <BackButton
+                            label={fromSource === 'itp' ? 'Back to ITP' : 'Back to List'}
+                            onClick={handleBack}
+                        />
                     </div>
                 </div>
                 <ChecklistEditor
@@ -145,7 +144,8 @@ const Checklist: React.FC = () => {
                             }
                             setView('list');
                         } catch (err: any) {
-                            alert(t('common.saveFailed') || `儲存失敗: ${err.message || '未知錯誤'}`);
+                            const detail = err?.response?.data?.detail || t('common.saveFailed') || 'Save failed';
+                            alert(detail);
                         } finally {
                             setSaving(false);
                         }
@@ -241,6 +241,7 @@ const Checklist: React.FC = () => {
                     }
                     columns={columns}
                     data={filteredList}
+                    getRowId={(row) => row.id}
                 />
             </div>
         </div>
@@ -255,8 +256,40 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
     saving?: boolean
 }) => {
     const { t } = useLanguage();
+    const { noiList } = useNOI();
+    const { itpList } = useITP();
+
+    // Transform dynamic itpList into itpDatabase format
+    const dynamicItpDatabase = useMemo(() => {
+        // Base hardcoded database as fallback or if itpList is empty
+        const baseDb: ItpItemDefinition[] = itpDatabase;
+        const dynamicItems: ItpItemDefinition[] = itpList.filter(itp => itp.hasDetails && itp.detail_data).map(itp => {
+            const parsed = JSON.parse(itp.detail_data!);
+            return {
+                eventNo: itp.referenceNo || '',
+                activity: itp.description || '',
+                standard: parsed.standard || '',
+                criteria: parsed.criteria || '',
+                stage: parsed.stage || 'Before',
+                recordForm: parsed.recordForm || 'CHK-GEN-01',
+                defaultItems: parsed.items || []
+            };
+        });
+
+        const merged = [...baseDb, ...dynamicItems];
+        // Remove duplicates if any (by activity name)
+        const unique = merged.reduce((acc, current) => {
+            if (!acc.find(item => item.activity === current.activity)) {
+                acc.push(current);
+            }
+            return acc;
+        }, [] as ItpItemDefinition[]);
+
+        return unique;
+    }, [itpList]);
+
     const [selectedItpIndex, setSelectedItpIndex] = useState(record ? record.itpIndex : 0);
-    const [formData, setFormData] = useState<any>(record ? record.data : {
+    const [formData, setFormData] = useState<any>(record ? { ...record.data, noiNumber: record.noiNumber } : {
         projectTitle: "Hai Long Offshore Wind Farm Project",
         recordsNo: "[AUTO-GENERATE]",
         packageName: "RKS",
@@ -265,6 +298,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
         stage: "Before",
         revision: 0,
         referenceNo: "",
+        noiNumber: "",
         items: [],
         reInspectionDate: "",
         ncrNo: "",
@@ -277,7 +311,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
         }
     });
 
-    const currentItp = itpDatabase[selectedItpIndex];
+    const currentItp = dynamicItpDatabase[selectedItpIndex] || dynamicItpDatabase[0];
 
     // NOTE: Record No 由後端自動產生，前端僅負責顯示
     const displayNo = useMemo(() => {
@@ -289,7 +323,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
 
     React.useEffect(() => {
         if (!record || (record && selectedItpIndex !== record.itpIndex)) {
-            const itp = itpDatabase[selectedItpIndex];
+            const itp = dynamicItpDatabase[selectedItpIndex] || dynamicItpDatabase[0];
             const generatedItems = itp.defaultItems.map((defItem, idx) => ({
                 id: idx + 1,
                 item: defItem.item,
@@ -320,12 +354,13 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                         disabled={saving}
                         onClick={() => onSave({
                             itpIndex: selectedItpIndex,
-                            activity: itpDatabase[selectedItpIndex].activity,
+                            activity: dynamicItpDatabase[selectedItpIndex]?.activity || 'N/A',
                             date: formData.inspectionDate,
                             status: formData.items.every((i: any) => i.result === 'O') ? 'Pass' : 'Fail',
                             packageName: formData.packageName || 'RKS',
                             location: formData.location,
                             revision: formData.revision,
+                            noiNumber: formData.noiNumber,
                             data: { ...formData }
                         })} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-bold text-sm disabled:opacity-50"
                     >
@@ -341,7 +376,19 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
             <div className={styles.printablePage}>
                 <div className={styles.formHeader}>
                     <div className={styles.formNo}>{displayNo}</div>
-                    <h1>Checklist for {currentItp.activity}</h1>
+                    <div className={`flex items-center gap-4 ${styles.printHidden} mb-2`}>
+                        <span className="text-sm font-bold text-slate-600">Template:</span>
+                        <select
+                            value={selectedItpIndex}
+                            onChange={(e) => setSelectedItpIndex(Number(e.target.value))}
+                            className="p-1 border rounded text-sm bg-white"
+                        >
+                            {dynamicItpDatabase.map((itp, idx) => (
+                                <option key={idx} value={idx}>{itp.activity}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <h1>Checklist for {currentItp?.activity}</h1>
                 </div>
 
                 <div className={styles.infoGrid}>
@@ -363,6 +410,31 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                                 onChange={e => setFormData({ ...formData, referenceNo: e.target.value })}
                                 placeholder="Manual Entry"
                             />
+                        </div>
+                    </div>
+                    <div className={styles.infoItem}>
+                        <div className={styles.infoLabel}>NOI Number</div>
+                        <div className={styles.infoValue}>
+                            <select
+                                value={formData.noiNumber || ''}
+                                onChange={e => {
+                                    const selectedNoi = noiList.find(n => n.referenceNo === e.target.value);
+                                    setFormData({
+                                        ...formData,
+                                        noiNumber: e.target.value,
+                                        packageName: selectedNoi?.package || formData.packageName,
+                                        location: selectedNoi?.checkpoint || formData.location
+                                    });
+                                }}
+                                className="w-full bg-transparent border-none outline-none"
+                            >
+                                <option value="">{t('checklist.selectNoi') || '-- Select NOI --'}</option>
+                                {noiList.map(noi => (
+                                    <option key={noi.id} value={noi.referenceNo}>
+                                        {noi.referenceNo} ({noi.package})
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                     <div className={styles.infoItem}>

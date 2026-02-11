@@ -24,11 +24,13 @@ function normalizeItem(item: unknown): ITPItem {
   return parseJsonFields(record, ['defectPhotos', 'improvementPhotos', 'attachments']) as unknown as ITPItem;
 }
 
+import { FilterParams } from '../types/api';
+
 interface ITPContextType {
   itpList: ITPItem[];
   loading: boolean;
   error: string | null;
-  refetch: () => Promise<void>;
+  refetch: (params?: FilterParams) => Promise<void>;
   addITP: (itp: Omit<ITPItem, 'id'>) => Promise<ITPItem>;
   updateITP: (id: string, itp: Partial<ITPItem>) => Promise<void>;
   deleteITP: (id: string) => Promise<void>;
@@ -44,11 +46,11 @@ export const ITPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [error, setError] = useState<string | null>(null);
   const { handleError } = useErrorHandler();
 
-  const fetchITPs = useCallback(async () => {
+  const fetchITPs = useCallback(async (params?: FilterParams) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get('/itp/');
+      const response = await api.get('/itp/', { params });
       const data = response.data;
       setItpList(data || []);
     } catch (err) {

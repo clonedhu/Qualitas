@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useMemo, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect, useCallback, ReactNode } from 'react';
 import api from '../services/api';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 
@@ -16,9 +16,13 @@ export interface PQPItem {
   dueDate?: string;
 }
 
+import { FilterParams } from '../types/api';
+
 interface PQPContextType {
   pqpList: PQPItem[];
+  loading: boolean;
   error: string | null;
+  refetch: (params?: FilterParams) => Promise<void>;
   addPQP: (pqp: Omit<PQPItem, 'id'>) => Promise<PQPItem>;
   updatePQP: (id: string, pqp: Partial<PQPItem>) => Promise<void>;
   deletePQP: (id: string) => Promise<void>;
@@ -30,21 +34,27 @@ const PQPContext = createContext<PQPContextType | undefined>(undefined);
 
 export const PQPProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [pqpList, setPqpList] = useState<PQPItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { handleError } = useErrorHandler();
 
-  useEffect(() => {
-    const fetchPQPs = async () => {
-      try {
-        const response = await api.get('/pqp/');
-        setPqpList(response.data || []);
-      } catch (err) {
-        const msg = handleError(err, 'Failed to fetch PQPs');
-        setError(msg);
-      }
-    };
-    fetchPQPs();
+  const fetchPQPs = useCallback(async (params?: FilterParams) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await api.get('/pqp/', { params });
+      setPqpList(response.data || []);
+    } catch (err) {
+      const msg = handleError(err, 'Failed to fetch PQPs');
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   }, [handleError]);
+
+  useEffect(() => {
+    fetchPQPs();
+  }, [fetchPQPs]);
 
   const addPQP = async (pqp: Omit<PQPItem, 'id'>): Promise<PQPItem> => {
     try {
@@ -82,8 +92,8 @@ export const PQPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const getPQPByVendor = (vendor: string) => pqpList.filter(pqp => pqp.vendor === vendor);
 
   const value = useMemo(
-    () => ({ pqpList, error, addPQP, updatePQP, deletePQP, getPQPList, getPQPByVendor }),
-    [pqpList, error]
+    () => ({ pqpList, loading, error, refetch: fetchPQPs, addPQP, updatePQP, deletePQP, getPQPList, getPQPByVendor }),
+    [pqpList, loading, error, fetchPQPs]
   );
 
   return (
