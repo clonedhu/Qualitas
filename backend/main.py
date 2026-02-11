@@ -482,6 +482,7 @@ def update_naming_rules(
 
 # Include Module Routers
 from routers import itp, ncr, noi, itr, pqp, obs, contractors, followup, iam, audit, checklist, kpi
+from routers import file_router
 
 api.include_router(itp.router)
 api.include_router(ncr.router)
@@ -495,8 +496,15 @@ api.include_router(iam.router)
 api.include_router(audit.router)
 api.include_router(checklist.router)
 api.include_router(kpi.router)
+api.include_router(file_router.router)
 
 app.include_router(api)
+
+# 掛載靜態檔案服務，提供 uploads/ 目錄存取
+from fastapi.staticfiles import StaticFiles
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # Seed Initial User and Role
 def seed_initial_data():

@@ -261,4 +261,72 @@ export const deleteChecklist = async (id: string): Promise<void> => {
   await api.delete(`/checklist/${id}`);
 };
 
+// --- File Management API ---
+
+/**
+ * 附件資訊介面 — 對應後端 AttachmentResponse
+ */
+export interface AttachmentInfo {
+  id: string;
+  entity_type: string;
+  entity_id: string;
+  file_name: string;
+  file_url: string;
+  file_size?: number;
+  mime_type?: string;
+  category: string;
+  uploaded_by?: string;
+  uploaded_at: string;
+}
+
+/**
+ * 上傳檔案至指定實體
+ * @param entityType 模組類型 (itp / ncr / noi / itr / pqp / obs)
+ * @param entityId 關聯記錄 ID
+ * @param files 檔案清單
+ * @param category 分類 (attachment / defectPhoto / improvementPhoto)
+ */
+export const uploadFiles = async (
+  entityType: string,
+  entityId: string,
+  files: File[],
+  category: string = 'attachment'
+): Promise<AttachmentInfo[]> => {
+  const formData = new FormData();
+  formData.append('entity_type', entityType);
+  formData.append('entity_id', entityId);
+  formData.append('category', category);
+  files.forEach((file) => formData.append('files', file));
+
+  const response = await api.post<AttachmentInfo[]>('/files/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+/**
+ * 查詢指定實體的所有附件
+ * @param entityType 模組類型
+ * @param entityId 關聯記錄 ID
+ * @param category 可選的分類篩選
+ */
+export const getEntityFiles = async (
+  entityType: string,
+  entityId: string,
+  category?: string
+): Promise<AttachmentInfo[]> => {
+  const params: Record<string, string> = { entity_type: entityType, entity_id: entityId };
+  if (category) params.category = category;
+  const response = await api.get<AttachmentInfo[]>('/files/by-entity', { params });
+  return response.data;
+};
+
+/**
+ * 刪除單一附件（軟刪除）
+ * @param fileId 附件 ID
+ */
+export const deleteFile = async (fileId: string): Promise<void> => {
+  await api.delete(`/files/${fileId}`);
+};
+
 export default api;

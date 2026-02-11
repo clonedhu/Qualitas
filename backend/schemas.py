@@ -673,3 +673,22 @@ class OwnerPerformance(OwnerPerformanceBase):
     updated_at: Optional[str] = None
     class Config:
         from_attributes = True
+
+
+# --- Attachment (File Management) Schemas ---
+
+class AttachmentResponse(BaseModel):
+    """附件回傳 schema — 前端用於顯示與管理檔案"""
+    id: str
+    entity_type: str
+    entity_id: str
+    file_name: str
+    file_url: str            # 由 API 動態組裝的完整存取 URL
+    file_size: Optional[int] = None
+    mime_type: Optional[str] = None
+    category: str = "attachment"
+    uploaded_by: Optional[str] = None
+    uploaded_at: str
+
+    class Config:
+        from_attributes = True

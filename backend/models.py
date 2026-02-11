@@ -344,3 +344,24 @@ class OwnerPerformance(Base):
     score = Column(Integer, default=0)
     details = Column(Text, nullable=True)  # JSON blob
     updated_at = Column(String, nullable=True)
+
+
+class Attachment(Base):
+    """
+    集中式附件管理模型
+    - 透過 entity_type + entity_id 實現多態關聯，可掛載到任何模組
+    - 檔案實體存放於 uploads/ 目錄，此表僅記錄 metadata
+    """
+    __tablename__ = "attachments"
+
+    id = Column(String, primary_key=True, index=True)
+    entity_type = Column(String, nullable=False, index=True)   # itp / ncr / noi / itr / pqp / obs
+    entity_id = Column(String, nullable=False, index=True)     # 關聯模組記錄的 ID
+    file_name = Column(String, nullable=False)                 # 原始檔案名稱
+    file_path = Column(String, nullable=False)                 # 磁碟儲存相對路徑
+    file_size = Column(Integer, nullable=True)                 # 檔案大小 (bytes)
+    mime_type = Column(String, nullable=True)                  # MIME 類型
+    category = Column(String, default="attachment")            # attachment / defectPhoto / improvementPhoto
+    uploaded_by = Column(String, nullable=True)                # 上傳者使用者名稱
+    uploaded_at = Column(String, nullable=False)               # ISO 格式時間戳
+    is_deleted = Column(Boolean, default=False, index=True)    # 軟刪除標記
