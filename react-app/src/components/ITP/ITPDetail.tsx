@@ -119,9 +119,10 @@ const ITPDetail: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { itrList } = useITR();
-  const [items, setItems] = useState<any[]>(INITIAL_ITEMS);
+  // NOTE: 初始為空陣列，避免所有 ITP 顯示相同的硬編碼資料
+  const [items, setItems] = useState<any[]>([]);
   const [editingItem, setEditingItem] = useState<any | null>(null);
-  const [workTitle, setWorkTitle] = useState("Piling Work"); // 工項標題狀態
+  const [workTitle, setWorkTitle] = useState(""); // 工項標題狀態
   const [referenceNo, setReferenceNo] = useState(""); // Form No.
   const [viewingItrItem, setViewingItrItem] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
@@ -150,6 +151,7 @@ const ITPDetail: React.FC = () => {
             details = data.detail_data;
           }
 
+          // 從後端載入檢查項目；若 detail_data 為空則保持空陣列
           if (details && (details.a || details.b || details.c)) {
             const loadedItems = [
               ...(details.a || []).map((i: any, index: number) => ({ ...i, phase: 'A', id: `A${index + 1}` })),
@@ -158,6 +160,7 @@ const ITPDetail: React.FC = () => {
             ];
             setItems(loadedItems);
           }
+          // 若無 detail_data，items 維持空陣列，使用者可透過「Add Item」新增
         }
       } catch (error) {
         console.error("Failed to fetch ITP:", error);
@@ -168,6 +171,7 @@ const ITPDetail: React.FC = () => {
 
     fetchITP();
   }, [id]);
+
 
   // Save changes to backend
   const saveToBackend = async () => {
