@@ -47,7 +47,7 @@ const INITIAL_ITEMS = [
   {
     phase: "B", id: "B1", activity: { en: "Foundation piling position", ch: "基礎打設座標" }, standard: "HL-ONS-TECO-STR-DWG-02000", criteria: "Tolerance ± 7.5 cm",
     checkTime: { en: "During Piling", ch: "打樁時" }, method: { en: "Total Station", ch: "全站儀" }, frequency: "Each Pile",
-    vp: { sub: "H", teco: "H", employer: "H", hse: "" }, record: "ITP-PL-02&03"
+    vp: { sub: "H", teco: "H", employer: "H", hse: "" }, record: "QTS-RKS-HL-CHK-000001"
   },
   {
     phase: "B", id: "B2", activity: { en: "Pile Elevation", ch: "基礎高程" }, standard: "HL-ONS-TECO-GEO-DWG-08000", criteria: "Tolerance ± 7.5 cm",
@@ -528,7 +528,7 @@ const ITPDetail: React.FC = () => {
                   </div>
                   <div>
                     <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase mb-2 ml-1">
-                      <FileCheck size={14} className="text-emerald-600" /> ITR No.
+                      <FileCheck size={14} className="text-emerald-600" /> Records
                     </label>
                     <div className="relative">
                       <input
@@ -537,7 +537,7 @@ const ITPDetail: React.FC = () => {
                         list="itr-options"
                         value={editingItem.record}
                         onChange={(e) => handleChange('record', e.target.value)}
-                        placeholder="Select or enter ITR No."
+                        placeholder="Select or enter Record No."
                       />
                       <Tag className="absolute left-3 top-3 text-slate-400" size={16} />
                       <datalist id="itr-options">
@@ -647,7 +647,7 @@ const ITPDetail: React.FC = () => {
                 <th rowSpan={2} className="px-5 py-4 w-40 border-r border-black bg-slate-800 text-center">Check Time</th>
                 <th rowSpan={2} className="px-5 py-4 w-40 border-r border-black text-center">Method</th>
                 <th rowSpan={2} className="px-5 py-4 w-28 border-r border-black text-center">Frequency</th>
-                <th rowSpan={2} className="px-5 py-4 w-32 border-r border-black bg-slate-800 text-center">ITR No.</th>
+                <th rowSpan={2} className="px-5 py-4 w-32 border-r border-black bg-slate-800 text-center">Records</th>
                 <th colSpan={4} className="px-2 py-3 text-center border-b border-black bg-slate-800">Verification Point</th>
                 <th rowSpan={2} className="px-5 py-4 text-center w-32 bg-slate-800 sticky right-0 z-10 shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.1)] border-l border-black no-print">Operation</th>
               </tr>
@@ -696,16 +696,20 @@ const ITPDetail: React.FC = () => {
                         {item.record !== '-' ? (
                           <button
                             onClick={() => {
+                              if (item.record.includes('CHK') || item.record.startsWith('QTS')) {
+                                navigate(`/checklist?recordNo=${item.record}&from=itp`);
+                                return;
+                              }
                               const found = itrList.find(itr => itr.documentNumber === item.record);
                               if (found) {
                                 setViewingItrItem(found);
                               } else {
                                 // Fallback: if not found in context (might be manually entered or not synced), 
                                 // we could still show a basic view or alert
-                                alert('ITR document data not found in current list.');
+                                alert('Record document data not found in current list.');
                               }
                             }}
-                            className="inline-flex items-center px-2.5 py-1.5 rounded-md bg-white text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors font-mono text-xs font-bold border border-blue-200 hover:border-blue-400 whitespace-nowrap shadow-sm group/itr"
+                            className="inline-flex items-center px-2.5 py-1.5 rounded-md bg-white text-slate-900 hover:text-blue-800 hover:bg-blue-50 transition-colors font-mono text-xs font-bold border border-slate-300 hover:border-blue-400 whitespace-nowrap shadow-sm group/itr"
                           >
                             <FileText size={12} className="mr-1.5 opacity-70 group-hover/itr:opacity-100" />{item.record}
                           </button>

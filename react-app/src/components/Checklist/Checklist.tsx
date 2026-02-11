@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { Plus, Printer, ArrowLeft } from 'lucide-react';
 import { useChecklist, ChecklistRecord } from '../../context/ChecklistContext';
@@ -43,6 +44,7 @@ const itpDatabase: ItpItemDefinition[] = [
 
 const Checklist: React.FC = () => {
     const { t } = useLanguage();
+    const navigate = useNavigate();
     const { records, loading, deleteRecord, addRecord, updateRecord } = useChecklist();
     const [view, setView] = useState<'list' | 'editor'>('list');
     const [editingRecord, setEditingRecord] = useState<ChecklistRecord | null>(null);
@@ -56,6 +58,7 @@ const Checklist: React.FC = () => {
             const lowerQuery = searchQuery.toLowerCase();
             filtered = filtered.filter(item =>
                 (item.recordsNo && item.recordsNo.toLowerCase().includes(lowerQuery)) ||
+                (item.data?.referenceNo && item.data.referenceNo.toLowerCase().includes(lowerQuery)) ||
                 (item.activity && item.activity.toLowerCase().includes(lowerQuery)) ||
                 (item.packageName && item.packageName.toLowerCase().includes(lowerQuery)) ||
                 (item.status && item.status.toLowerCase().includes(lowerQuery))
@@ -63,6 +66,32 @@ const Checklist: React.FC = () => {
         }
         return filtered;
     }, [records, searchQuery]);
+
+    // Check for query param 'recordNo' to open specific record
+    const [searchParams] = useSearchParams();
+    const recordNoParam = searchParams.get('recordNo');
+    const fromSource = searchParams.get('from');
+
+    React.useEffect(() => {
+        if (recordNoParam && records.length > 0) {
+            const found = records.find(r => r.recordsNo === recordNoParam);
+            if (found) {
+                setEditingRecord(found);
+                setView('editor');
+            } else {
+                alert(t('checklist.recordNotFound') || 'Record not found');
+            }
+        }
+    }, [recordNoParam, records]);
+
+    const handleBack = () => {
+        if (fromSource === 'itp') {
+            navigate(-1);
+        } else {
+            setView('list');
+            setEditingRecord(null);
+        }
+    };
 
     // --- 統計數據 ---
     const stats = useMemo(() => {
@@ -97,8 +126,8 @@ const Checklist: React.FC = () => {
             <div className={styles.container}>
                 <div className={styles.header}>
                     <div className={styles.headerLeft}>
-                        <button onClick={() => setView('list')} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors">
-                            <ArrowLeft size={20} /> Back to List
+                        <button onClick={handleBack} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors">
+                            <ArrowLeft size={20} /> {fromSource === 'itp' ? 'Back to ITP' : 'Back to List'}
                         </button>
                     </div>
                 </div>
@@ -242,9 +271,9 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
         agreementChecked: true,
         remarks: "1. Mark 'O' for passed items, 'X' for failed items, and '/' for N/A items.\n2. Inspection items and criteria should be detailed with quantified data.",
         signatures: {
-            siteEngineer: "Ko Po-Sung",
-            constructionLeader: "Lai Tung-Yung",
-            subcontractorRep: "Sun Hsiao-En"
+            siteEngineer: "",
+            constructionLeader: "",
+            subcontractorRep: ""
         }
     });
 
@@ -327,7 +356,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
                         </div>
                     </div>
                     <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>Record No.</div>
+                        <div className={styles.infoLabel}>ITR No.</div>
                         <div className={styles.infoValue}>
                             <input
                                 value={formData.referenceNo}
@@ -467,15 +496,23 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving }: {
 
                     <div className={styles.reInspectionGrid}>
                         <div className={styles.reInspectionItem}>
-                            <div className={styles.infoLabel}>Re-inspection Date</div>
+                            <div className={styles.infoLabel}>NCR No.</div>
                             <div className={styles.infoValue}>
-                                <input type="date" value={formData.reInspectionDate} onChange={e => setFormData({ ...formData, reInspectionDate: e.target.value })} />
+                                {formData.agreementChecked ? (
+                                    <div className="flex items-center justify-center h-full text-slate-500">N/A</div>
+                                ) : (
+                                    <input value={formData.ncrNo} onChange={e => setFormData({ ...formData, ncrNo: e.target.value })} placeholder="e.g. NCR-001" />
+                                )}
                             </div>
                         </div>
                         <div className={styles.reInspectionItem} style={{ borderRight: 'none' }}>
-                            <div className={styles.infoLabel}>NCR No.</div>
+                            <div className={styles.infoLabel}>Re-inspection Date</div>
                             <div className={styles.infoValue}>
-                                <input value={formData.ncrNo} onChange={e => setFormData({ ...formData, ncrNo: e.target.value })} placeholder="e.g. NCR-001" />
+                                {formData.agreementChecked ? (
+                                    <div className="flex items-center justify-center h-full text-slate-500">N/A</div>
+                                ) : (
+                                    <input type="date" value={formData.reInspectionDate} onChange={e => setFormData({ ...formData, reInspectionDate: e.target.value })} />
+                                )}
                             </div>
                         </div>
                     </div>

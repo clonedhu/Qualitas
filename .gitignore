@@ -23,3 +23,14 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Database
+*.db
+
+# Experimental Scripts
+comprehensive_dump.py
+db_complete_dump.txt
+deep_search_db.py
+dump_db_data.py
+raw_dump.py
+search_partial_db.py

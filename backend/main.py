@@ -541,9 +541,9 @@ def seed_initial_data():
                     ],
                     "remarks": "1. 檢查結果合格者註明「O」，不合格者註明「X」，如無需檢查之項目則打「/」。",
                     "signatures": {
-                        "siteEngineer": "柯博松",
-                        "constructionLeader": "賴同勇",
-                        "subcontractorRep": "孫筱恩"
+                        "siteEngineer": "",
+                        "constructionLeader": "",
+                        "subcontractorRep": ""
                     }
                 })
             }
