@@ -28,6 +28,8 @@ def read_checklists(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
+    itr_id: str = None,
+    noi_number: str = None,
     db: Session = Depends(get_db)
 ):
     return crud.get_checklists(
@@ -37,7 +39,9 @@ def read_checklists(
         search=search, 
         status=status, 
         start_date=start_date, 
-        end_date=end_date
+        end_date=end_date,
+        itr_id=itr_id,
+        noi_number=noi_number
     )
 
 @router.get("/{checklist_id}", response_model=schemas.Checklist)

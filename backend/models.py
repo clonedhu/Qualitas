@@ -149,6 +149,7 @@ class ITR(Base):
     # Relationships
     vendor_ref = relationship("Contractor", back_populates="itrs")
     noi_ref = relationship("NOI", back_populates="itrs")
+    checklists = relationship("Checklist", back_populates="itr_ref", foreign_keys="Checklist.itrId")
 
 
 class PQP(Base):
@@ -296,11 +297,19 @@ class Checklist(Base):
     packageName = Column(String, index=True)
     location = Column(String, nullable=True)
     itpIndex = Column(Integer)
+    itpId = Column(String, ForeignKey("itp.id"), nullable=True, index=True) # ITP 關聯
+    itpVersion = Column(String, nullable=True) # 版本控制
+    passCount = Column(Integer, default=0) # 統計數據
+    failCount = Column(Integer, default=0) # 統計數據
     detail_data = Column(Text, nullable=True) # JSON 數據
     noiNumber = Column(String, ForeignKey("noi.referenceNo"), nullable=True, index=True)
+    contractor = Column(String, ForeignKey("contractors.name"), nullable=True, index=True) # 新增承包商關聯
+    itrId = Column(String, ForeignKey("itr.id"), nullable=True, index=True) # ITR 關聯
+    itrNumber = Column(String, ForeignKey("itr.documentNumber"), nullable=True, index=True) # ITR 單號
 
     # Relationships
     noi_ref = relationship("NOI", back_populates="checklists")
+    itr_ref = relationship("ITR", back_populates="checklists", foreign_keys=[itrId])
 
 # 審計日誌 - 記錄所有 CRUD 操作
 class AuditLog(Base):

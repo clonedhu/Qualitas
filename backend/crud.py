@@ -900,7 +900,7 @@ def get_checklist(db: Session, checklist_id: str):
 
 def get_checklists(db: Session, skip: int = 0, limit: int = 500,
                      search: str = None, status: str = None, 
-                     start_date: str = None, end_date: str = None):
+                     start_date: str = None, end_date: str = None, **kwargs):
     query = db.query(Checklist)
     
     if search:
@@ -911,6 +911,16 @@ def get_checklists(db: Session, skip: int = 0, limit: int = 500,
         )
     if status:
         query = query.filter(Checklist.status == status)
+    
+    # New filters for ITR integration
+    itr_id = kwargs.get('itr_id')
+    if itr_id:
+        query = query.filter(Checklist.itrId == itr_id)
+        
+    noi_number = kwargs.get('noi_number')
+    if noi_number:
+        query = query.filter(Checklist.noiNumber == noi_number)
+
     if start_date:
         query = query.filter(Checklist.date >= start_date)
     if end_date:

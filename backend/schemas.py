@@ -546,14 +546,21 @@ class Role(RoleBase):
 # User
 class ChecklistBase(BaseModel):
     recordsNo: Optional[str] = None  # 改為 Optional 以支援後端自動產生
-    activity: str
+    activity: Optional[str] = None
     date: str
     status: str
-    packageName: str
+    packageName: Optional[str] = None
     location: Optional[str] = None
-    itpIndex: int
+    itpIndex: Optional[int] = 0
     detail_data: Optional[str] = None
     noiNumber: Optional[str] = None
+    contractor: Optional[str] = None
+    itpId: Optional[str] = None
+    itpVersion: Optional[str] = None
+    passCount: Optional[int] = 0
+    failCount: Optional[int] = 0
+    itrId: Optional[str] = None
+    itrNumber: Optional[str] = None
 
 class ChecklistCreate(ChecklistBase):
     pass
@@ -569,6 +576,13 @@ class ChecklistUpdate(BaseModel):
     itpIndex: Optional[int] = None
     detail_data: Optional[str] = None
     noiNumber: Optional[str] = None
+    contractor: Optional[str] = None
+    itpId: Optional[str] = None
+    itpVersion: Optional[str] = None
+    passCount: Optional[int] = None
+    failCount: Optional[int] = None
+    itrId: Optional[str] = None
+    itrNumber: Optional[str] = None
 
 class Checklist(ChecklistBase):
     id: str
@@ -692,3 +706,11 @@ class AttachmentResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# --- Auth Schemas ---
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None

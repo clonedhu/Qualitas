@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useContractors } from '../../context/ContractorsContext';
 import { useNOI } from '../../context/NOIContext';
 import { useNCR } from '../../context/NCRContext';
 import { useITR, ITRItem } from '../../context/ITRContext';
 import { useITP } from '../../context/ITPContext';
+import { useChecklist } from '../../context/ChecklistContext';
 import { validateStatusTransition, ITRStatusTransitions } from '../../utils/statusValidation';
 import styles from './ITR.module.css';
 
@@ -678,6 +680,37 @@ export const ITRDetailsViewModal: React.FC<ITRDetailsViewModalProps> = ({ itrId,
         return status || 'Approved'; // Fallback to 'Approved' if status is undefined or unrecognized
     };
 
+    // const { getChecklists } = useChecklist(); // getChecklists is not exposed in context, using direct API call below
+    const navigate = useNavigate();
+    const [relatedChecklists, setRelatedChecklists] = useState<any[]>([]);
+
+    React.useEffect(() => {
+        if (itrId || itrItem?.id) {
+            const id = itrId || itrItem?.id;
+            // We can't use the hook's 'records' directly because it might be filtered by the main checklist view.
+            // Best to use a direct API call or a specialized method from context if available. 
+            // Since context exposes refreshRecords (which updates main state) or we can use the API directly.
+            // To avoid messing up the main checklist view state, let's use the API service directly here or assuming the context provides a way to get raw data.
+            // For now, let's assume we can filter the *loaded* records if they are all loaded, OR we should import the API service.
+            // Actually, let's simply import the API service to fetch specific records without affecting global context state.
+            import('../../services/api').then(api => {
+                api.getChecklists({ itrId: id }).then(data => {
+                    setRelatedChecklists(data);
+                });
+            });
+        }
+    }, [itrId, itrItem]);
+
+    const handleCreateChecklist = () => {
+        const params = new URLSearchParams({
+            from: 'itr',
+            itrId: itrId || itrItem?.id || '',
+            itrNumber: displayData.itrNumber,
+            noiNumber: displayData.noiNumber || ''
+        });
+        navigate(`/checklist?${params.toString()}`);
+    };
+
     return (
         <div className={styles.modalOverlay}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
@@ -720,6 +753,52 @@ export const ITRDetailsViewModal: React.FC<ITRDetailsViewModalProps> = ({ itrId,
                                     <div className={styles.readOnlyField}>{displayData.ncrNumber || '-'}</div>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* Related Checklists Section */}
+                        <div className={styles.formSection}>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className={styles.sectionTitle}>{t('checklist.title') || 'Checklists'}</h3>
+                                <button
+                                    onClick={handleCreateChecklist}
+                                    className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                >
+                                    + {t('checklist.addNew') || 'Create Checklist'}
+                                </button>
+                            </div>
+                            {relatedChecklists.length > 0 ? (
+                                <div className="border rounded overflow-hidden">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="p-2 border-b">Record No</th>
+                                                <th className="p-2 border-b">Activity</th>
+                                                <th className="p-2 border-b">Status</th>
+                                                <th className="p-2 border-b">Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {relatedChecklists.map((chk) => (
+                                                <tr key={chk.id} className="border-b hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/checklist?recordNo=${chk.recordsNo}`)}>
+                                                    <td className="p-2 text-blue-600">{chk.recordsNo}</td>
+                                                    <td className="p-2">{chk.activity}</td>
+                                                    <td className="p-2">
+                                                        <span className={`px-2 py-0.5 rounded text-xs ${chk.status === 'Pass' ? 'bg-green-100 text-green-800' :
+                                                            chk.status === 'Fail' ? 'bg-red-100 text-red-800' :
+                                                                'bg-blue-100 text-blue-800'
+                                                            }`}>
+                                                            {chk.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="p-2">{chk.date}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <p className="text-gray-500 italic text-sm">No related checklists found.</p>
+                            )}
                         </div>
 
                         {/* 照片 */}

@@ -82,6 +82,10 @@ const translations: Record<Language, Record<string, string>> = {
     'common.notGenerated': 'Not Generated',
     'common.selected': 'selected',
     'common.status.open': 'Open',
+    'common.statistics': 'Statistics',
+    'common.passRate': 'Pass Rate',
+    'common.activity': 'Activity',
+    'common.package': 'Package',
 
     // Home
     'home.welcome': 'Welcome',
@@ -277,11 +281,14 @@ const translations: Record<Language, Record<string, string>> = {
     'itr.saveError': 'ITR save failed, please ensure backend is running and try again.',
 
     // Checklist
-    'checklist.title': 'Checklist',
+    'checklist.title': 'Checklist List',
     'checklist.listTitle': 'Checklist Records',
     'checklist.addNew': 'New Checklist',
-    'checklist.status.pass': 'Pass',
+    'checklist.searchPlaceholder': 'Search Checklist...',
+    'checklist.recordNotFound': 'Record not found',
+    'checklist.selectNoi': 'Select NOI',
     'checklist.status.ongoing': 'Ongoing',
+    'checklist.status.pass': 'Pass',
     'checklist.status.fail': 'Fail',
 
     // NCR
@@ -462,7 +469,7 @@ const translations: Record<Language, Record<string, string>> = {
     'contractors.editContractor': 'Edit Contractor',
     'contractors.package': 'Package',
     'contractors.abbreviation': 'Vendor Code',
-    'contractors.name': 'Contractor Name',
+    'contractors.name': 'Contractor',
     'contractors.scope': 'Scope',
     'contractors.contactPerson': 'Contact Person',
     'contractors.contact': 'Contact Person',
@@ -785,6 +792,10 @@ const translations: Record<Language, Record<string, string>> = {
     'common.notGenerated': '未產生',
     'common.selected': '已選擇',
     'common.status.open': '開啟',
+    'common.statistics': '統計數據',
+    'common.passRate': '合格率',
+    'common.activity': '施工作業',
+    'common.package': '分包項目',
 
     // Form
     'form.requiredHint': '打*的欄位為必填',
@@ -1157,12 +1168,15 @@ const translations: Record<Language, Record<string, string>> = {
     'status.void': '廢止',
 
     // Checklist
-    'checklist.title': 'Checklist',
-    'checklist.listTitle': 'Checklist Records',
-    'checklist.addNew': 'New Checklist',
-    'checklist.status.pass': 'Pass',
-    'checklist.status.ongoing': 'Ongoing',
-    'checklist.status.fail': 'Fail',
+    'checklist.title': '檢查表列表',
+    'checklist.listTitle': '檢查表紀錄',
+    'checklist.addNew': '新增檢查表',
+    'checklist.searchPlaceholder': '搜尋檢查表...',
+    'checklist.recordNotFound': '找不到紀錄',
+    'checklist.selectNoi': '選擇 NOI',
+    'checklist.status.ongoing': '進行中',
+    'checklist.status.pass': '合格',
+    'checklist.status.fail': '不合格',
 
     // ITP
     'itp.title': 'ITP 列表',

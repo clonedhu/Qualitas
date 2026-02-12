@@ -413,5 +413,20 @@
   "iam.placeholder.password": "Enter password (min 8 chars)",
   "iam.placeholder.confirmPassword": "Confirm password",
   "iam.passwordMismatch": "Passwords do not match",
-  "iam.passwordTooShort": "Password must be at least 8 characters"
+  "iam.passwordTooShort": "Password must be at least 8 characters",
+  "checklist.title": "Checklist List",
+  "checklist.addNew": "New Checklist",
+  "checklist.searchPlaceholder": "Search Checklist...",
+  "checklist.listTitle": "Checklist Records",
+  "checklist.recordNotFound": "Record not found",
+  "checklist.selectNoi": "Select NOI",
+  "checklist.status.ongoing": "Ongoing",
+  "checklist.status.pass": "Pass",
+  "checklist.status.fail": "Fail",
+  "common.statistics": "Statistics",
+  "common.passRate": "Pass Rate",
+  "common.saving": "Saving...",
+  "common.saveFailed": "Save failed, please try again later.",
+  "common.activity": "Activity",
+  "common.package": "Package"
 }

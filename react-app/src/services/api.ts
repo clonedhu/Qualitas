@@ -228,6 +228,13 @@ export interface ChecklistRecordApi {
   packageName: string;
   location?: string;
   itpIndex: number;
+  contractor?: string;
+  itpId?: string;
+  itpVersion?: string;
+  passCount?: number;
+  failCount?: number;
+  itrId?: string;
+  itrNumber?: string;
   detail_data?: string;
 }
 
@@ -239,11 +246,21 @@ export interface CreateChecklistPayload {
   packageName: string;
   location?: string;
   itpIndex: number;
+  contractor?: string;
+  itpId?: string;
+  itpVersion?: string;
+  passCount?: number;
+  failCount?: number;
+  itrId?: string;
+  itrNumber?: string;
   detail_data?: string;
 }
 
 export const getChecklists = async (params?: FilterParams): Promise<ChecklistRecordApi[]> => {
-  const response = await api.get<ChecklistRecordApi[]>('/checklist', { params });
+  const queryParams: any = { ...params };
+  if (params?.itrId) queryParams.itr_id = params.itrId;
+  if (params?.noiNumber) queryParams.noi_number = params.noiNumber;
+  const response = await api.get<ChecklistRecordApi[]>('/checklist', { params: queryParams });
   return response.data;
 };
 

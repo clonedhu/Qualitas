@@ -8,94 +8,10 @@ import {
   CheckCircle2, ChevronDown, Calendar, Hash, Tag, FileCheck, ShieldCheck, HardHat, User, Building2, Trash2, ArrowDown
 } from 'lucide-react';
 import { BackButton } from '../ui/BackButton';
-
-// --- 定義施工階段結構 ---
-const PHASES = [
-  { code: "A", title: "A. Before Construction (施工前)", color: "bg-slate-200" },
-  { code: "B", title: "B. During Construction (施工中)", color: "bg-blue-100" },
-  { code: "C", title: "C. After Construction (施工後)", color: "bg-emerald-100" }
-];
-
-// --- 初始資料庫數據 ---
-const INITIAL_ITEMS = [
-  // --- Phase A ---
-  {
-    phase: "A", id: "A1", activity: { en: "Length", ch: "長度" }, standard: "CNS 2602", criteria: "22m ±0.3% / 25m ±0.3%",
-    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: { en: "Tape measure", ch: "捲尺" }, frequency: "-",
-    vp: { sub: "", teco: "", employer: "", hse: "" }, record: "-"
-  },
-  {
-    phase: "A", id: "A2", activity: { en: "Thickness", ch: "厚度" }, standard: "CNS 2602", criteria: "100mm -2/+40mm",
-    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: { en: "Tape measure", ch: "捲尺" }, frequency: "-",
-    vp: { sub: "", teco: "", employer: "", hse: "" }, record: "-"
-  },
-  {
-    phase: "A", id: "A3", activity: { en: "Outer Diameter", ch: "外徑" }, standard: "CNS 2602", criteria: "600mm -4/+7mm",
-    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: { en: "Tape measure", ch: "捲尺" }, frequency: "-",
-    vp: { sub: "", teco: "", employer: "", hse: "" }, record: "-"
-  },
-  {
-    phase: "A", id: "A4", activity: { en: "Quantity", ch: "數量" }, standard: "Shipping Order", criteria: "Meet shipping order",
-    checkTime: { en: "Deliver to site", ch: "運抵工地" }, method: { en: "Visual", ch: "目視檢查" }, frequency: "Each Time",
-    vp: { sub: "H", teco: "W", employer: "R", hse: "" }, record: "ITP-PL-01"
-  },
-  {
-    phase: "A", id: "A5", activity: { en: "Stakeout", ch: "放樣" }, standard: "HL-ONS-TECO-STR-DWG-02000", criteria: "Meet design req.",
-    checkTime: { en: "Before construction", ch: "施工前" }, method: { en: "Tape Measure", ch: "捲尺" }, frequency: "Each Time",
-    vp: { sub: "H", teco: "H", employer: "H", hse: "" }, record: "ITP-SV-01"
-  },
-  // --- Phase B ---
-  {
-    phase: "B", id: "B1", activity: { en: "Foundation piling position", ch: "基礎打設座標" }, standard: "HL-ONS-TECO-STR-DWG-02000", criteria: "Tolerance ± 7.5 cm",
-    checkTime: { en: "During Piling", ch: "打樁時" }, method: { en: "Total Station", ch: "全站儀" }, frequency: "Each Pile",
-    vp: { sub: "H", teco: "H", employer: "H", hse: "" }, record: "QTS-RKS-HL-CHK-000001"
-  },
-  {
-    phase: "B", id: "B2", activity: { en: "Pile Elevation", ch: "基礎高程" }, standard: "HL-ONS-TECO-GEO-DWG-08000", criteria: "Tolerance ± 7.5 cm",
-    checkTime: { en: "After Piling", ch: "打樁後" }, method: { en: "Total Station", ch: "全站儀" }, frequency: "Each Pile",
-    vp: { sub: "H", teco: "W", employer: "R", hse: "" }, record: "ITP-PL-04"
-  },
-  {
-    phase: "B", id: "B3", activity: { en: "Pile Joint", ch: "樁頭檢查" }, standard: "CNS 2602", criteria: "No Oil, Rust, Dust",
-    checkTime: { en: "Before Welding", ch: "焊接前" }, method: { en: "Visual", ch: "目視" }, frequency: "Each Pile",
-    vp: { sub: "H", teco: "W", employer: "W", hse: "※" }, record: "ITP-PL-02"
-  },
-  {
-    phase: "B", id: "B4", activity: { en: "Welding", ch: "焊接" }, standard: "CNS 13341", criteria: "No Defect (無缺失)",
-    checkTime: { en: "After Welding", ch: "焊接後" }, method: { en: "NDT - MT", ch: "MT 檢測" }, frequency: "1/50 pcs",
-    vp: { sub: "H", teco: "W", employer: "W", hse: "※" }, record: "ITP-PL-02"
-  },
-  {
-    phase: "B", id: "B5", activity: { en: "Verticality of Pile", ch: "基礎垂直度" }, standard: "HL-ONS-TECO-GEO-DWG-08000", criteria: "< 1/75",
-    checkTime: { en: "During Piling", ch: "打樁時" }, method: { en: "Spirit Level Ruler", ch: "水平尺" }, frequency: "Each Pile",
-    vp: { sub: "H", teco: "W", employer: "W", hse: "" }, record: "ITP-PL-02&04"
-  },
-  {
-    phase: "B", id: "B6", activity: { en: "Hit number of hammers", ch: "打擊次數" }, standard: "HL-ONS-TECO-ENG-PLN-00005", criteria: "< 2000 hits",
-    checkTime: { en: "During Piling", ch: "打樁時" }, method: { en: "Visual", ch: "目視" }, frequency: "Each Pile",
-    vp: { sub: "H", teco: "W", employer: "W", hse: "" }, record: "ITP-PL-02&04"
-  },
-  // --- Phase C ---
-  {
-    phase: "C", id: "C1", activity: { en: "Pile Position", ch: "樁位複測" }, standard: "HL-ONS-TECO-STR-", criteria: "Tolerance < 7.5cm",
-    checkTime: { en: "After Piling", ch: "打樁後" }, method: { en: "Total Station", ch: "全站儀" }, frequency: "Each Pile",
-    vp: { sub: "H", teco: "W", employer: "W", hse: "" }, record: "ITP-PL-03"
-  }
-];
-
-// --- 空白項目模板 ---
-const EMPTY_ITEM = {
-  phase: "B",
-  id: "",
-  activity: { en: "", ch: "" },
-  standard: "",
-  criteria: "",
-  checkTime: { en: "", ch: "" },
-  method: { en: "", ch: "" },
-  frequency: "",
-  vp: { sub: "", teco: "", employer: "", hse: "" },
-  record: "-"
-};
+import { toast } from 'sonner';
+import { InspectionItem, ITPData } from '../../types/itp';
+import { PHASES, INITIAL_ITEMS, EMPTY_ITEM } from '../../constants/itp';
+import './ITPDetail.print.css';
 
 // --- VP 標籤元件 ---
 const VPBadge = ({ type }: { type: string }) => {
@@ -115,13 +31,15 @@ const VPBadge = ({ type }: { type: string }) => {
   );
 };
 
+
+
 const ITPDetail: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { itrList } = useITR();
   // NOTE: 初始為空陣列，避免所有 ITP 顯示相同的硬編碼資料
-  const [items, setItems] = useState<any[]>([]);
-  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [items, setItems] = useState<InspectionItem[]>([]);
+  const [editingItem, setEditingItem] = useState<InspectionItem | null>(null);
   const [workTitle, setWorkTitle] = useState(""); // 工項標題狀態
   const [referenceNo, setReferenceNo] = useState(""); // Form No.
   const [viewingItrItem, setViewingItrItem] = useState<any | null>(null);
@@ -153,7 +71,7 @@ const ITPDetail: React.FC = () => {
 
           // 從後端載入檢查項目；若 detail_data 為空則保持空陣列
           if (details && (details.a || details.b || details.c)) {
-            const loadedItems = [
+            const loadedItems: InspectionItem[] = [
               ...(details.a || []).map((i: any, index: number) => ({ ...i, phase: 'A', id: `A${index + 1}` })),
               ...(details.b || []).map((i: any, index: number) => ({ ...i, phase: 'B', id: `B${index + 1}` })),
               ...(details.c || []).map((i: any, index: number) => ({ ...i, phase: 'C', id: `C${index + 1}` })),
@@ -191,10 +109,10 @@ const ITPDetail: React.FC = () => {
       };
 
       await api.put(`/itp/${id}/detail`, payload);
-      alert("Saved successfully!");
+      toast.success("Saved successfully!");
     } catch (error) {
       console.error("Failed to save ITP:", error);
-      alert("Failed to save document.");
+      toast.error("Failed to save document.");
     } finally {
       setSaving(false);
     }
@@ -215,7 +133,7 @@ const ITPDetail: React.FC = () => {
   };
 
   // 開啟編輯模式 (Existing Item)
-  const handleEditClick = (item: any) => {
+  const handleEditClick = (item: InspectionItem) => {
     setEditingItem({ ...item, isNew: false });
   };
 
@@ -264,11 +182,21 @@ const ITPDetail: React.FC = () => {
     setEditingItem(null);
   };
 
-  const handleChange = (field: string, value: string, subField: string | null = null) => {
-    if (subField) {
-      setEditingItem((prev: any) => ({ ...prev, [field]: { ...prev[field], [subField]: value } }));
+  const handleChange = (field: keyof InspectionItem, value: string, subField: string | null = null) => {
+    if (subField && editingItem) {
+      setEditingItem((prev: InspectionItem | null) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          [field]: {
+            ...(prev[field as keyof InspectionItem] as any),
+            [subField]: value
+          }
+        };
+      });
     } else {
-      setEditingItem((prev: any) => {
+      setEditingItem((prev: InspectionItem | null) => {
+        if (!prev) return null;
         const updated = { ...prev, [field]: value };
         // 如果變更 Phase 或 Insert Position，自動更新 ID
         if (prev.isNew) {
@@ -284,7 +212,10 @@ const ITPDetail: React.FC = () => {
   };
 
   const handleVPChange = (role: string, value: string) => {
-    setEditingItem((prev: any) => ({ ...prev, vp: { ...prev.vp, [role]: value } }));
+    setEditingItem((prev: InspectionItem | null) => {
+      if (!prev) return null;
+      return { ...prev, vp: { ...prev.vp, [role]: value } as any };
+    });
   };
 
   const handleDelete = (itemId: string) => {
@@ -295,64 +226,6 @@ const ITPDetail: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50/50 font-sans text-slate-800 p-4 md:p-8 overflow-x-auto relative selection:bg-blue-100 selection:text-blue-900">
-      <style>
-        {`
-          @media print {
-            @page {
-              size: landscape;
-              margin: 1cm;
-            }
-            
-            /* Hide non-print elements */
-            .no-print {
-              display: none !important;
-            }
-
-            /* Reset body and container for printing */
-            body {
-              background: white !important;
-              color: black !important;
-              margin: 0 !important;
-              padding: 0 !important;
-            }
-
-            .print-container {
-              width: 100% !important;
-              max-width: none !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              box-shadow: none !important;
-              border: none !important;
-              display: block !important;
-            }
-
-            /* Force black borders for table */
-            table, th, td {
-              border: 1px solid black !important;
-              border-collapse: collapse !important;
-            }
-
-            /* Ensure all cells are visible */
-            th, td {
-              overflow: visible !important;
-              white-space: normal !important;
-            }
-
-            /* Avoid page breaks inside rows */
-            tr {
-              page-break-inside: avoid;
-              break-inside: avoid;
-            }
-
-            /* Ensure the blue top bar prints (if desired) or remove it */
-            .bg-gradient-to-r {
-              print-color-adjust: exact;
-              -webkit-print-color-adjust: exact;
-            }
-          }
-        `}
-      </style>
-
       {/* Back Button & Toolbar */}
       <div className="max-w-[1400px] min-w-[1024px] mx-auto mb-6 flex items-center justify-between no-print">
         <BackButton
@@ -708,7 +581,7 @@ const ITPDetail: React.FC = () => {
                               } else {
                                 // Fallback: if not found in context (might be manually entered or not synced), 
                                 // we could still show a basic view or alert
-                                alert('Record document data not found in current list.');
+                                toast.error('Record document data not found in current list.');
                               }
                             }}
                             className="inline-flex items-center px-2.5 py-1.5 rounded-md bg-white text-slate-900 hover:text-blue-800 hover:bg-blue-50 transition-colors font-mono text-xs font-bold border border-slate-300 hover:border-blue-400 whitespace-nowrap shadow-sm group/itr"

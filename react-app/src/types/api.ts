@@ -5,4 +5,6 @@ export interface FilterParams {
     end_date?: string;
     skip?: number;
     limit?: number;
+    itrId?: string;
+    noiNumber?: string;
 }
