@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getNextRevision } from '../../utils/revision';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useContractors } from '../../context/ContractorsContext';
@@ -261,11 +262,32 @@ export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingD
     };
 
     const handleSave = async () => {
+        if (!formData.noiNumber) {
+            alert(t('itr.validation.noiRequired') || 'Please select an NOI Number.');
+            return;
+        }
         try {
             await onSave(formData);
             onClose();
         } catch (_) {
             // 錯誤已在父層 handleSaveITRDetails 以 alert 顯示，保持 modal 開啟
+        }
+    };
+
+    const handlePublish = async () => {
+        const nextRev = getNextRevision(formData.type || 'Rev0.0'); // Default to Rev0.0 if empty so it becomes Rev1.0
+        if (window.confirm(`Are you sure you want to publish as ${nextRev}?`)) {
+            try {
+                await onSave({
+                    ...formData,
+                    type: nextRev,
+                    status: 'Approved' // ITR usually approves on publish? Or keep existing? Plan says optional.
+                    // Let's keep status update optional or implicit. 
+                });
+                onClose();
+            } catch (_) {
+                // Error handled in parent
+            }
         }
     };
 
@@ -611,6 +633,14 @@ export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingD
                                 <div className={styles.modalActions}>
                                     <button className={styles.saveButton} onClick={handleSave}>
                                         {t('common.save')}
+                                    </button>
+                                    <button
+                                        className={styles.saveButton}
+                                        onClick={handlePublish}
+                                        style={{ backgroundColor: '#4f46e5', marginLeft: '12px' }}
+                                        title="Publish as next revision"
+                                    >
+                                        Publish
                                     </button>
                                     <button className={styles.cancelButton} onClick={onClose}>
                                         {t('common.cancel')}

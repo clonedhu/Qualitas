@@ -3,6 +3,18 @@ import api from '../services/api';
 import { parseJsonFields } from '../utils/normalizeApiItem';
 import { useErrorHandler } from '../hooks/useErrorHandler';
 
+export interface ITPInspectionItem {
+  id: string;
+  itemNo: string;
+  activity: string;
+  referenceDoc: string;
+  acceptanceCriteria: string;
+  verifyingDocuments: string;
+  checkpointContractor: string;
+  checkpointMainCon: string;
+  checkpointClient: string;
+}
+
 export interface ITPItem {
   id: string;
   vendor: string;
@@ -14,13 +26,23 @@ export interface ITPItem {
   remark: string;
   submissionDate?: string;
   hasDetails?: boolean;
-  detail_data?: string;
+  detail_data?: ITPInspectionItem[];
   attachments?: string[];
   dueDate?: string;
 }
 
 function normalizeItem(item: unknown): ITPItem {
   const record = (typeof item === 'object' && item !== null ? { ...item } : {}) as Record<string, unknown>;
+
+  // Ensure detail_data is an array
+  if (record.detail_data && typeof record.detail_data === 'string') {
+    try {
+      record.detail_data = JSON.parse(record.detail_data);
+    } catch (e) {
+      record.detail_data = [];
+    }
+  }
+
   return parseJsonFields(record, ['defectPhotos', 'improvementPhotos', 'attachments']) as unknown as ITPItem;
 }
 
@@ -33,6 +55,7 @@ interface ITPContextType {
   refetch: (params?: FilterParams) => Promise<void>;
   addITP: (itp: Omit<ITPItem, 'id'>) => Promise<ITPItem>;
   updateITP: (id: string, itp: Partial<ITPItem>) => Promise<void>;
+  updateITPDetail: (id: string, detail: any) => Promise<void>;
   deleteITP: (id: string) => Promise<void>;
   getITPList: () => ITPItem[];
   getITPByVendor: (vendor: string) => ITPItem[];
@@ -52,7 +75,7 @@ export const ITPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       const response = await api.get('/itp/', { params });
       const data = response.data;
-      setItpList(data || []);
+      setItpList(data?.map(normalizeItem) || []);
     } catch (err) {
       const msg = handleError(err, 'Failed to fetch ITPs');
       setError(msg);
@@ -76,6 +99,7 @@ export const ITPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         remark: itp.remark ?? '',
         submissionDate: itp.submissionDate ?? null,
         hasDetails: itp.hasDetails ?? false,
+        detail_data: itp.detail_data ?? [],
       };
       const response = await api.post('/itp/', payload);
       const newITP = response.data;
@@ -102,6 +126,16 @@ export const ITPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [itpList, handleError]);
 
+  const updateITPDetail = useCallback(async (id: string, detail: any) => {
+    try {
+      const response = await api.put(`/itp/${id}/detail`, detail);
+      setItpList(prev => prev.map(i => (i.id === id ? normalizeItem(response.data) : i)));
+    } catch (error) {
+      handleError(error, 'Failed to update ITP details');
+      throw error;
+    }
+  }, [handleError]);
+
   const deleteITP = useCallback(async (id: string) => {
     try {
       await api.delete(`/itp/${id}`);
@@ -121,8 +155,8 @@ export const ITPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const value = useMemo(
-    () => ({ itpList, loading, error, refetch: fetchITPs, addITP, updateITP, deleteITP, getITPList, getITPByVendor }),
-    [itpList, loading, error, fetchITPs, addITP, updateITP, deleteITP, getITPList, getITPByVendor]
+    () => ({ itpList, loading, error, refetch: fetchITPs, addITP, updateITP, updateITPDetail, deleteITP, getITPList, getITPByVendor }),
+    [itpList, loading, error, fetchITPs, addITP, updateITP, updateITPDetail, deleteITP, getITPList, getITPByVendor]
   );
 
   return (

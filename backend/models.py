@@ -374,3 +374,35 @@ class Attachment(Base):
     uploaded_by = Column(String, nullable=True)                # 上傳者使用者名稱
     uploaded_at = Column(String, nullable=False)               # ISO 格式時間戳
     is_deleted = Column(Boolean, default=False, index=True)    # 軟刪除標記
+
+
+class FAT(Base):
+    """
+    Factory Acceptance Test (FAT) 模型
+    """
+    __tablename__ = "fat"
+
+    id = Column(String, primary_key=True, index=True)
+    equipment = Column(String, index=True)
+    supplier = Column(String, ForeignKey("contractors.name"), index=True)
+    procedure = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+    startDate = Column(String, nullable=True)
+    endDate = Column(String, nullable=True)
+    deliveryFrom = Column(String, nullable=True)
+    deliveryTo = Column(String, nullable=True)
+    siteReadiness = Column(String, nullable=True)
+    moveInDate = Column(String, nullable=True)
+    status = Column(String, default="Scheduled")
+    hasDetails = Column(Boolean, default=False)
+    detail_data = Column(Text, nullable=True)  # JSON: List of FATDetailItem
+    attachments = Column(Text, nullable=True)
+    created_at = Column(String, nullable=True)
+    updated_at = Column(String, nullable=True)
+
+    # Relationships
+    vendor_ref = relationship("Contractor", back_populates="fats")
+
+# Monkey patch Contractor to add 'fats' relationship
+Contractor.fats = relationship("FAT", back_populates="vendor_ref")
+

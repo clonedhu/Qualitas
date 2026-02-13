@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getNextRevision } from '../../utils/revision';
 import { useLanguage } from '../../context/LanguageContext';
 import { useContractors } from '../../context/ContractorsContext';
 import { PQPItem } from '../../context/PQPContext';
@@ -133,6 +134,26 @@ export const PQPDetailModal: React.FC<PQPDetailModalProps> = ({ pqpId, existingI
             setSaveError((err as Error)?.message || t('pqp.saveError'));
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handlePublish = async () => {
+        if (!validate()) return;
+        const nextRev = getNextRevision(formData.version || 'Rev0.0');
+        if (window.confirm(`Are you sure you want to publish as ${nextRev}?`)) {
+            setSaving(true);
+            try {
+                await onSave({
+                    ...formData,
+                    version: nextRev,
+                    status: 'Approved'
+                });
+                onClose();
+            } catch (err) {
+                setSaveError((err as Error)?.message || t('pqp.saveError'));
+            } finally {
+                setSaving(false);
+            }
         }
     };
 
@@ -293,6 +314,16 @@ export const PQPDetailModal: React.FC<PQPDetailModalProps> = ({ pqpId, existingI
                 <div className={styles.modalActions}>
                     <button type="button" className={styles.saveButton} onClick={handleSave} disabled={saving}>
                         {saving ? t('pqp.saving') : t('common.save')}
+                    </button>
+                    <button
+                        type="button"
+                        className={styles.saveButton}
+                        onClick={handlePublish}
+                        disabled={saving}
+                        style={{ backgroundColor: '#4f46e5', marginLeft: '12px' }}
+                        title="Publish as next revision"
+                    >
+                        Publish
                     </button>
                     <button type="button" className={styles.cancelButton} onClick={onClose} disabled={saving}>
                         {t('common.cancel')}

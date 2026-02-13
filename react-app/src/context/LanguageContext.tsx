@@ -720,6 +720,8 @@ const translations: Record<Language, Record<string, string>> = {
     'reject': 'Reject',
     'resample': 'Resample',
     'common.total': 'Total',
+    'itp.tab.generalInfo': 'General Information',
+    'itp.tab.inspectionPlan': 'Inspection Plan',
   },
 
   zh: {
@@ -1303,6 +1305,8 @@ const translations: Record<Language, Record<string, string>> = {
     'itp.detail.saveErrorGeneric': '儲存失敗，請稍後再試。',
     'itp.detail.missingId': '無法儲存：缺少 ITP 編號',
     'common.total': '合計',
+    'itp.tab.generalInfo': '基本資訊',
+    'itp.tab.inspectionPlan': '檢驗計畫',
     'audit.total': '總計',
     'audit.schedule': '稽核排程',
     'audit.totalAudits': '稽核總數',

@@ -10,7 +10,7 @@ import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './ITP.module.css';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
-import { ITPDetailModal, ITPDetailsViewModal } from './ITPModals';
+import { ITPDetailModal } from './ITPModals';
 import { BackButton } from '@/components/ui/BackButton';
 import { useDebounce } from '../../hooks/useDebounce';
 
@@ -18,7 +18,7 @@ const ITP: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { getActiveContractors } = useContractors();
-  const { itpList, loading, error, refetch, addITP, updateITP, deleteITP } = useITP();
+  const { itpList, loading, error, refetch, addITP, updateITP, updateITPDetail, deleteITP } = useITP();
   const { noiList } = useNOI();
 
   // Search & Filter States
@@ -38,9 +38,7 @@ const ITP: React.FC = () => {
 
   // Modal States
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [currentItpId, setCurrentItpId] = useState<string | null>(null);
-  const [viewingItpId, setViewingItpId] = useState<string | null>(null);
 
   // Delete Confirmation State
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null; message: string }>({
@@ -95,15 +93,6 @@ const ITP: React.FC = () => {
       approvalMaturity,
     };
   }, [itpList]);
-
-  const handleAdd = (id: string) => {
-    navigate(`/itp/${id}`);
-  };
-
-  const handleViewDetails = (id: string) => {
-    setViewingItpId(id);
-    setIsDetailsModalOpen(true);
-  };
 
   const handleEdit = (id: string) => {
     setCurrentItpId(id);
@@ -339,7 +328,7 @@ const ITP: React.FC = () => {
                   </button>
                 </div>
               }
-              columns={createColumns(handleEdit, handleViewDetails, handleAdd, confirmDelete, navigate, t, getActiveContractors(), noiList)}
+              columns={createColumns(handleEdit, confirmDelete, navigate, t, getActiveContractors(), noiList)}
               data={processedData}
               searchKey=""
               getRowClassName={(row) =>
@@ -365,9 +354,12 @@ const ITP: React.FC = () => {
         <ITPDetailModal
           itpId={currentItpId}
           existingItem={itpList.find(item => item.id === currentItpId)}
-          onSave={async (updates) => {
+          onSave={async (updates, details) => {
             try {
               await updateITP(currentItpId, updates);
+              if (details) {
+                await updateITPDetail(currentItpId, details);
+              }
               setIsEditModalOpen(false);
               setCurrentItpId(null);
             } catch (error: any) {
@@ -382,16 +374,7 @@ const ITP: React.FC = () => {
         />
       )}
 
-      {isDetailsModalOpen && viewingItpId && (
-        <ITPDetailsViewModal
-          itpId={viewingItpId}
-          itpItem={itpList.find(item => item.id === viewingItpId)}
-          onClose={() => {
-            setIsDetailsModalOpen(false);
-            setViewingItpId(null);
-          }}
-        />
-      )}
+
     </div>
   );
 };

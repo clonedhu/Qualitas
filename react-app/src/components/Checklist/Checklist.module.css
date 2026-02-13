@@ -482,34 +482,53 @@
     color: #000;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     position: relative;
+    display: none;
+    /* Hide by default, show only in print */
+}
+
+@page {
+    size: auto;
+    margin: 0mm;
 }
 
 @media print {
-    :global(body) {
-        visibility: hidden;
+
+    /* Hide the main application */
+    :global(#root) {
+        display: none !important;
     }
 
-    .printablePage {
-        visibility: visible;
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 210mm;
-        height: auto;
-        min-height: 297mm;
-        padding: 10mm;
-        margin: 0;
-        box-shadow: none;
-        background: white;
+    :global(body) {
+        margin: 0 !important;
+        padding: 0 !important;
+        visibility: visible !important;
+    }
+
+    /* Style the portal root for printing */
+    :global(#checklist-print-root) {
+        display: block !important;
+        position: static !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 20mm !important;
+        /* Adjust padding as needed */
+        visibility: visible !important;
+        background: white !important;
+        color: black !important;
         z-index: 9999;
     }
 
-    .printablePage * {
-        visibility: visible;
-    }
-
-    .printHidden {
-        display: none !important;
+    /* Ensure table inputs are clean for printing */
+    .tableInput,
+    .infoValue textarea,
+    .infoValue input {
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+        resize: none !important;
+        box-shadow: none !important;
     }
 }
 

@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { Plus, Printer, FileText, Info, MapPin, Calendar, CheckCircle, AlertCircle, Trash2, XCircle, Check, HelpCircle, User, Signature } from 'lucide-react';
@@ -113,20 +114,29 @@ const Checklist: React.FC = () => {
     // Transform dynamic itpList into itpDatabase format
     const dynamicItpDatabase = useMemo(() => {
         const baseDb: ItpItemDefinition[] = itpDatabase;
-        const dynamicItems: ItpItemDefinition[] = itpList.filter(itp => itp.hasDetails && itp.detail_data).map(itp => {
-            const parsed = JSON.parse(itp.detail_data!);
-            return {
-                id: itp.id,
-                rev: itp.rev,
-                eventNo: itp.referenceNo || '',
-                activity: itp.description || '',
-                standard: parsed.standard || '',
-                criteria: parsed.criteria || '',
-                stage: parsed.stage || 'Before',
-                recordForm: parsed.recordForm || 'CHK-GEN-01',
-                defaultItems: parsed.items || []
-            };
-        });
+        const dynamicItems: ItpItemDefinition[] = itpList
+            .filter(itp => itp.hasDetails && Array.isArray(itp.detail_data) && itp.detail_data.length > 0)
+            .map(itp => {
+                // detail_data is already ITPInspectionItem[]
+                const items = itp.detail_data!.map(d => ({
+                    item: d.activity,
+                    criteria: d.acceptanceCriteria,
+                    situation: "",
+                    result: ""
+                }));
+
+                return {
+                    id: itp.id,
+                    rev: itp.rev,
+                    eventNo: itp.referenceNo || '',
+                    activity: itp.description || '',
+                    standard: '', // Not in ITPInspectionItem
+                    criteria: '', // Not in ITPInspectionItem (it's per item now)
+                    stage: 'Before', // Default
+                    recordForm: 'CHK-GEN-01', // Default or need new field
+                    defaultItems: items
+                };
+            });
         const merged = [...baseDb, ...dynamicItems];
         const unique = merged.reduce((acc, current) => {
             if (!acc.find(item => item.activity === current.activity)) {
@@ -138,26 +148,10 @@ const Checklist: React.FC = () => {
     }, [itpList]);
 
     // --- UI/UX for Activity Selection ---
-    const [showActivityModal, setShowActivityModal] = useState(false);
-    const [tempActivityName, setTempActivityName] = useState('');
-    const [customActivityName, setCustomActivityName] = useState('');
-
     const handleAddNew = () => {
-        setTempActivityName('');
-        setShowActivityModal(true);
-    };
-
-    const confirmActivitySelection = () => {
-        const matchIndex = dynamicItpDatabase.findIndex(itp => itp.activity === tempActivityName);
-        if (matchIndex >= 0) {
-            setSelectedItpIndex(matchIndex);
-        } else {
-            setSelectedItpIndex(0); // Default empty template
-        }
-        setCustomActivityName(tempActivityName);
-        setEditingRecord(null); // Ensure we are in create mode
+        setSelectedItpIndex(0);
+        setEditingRecord(null);
         setView('editor');
-        setShowActivityModal(false);
     };
 
     const handleEdit = (record: ChecklistRecord) => {
@@ -176,47 +170,9 @@ const Checklist: React.FC = () => {
 
     return (
         <div className={styles.container}>
-            {/* Activity Selection Modal */}
-            {showActivityModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-[400px] shadow-xl">
-                        <h2 className="text-xl font-bold mb-4">Select Activity</h2>
-                        <div className="mb-6">
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Activity (ITP)
-                            </label>
-                            <input
-                                className="w-full border rounded-md p-2"
-                                value={tempActivityName}
-                                onChange={(e) => setTempActivityName(e.target.value)}
-                                list="itp-options"
-                                placeholder="Enter or select activity..."
-                            />
-                            <datalist id="itp-options">
-                                {dynamicItpDatabase.map((itp, idx) => (
-                                    <option key={idx} value={itp.activity || `Template ${idx + 1}`} />
-                                ))}
-                            </datalist>
-                        </div>
-                        <div className="flex justify-end gap-2">
-                            <button
-                                onClick={() => setShowActivityModal(false)}
-                                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={confirmActivitySelection}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                            >
-                                Confirm
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
-            <div className={styles.header}>
+
+            <div className={`${styles.header} print:hidden`}>
                 <div className={styles.headerLeft}>
                     <BackButton onClick={handleBack} />
                     <h1> {t('checklist.title') || 'Checklist Management'}</h1>
@@ -347,7 +303,6 @@ const Checklist: React.FC = () => {
                         }
                     }}
                     selectedItpIndex={selectedItpIndex}
-                    customActivityName={customActivityName}
                     dynamicItpDatabase={dynamicItpDatabase}
                 />
             )}
@@ -356,13 +311,12 @@ const Checklist: React.FC = () => {
 };
 
 
-const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, customActivityName, dynamicItpDatabase }: {
+const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, dynamicItpDatabase }: {
     record: ChecklistRecord | null,
     onCancel: () => void,
     onSave: (data: any) => Promise<void>,
     saving?: boolean,
     selectedItpIndex: number,
-    customActivityName?: string,
     dynamicItpDatabase: ItpItemDefinition[]
 }) => {
     const { t } = useLanguage();
@@ -407,7 +361,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, c
                 recordsNo: "[AUTO-GENERATE]",
                 packageName: "",
                 contractor: "",
-                activity: customActivityName || initialItp.activity || '',
+                activity: initialItp.activity || '',
                 inspectionDate: new Date().toISOString().slice(0, 10),
                 location: "",
                 stage: initialItp.stage || 'Before',
@@ -450,7 +404,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, c
             }));
             setFormData((prev: any) => ({
                 ...prev,
-                activity: customActivityName || itp.activity || '',
+                activity: itp.activity || '',
                 stage: itp.stage || 'Before',
                 items: generatedItems,
                 // Do not overwrite other fields if they are already set?
@@ -459,7 +413,25 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, c
         }
     }, [selectedItpIndex, record, dynamicItpDatabase]);
 
-    const handlePrint = () => window.print();
+    const [isPrinting, setIsPrinting] = useState(false);
+
+    useEffect(() => {
+        if (isPrinting) {
+            const timer = setTimeout(() => {
+                window.print();
+            }, 500); // Wait for portal to render
+
+            const onAfterPrint = () => setIsPrinting(false);
+            window.addEventListener('afterprint', onAfterPrint);
+
+            return () => {
+                clearTimeout(timer);
+                window.removeEventListener('afterprint', onAfterPrint);
+            };
+        }
+    }, [isPrinting]);
+
+    const handlePrint = () => setIsPrinting(true);
 
     // 補足空行邏輯 (A4 列印優化)
     const paddingRows = useMemo(() => {
@@ -474,11 +446,33 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, c
     return (
         <div className={styles.editorWrapper}>
             {/* --- Web view (Editing) --- */}
-            <div className={`${styles.webEditor} ${styles.printHidden}`}>
+            <div className={`${styles.webEditor} print:hidden`}>
                 <div className={styles.webHeader}>
-                    <div className={styles.webHeaderLeft}>
-                        <h1>{formData.activity || t('checklist.activityPlaceholder') || 'Field Inspection'}</h1>
-                        <p>Form ID: {displayNo}</p>
+                    <div className={styles.webHeaderLeft} style={{ flex: 1, marginRight: '20px' }}>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-xs font-bold text-slate-500 uppercase">Activity / Inspection Item</label>
+                            <input
+                                className="text-2xl font-bold text-slate-800 border-b-2 border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none bg-transparent transition-all w-full placeholder:text-slate-300"
+                                value={formData.activity}
+                                onChange={(e) => setFormData({ ...formData, activity: e.target.value })}
+                                placeholder={t('checklist.activityPlaceholder') || 'Enter Activity Name...'}
+                                list="editor-itp-options"
+                            />
+                            <datalist id="editor-itp-options">
+                                {dynamicItpDatabase.map((itp, idx) => (
+                                    <option key={idx} value={itp.activity} />
+                                ))}
+                            </datalist>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                            <span className="text-sm text-slate-500 font-bold uppercase">Form ID:</span>
+                            <input
+                                className="text-sm font-medium text-slate-700 border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:outline-none bg-transparent transition-all w-[200px]"
+                                value={formData.recordsNo || displayNo}
+                                onChange={(e) => setFormData({ ...formData, recordsNo: e.target.value })}
+                                placeholder={displayNo}
+                            />
+                        </div>
                     </div>
                     <div className={styles.webHeaderRight}>
                         <button
@@ -504,6 +498,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, c
                                 noiNumber: formData.noiNumber,
                                 itrId: formData.itrId,
                                 itrNumber: formData.itrNumber,
+                                recordsNo: formData.recordsNo, // Include manually edited recordsNo
                                 data: { ...formData },
                                 itpIndex: selectedItpIndex
                             })}
@@ -768,7 +763,7 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, c
                                     <input
                                         className={styles.modernInput}
                                         disabled={formData.agreementChecked}
-                                        value={formData.ncrNo}
+                                        value={formData.agreementChecked ? "N/A" : formData.ncrNo}
                                         placeholder="e.g. NCR-001"
                                         onChange={e => setFormData({ ...formData, ncrNo: e.target.value })}
                                     />
@@ -776,10 +771,10 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, c
                                 <div className={styles.formGroup}>
                                     <label>Re-inspection Date</label>
                                     <input
-                                        type="date"
+                                        type={formData.agreementChecked ? "text" : "date"}
                                         className={styles.modernInput}
                                         disabled={formData.agreementChecked}
-                                        value={formData.reInspectionDate}
+                                        value={formData.agreementChecked ? "N/A" : formData.reInspectionDate}
                                         onChange={e => setFormData({ ...formData, reInspectionDate: e.target.value })}
                                     />
                                 </div>
@@ -828,174 +823,178 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, c
                 </div>
             </div>
 
-            {/* --- Print View (Preserved 1pt format) --- */}
-            <div className={styles.printablePage}>
-                <table className={styles.headerTable}>
-                    <tbody>
-                        <tr>
-                            <td className={styles.headerCompanyCol}>
-                                <div className="font-bold text-lg">Qualitas</div>
-                                <div className="text-[10px] leading-tight text-slate-500 uppercase">Construction Quality Control</div>
-                            </td>
-                            <td className={styles.headerTitleCol}>
-                                <h2 className="text-xl font-black mb-1 uppercase">Field Inspection Checklist</h2>
-                                <h3 className="text-sm font-bold text-slate-700 italic">{formData.activity || '[ Activity ]'}</h3>
-                            </td>
-                            <td className={styles.headerInfoCol}>
-                                <div className={styles.headerInfoRow}>
-                                    <span className={styles.headerInfoLabel}>Doc No.</span>
-                                    <span className={styles.headerInfoValue}>{displayNo}</span>
-                                </div>
-                                <div className={styles.headerInfoRow}>
-                                    <span className={styles.headerInfoLabel}>Revision</span>
-                                    <span className={styles.headerInfoValue}>Rev.{formData.revision || '0'}</span>
-                                </div>
-                                <div className={styles.headerInfoRow}>
-                                    <span className={styles.headerInfoLabel}>Date</span>
-                                    <span className={styles.headerInfoValue}>{formData.inspectionDate}</span>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div className={styles.infoGrid}>
-                    <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>Project Title</div>
-                        <div className={styles.infoValue}>
-                            {formData.projectTitle}
-                        </div>
-                    </div>
-                    <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>ITR No.</div>
-                        <div className={styles.infoValue}>
-                            {formData.referenceNo}
-                        </div>
-                    </div>
-
-                    <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>NOI Number</div>
-                        <div className={styles.infoValue}>
-                            {formData.noiNumber}
-                        </div>
-                    </div>
-
-                    <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>Contractor</div>
-                        <div className={styles.infoValue}>
-                            {formData.contractor}
-                        </div>
-                    </div>
-
-                    <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>Insp. Date</div>
-                        <div className={styles.infoValue}>
-                            {formData.inspectionDate}
-                        </div>
-                    </div>
-                    <div className={styles.infoItem}>
-                        <div className={styles.infoLabel}>Location</div>
-                        <div className={styles.infoValue}>
-                            {formData.location}
-                        </div>
-                    </div>
-                </div>
-
-                <table className={styles.itemsTable}>
-                    <thead>
-                        <tr>
-                            <th style={{ width: '40px' }}>#</th>
-                            <th>Inspection Item</th>
-                            <th>Criteria</th>
-                            <th>Actual Situation</th>
-                            <th style={{ width: '80px' }}>Result</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {formData.items.map((item: any, idx: number) => (
-                            <tr key={idx}>
-                                <td className="text-center">{item.id}</td>
-                                <td className="font-bold">{item.item}</td>
-                                <td>{item.criteria}</td>
-                                <td>{item.situation}</td>
-                                <td className="text-center">{item.result}</td>
-                            </tr>
-                        ))}
-                        {paddingRows.map((_, idx) => (
-                            <tr key={`pad-${idx}`} style={{ height: '32px' }}>
-                                <td className="text-center"></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td className="text-center text-slate-300">/</td>
-                            </tr>
-                        ))}
-                        <tr>
-                            <td colSpan={5} className="text-center font-bold">-END-</td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div className={styles.footerSection}>
-                    <div className={styles.statementBox}>
-                        <div className="flex flex-col gap-2">
-                            <label className="flex items-start gap-2">
-                                <input type="checkbox" checked={formData.agreementChecked} readOnly className="mt-1" />
-                                <span>All inspection has been done and meet the Drawings, Criteria, Standards.</span>
-                            </label>
-                            <label className="flex items-start gap-2">
-                                <input type="checkbox" checked={!formData.agreementChecked} readOnly className="mt-1" />
-                                <span>Unfinished improvement, fill in "Non-Conformity Report" to track improvement.</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <table className={styles.signatureTable} style={{ width: '100%', borderBottom: 'none' }}>
+            {/* --- Print View (Portal) --- */}
+            {/* Always render portal but hide via CSS to support Ctrl+P */}
+            {ReactDOM.createPortal(
+                <div id="checklist-print-root" className={styles.printablePage}>
+                    <table className={styles.headerTable}>
                         <tbody>
                             <tr>
-                                <td className={styles.signatureLabelCell}>Re-inspection Date</td>
-                                <td className={styles.signatureValueCell}>
-                                    <div className="text-center">{formData.agreementChecked ? 'N/A' : formData.reInspectionDate}</div>
+                                <td className={styles.headerCompanyCol}>
+                                    <div className="font-bold text-lg">Qualitas</div>
+                                    <div className="text-[10px] leading-tight text-slate-500 uppercase">Construction Quality Control</div>
                                 </td>
-                                <td className={styles.signatureLabelCell}>NCR No.</td>
-                                <td className={styles.signatureValueCell}>
-                                    <div className="text-center">{formData.agreementChecked ? 'N/A' : formData.ncrNo}</div>
+                                <td className={styles.headerTitleCol}>
+                                    <h2 className="text-xl font-black mb-1 uppercase">Field Inspection Checklist</h2>
+                                    <h3 className="text-sm font-bold text-slate-700 italic">{formData.activity || '[ Activity ]'}</h3>
+                                </td>
+                                <td className={styles.headerInfoCol}>
+                                    <div className={styles.headerInfoRow}>
+                                        <span className={styles.headerInfoLabel}>Doc No.</span>
+                                        <span className={styles.headerInfoValue}>{displayNo}</span>
+                                    </div>
+                                    <div className={styles.headerInfoRow}>
+                                        <span className={styles.headerInfoLabel}>Revision</span>
+                                        <span className={styles.headerInfoValue}>Rev.{formData.revision || '0'}</span>
+                                    </div>
+                                    <div className={styles.headerInfoRow}>
+                                        <span className={styles.headerInfoLabel}>Date</span>
+                                        <span className={styles.headerInfoValue}>{formData.inspectionDate}</span>
+                                    </div>
                                 </td>
                             </tr>
                         </tbody>
                     </table>
 
-                    <div className={styles.bottomLayout} style={{ marginTop: '-1pt' }}>
-                        <div className={styles.remarkSection}>
-                            <div className="font-bold mb-1">Remarks:</div>
-                            <div className="text-xs">{formData.remarks}</div>
+                    <div className={styles.infoGrid}>
+                        <div className={styles.infoItem}>
+                            <div className={styles.infoLabel}>Project Title</div>
+                            <div className={styles.infoValue}>
+                                {formData.projectTitle}
+                            </div>
+                        </div>
+                        <div className={styles.infoItem}>
+                            <div className={styles.infoLabel}>ITR No.</div>
+                            <div className={styles.infoValue}>
+                                {formData.referenceNo}
+                            </div>
                         </div>
 
-                        <table className={styles.signatureTable} style={{ width: '70%', borderLeft: 'none' }}>
+                        <div className={styles.infoItem}>
+                            <div className={styles.infoLabel}>NOI Number</div>
+                            <div className={styles.infoValue}>
+                                {formData.noiNumber}
+                            </div>
+                        </div>
+
+                        <div className={styles.infoItem}>
+                            <div className={styles.infoLabel}>Contractor</div>
+                            <div className={styles.infoValue}>
+                                {formData.contractor}
+                            </div>
+                        </div>
+
+                        <div className={styles.infoItem}>
+                            <div className={styles.infoLabel}>Insp. Date</div>
+                            <div className={styles.infoValue}>
+                                {formData.inspectionDate}
+                            </div>
+                        </div>
+                        <div className={styles.infoItem}>
+                            <div className={styles.infoLabel}>Location</div>
+                            <div className={styles.infoValue}>
+                                {formData.location}
+                            </div>
+                        </div>
+                    </div>
+
+                    <table className={styles.itemsTable}>
+                        <thead>
+                            <tr>
+                                <th style={{ width: '40px' }}>#</th>
+                                <th>Inspection Item</th>
+                                <th>Criteria</th>
+                                <th>Actual Situation</th>
+                                <th style={{ width: '80px' }}>Result</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {formData.items.map((item: any, idx: number) => (
+                                <tr key={idx}>
+                                    <td className="text-center">{item.id}</td>
+                                    <td className="font-bold">{item.item}</td>
+                                    <td>{item.criteria}</td>
+                                    <td>{item.situation}</td>
+                                    <td className="text-center">{item.result}</td>
+                                </tr>
+                            ))}
+                            {paddingRows.map((_, idx) => (
+                                <tr key={`pad-${idx}`} style={{ height: '32px' }}>
+                                    <td className="text-center"></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td className="text-center text-slate-300">/</td>
+                                </tr>
+                            ))}
+                            <tr>
+                                <td colSpan={5} className="text-center font-bold">-END-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div className={styles.footerSection}>
+                        <div className={styles.statementBox}>
+                            <div className="flex flex-col gap-2">
+                                <label className="flex items-start gap-2">
+                                    <input type="checkbox" checked={formData.agreementChecked} readOnly className="mt-1" />
+                                    <span>All inspection has been done and meet the Drawings, Criteria, Standards.</span>
+                                </label>
+                                <label className="flex items-start gap-2">
+                                    <input type="checkbox" checked={!formData.agreementChecked} readOnly className="mt-1" />
+                                    <span>Unfinished improvement, fill in "Non-Conformity Report" to track improvement.</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <table className={styles.signatureTable} style={{ width: '100%', borderBottom: 'none' }}>
                             <tbody>
                                 <tr>
-                                    <td className={styles.signatureHeaderCell}>Site Engineer</td>
-                                    <td className={styles.signatureHeaderCell}>Construction Leader</td>
-                                </tr>
-                                <tr style={{ height: '60px' }}>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                                <tr>
-                                    <td colSpan={2} className={styles.signatureHeaderCell}>Subcontractor Representative</td>
-                                </tr>
-                                <tr style={{ height: '60px' }}>
-                                    <td colSpan={2}></td>
+                                    <td className={styles.signatureLabelCell}>Re-inspection Date</td>
+                                    <td className={styles.signatureValueCell}>
+                                        <div className="text-center">{formData.agreementChecked ? 'N/A' : formData.reInspectionDate}</div>
+                                    </td>
+                                    <td className={styles.signatureLabelCell}>NCR No.</td>
+                                    <td className={styles.signatureValueCell}>
+                                        <div className="text-center">{formData.agreementChecked ? 'N/A' : formData.ncrNo}</div>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
-                </div>
 
-                <div className={styles.watermark}>
-                    Generated by Qualitas Digital Inspection System
-                </div>
-            </div>
+                        <div className={styles.bottomLayout} style={{ marginTop: '-1pt' }}>
+                            <div className={styles.remarkSection}>
+                                <div className="font-bold mb-1">Remarks:</div>
+                                <div className="text-xs">{formData.remarks}</div>
+                            </div>
+
+                            <table className={styles.signatureTable} style={{ width: '70%', borderLeft: 'none' }}>
+                                <tbody>
+                                    <tr>
+                                        <td className={styles.signatureHeaderCell}>Site Engineer</td>
+                                        <td className={styles.signatureHeaderCell}>Construction Leader</td>
+                                    </tr>
+                                    <tr style={{ height: '60px' }}>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td colSpan={2} className={styles.signatureHeaderCell}>Subcontractor Representative</td>
+                                    </tr>
+                                    <tr style={{ height: '60px' }}>
+                                        <td colSpan={2}></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div className={styles.watermark}>
+                        Generated by Qualitas Digital Inspection System
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };

@@ -14,6 +14,17 @@ def validate_date_format(v: str) -> str:
         raise ValueError('日期格式必須為 YYYY-MM-DD')
     return v
 
+class ITPInspectionItem(BaseModel):
+    id: str
+    itemNo: Optional[str] = ''
+    activity: Optional[str] = ''
+    referenceDoc: Optional[str] = ''
+    acceptanceCriteria: Optional[str] = ''
+    verifyingDocuments: Optional[str] = ''
+    checkpointContractor: Optional[str] = '' # W/H/R/Surveil
+    checkpointMainCon: Optional[str] = ''
+    checkpointClient: Optional[str] = ''
+
 class ITPBase(BaseModel):
     vendor: str
     referenceNo: Optional[str] = None  # 由後端自動產生
@@ -24,7 +35,7 @@ class ITPBase(BaseModel):
     remark: Optional[str] = None
     hasDetails: Optional[bool] = False
     submissionDate: Optional[str] = None
-    detail_data: Optional[str] = None
+    detail_data: Optional[Any] = None  # Allow List/Dict/Any
     attachments: Optional[List[str]] = []
     last_reminded_at: Optional[str] = None
     dueDate: Optional[str] = None
@@ -34,9 +45,9 @@ class ITPBase(BaseModel):
     def check_dates(cls, v):
         return validate_date_format(v)
 
-    @field_validator('attachments', mode='before')
+    @field_validator('detail_data', 'attachments', mode='before')
     @classmethod
-    def parse_attachments(cls, v):
+    def parse_json_fields(cls, v):
         if isinstance(v, str):
             try:
                 return json.loads(v)
@@ -44,8 +55,15 @@ class ITPBase(BaseModel):
                 return []
         return v
 
+
 class ITPCreate(ITPBase):
     id: Optional[str] = None
+class ITPDetailBody(BaseModel):
+    a: List[Any] = []
+    b: List[Any] = []
+    c: List[Any] = []
+    checklist: List[Any] = []
+    self_inspection: Optional[Any] = None
 
 class ITPUpdate(BaseModel):
     """ITP 更新用 schema，referenceNo 不可更新"""
@@ -58,25 +76,16 @@ class ITPUpdate(BaseModel):
     remark: Optional[str] = None
     hasDetails: Optional[bool] = None
     submissionDate: Optional[str] = None
-    detail_data: Optional[str] = None
+    detail_data: Optional[Any] = None
     attachments: Optional[List[str]] = None
     last_reminded_at: Optional[str] = None
     dueDate: Optional[str] = None
 
+
 class ITP(ITPBase):
     id: str
-
     class Config:
         from_attributes = True
-
-
-class ITPDetailBody(BaseModel):
-    a: List[Any] = []
-    b: List[Any] = []
-    c: List[Any] = []
-    checklist: List[Any] = []
-    self_inspection: Optional[Any] = None  # 自主檢查表
-
 
 # NCR
 class NCRBase(BaseModel):
@@ -712,5 +721,76 @@ class Token(BaseModel):
     access_token: str
     token_type: str
 
-class TokenData(BaseModel):
-    username: Optional[str] = None
+
+# --- FAT Schemas ---
+
+class FATDetailItem(BaseModel):
+    id: str
+    sNo: Optional[str] = ''
+    itemName: Optional[str] = ''
+    specification: Optional[str] = ''
+    qty: Optional[str] = ''
+    unit: Optional[str] = ''
+    acceptanceCriteria: Optional[str] = ''
+    fatActualValue: Optional[str] = ''
+    fatJudgment: Optional[str] = ''
+    remarks: Optional[str] = ''
+
+class FATBase(BaseModel):
+    equipment: str
+    supplier: str
+    procedure: Optional[str] = None
+    location: Optional[str] = None
+    startDate: str
+    endDate: str
+    deliveryFrom: Optional[str] = None
+    deliveryTo: Optional[str] = None
+    siteReadiness: Optional[str] = None
+    moveInDate: Optional[str] = None
+    status: Optional[str] = "Scheduled"
+    hasDetails: Optional[bool] = False
+    detail_data: Optional[List[FATDetailItem]] = None
+    attachments: Optional[List[str]] = []
+
+    @field_validator('startDate', 'endDate', 'moveInDate', mode='before')
+    @classmethod
+    def check_dates(cls, v):
+        return validate_date_format(v)
+
+    @field_validator('detail_data', 'attachments', mode='before')
+    @classmethod
+    def parse_json(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
+
+class FATCreate(FATBase):
+    id: Optional[str] = None
+
+class FATUpdate(BaseModel):
+    equipment: Optional[str] = None
+    supplier: Optional[str] = None
+    procedure: Optional[str] = None
+    location: Optional[str] = None
+    startDate: Optional[str] = None
+    endDate: Optional[str] = None
+    deliveryFrom: Optional[str] = None
+    deliveryTo: Optional[str] = None
+    siteReadiness: Optional[str] = None
+    moveInDate: Optional[str] = None
+    status: Optional[str] = None
+    hasDetails: Optional[bool] = None
+    detail_data: Optional[List[FATDetailItem]] = None
+    attachments: Optional[List[str]] = None
+
+class FAT(FATBase):
+    id: str
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+

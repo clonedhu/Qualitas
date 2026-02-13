@@ -22,6 +22,7 @@ from models import (
     AuditLog,
     KPIWeight,
     OwnerPerformance,
+    FAT,
 )
 # NOTE: 移除重複的 import (uuid, json, re 已在上方匯入)
 
@@ -230,7 +231,7 @@ def get_itps(db: Session, skip: int = 0, limit: int = 100,
     return query.offset(skip).limit(limit).all()
 
 def create_itp(db: Session, itp: schemas.ITPCreate, user_id: int = None, username: str = None):
-    data = _json_serialize(itp.dict(), ['attachments'])
+    data = _json_serialize(itp.dict(), ['attachments', 'detail_data'])
     # 自動產生 Reference No（若未提供或為空）
     if not data.get('referenceNo'):
         data['referenceNo'] = generate_reference_no(db, data.get('vendor', ''), 'ITP')
@@ -255,7 +256,7 @@ def update_itp(db: Session, itp_id: str, itp: schemas.ITPUpdate, user_id: int = 
 
         old_val = {c.name: getattr(db_itp, c.name) for c in db_itp.__table__.columns}
         d = itp.dict(exclude_unset=True)
-        d = _json_serialize(d, ['attachments'])
+        d = _json_serialize(d, ['attachments', 'detail_data'])
         for key, value in d.items():
             setattr(db_itp, key, value)
         
@@ -1032,3 +1033,97 @@ def create_owner_performance(db: Session, perf: schemas.OwnerPerformanceCreate, 
     db.commit()
     db.refresh(db_perf)
     return db_perf
+
+
+# ---- FAT ----
+def get_fat(db: Session, fat_id: str):
+    return db.query(FAT).filter(FAT.id == fat_id).first()
+
+def get_fats(db: Session, skip: int = 0, limit: int = 500,
+             search: str = None, status: str = None, 
+             start_date: str = None, end_date: str = None):
+    query = db.query(FAT)
+    
+    if search:
+        query = query.filter(
+            (FAT.equipment.ilike(f"%{search}%")) |
+            (FAT.supplier.ilike(f"%{search}%")) |
+            (FAT.procedure.ilike(f"%{search}%"))
+        )
+    if status:
+        query = query.filter(FAT.status == status)
+    if start_date:
+        query = query.filter(FAT.startDate >= start_date)
+    if end_date:
+        query = query.filter(FAT.endDate <= end_date)
+        
+    return query.offset(skip).limit(limit).all()
+
+def create_fat(db: Session, fat: schemas.FATCreate, user_id: int = None, username: str = None):
+    d = _json_serialize(fat.dict(), ['detail_data', 'attachments'])
+    
+    db_fat = FAT(**d)
+    if not db_fat.id:
+        db_fat.id = str(uuid.uuid4())
+    
+    # Set created_at/updated_at
+    now = datetime.now().isoformat()
+    db_fat.created_at = now
+    db_fat.updated_at = now
+    
+    db.add(db_fat)
+    
+    log_audit(db, "CREATE", "FAT", db_fat.id, db_fat.equipment, 
+              new_value=fat.dict(), user_id=user_id, username=username)
+    
+    db.commit()
+    db.refresh(db_fat)
+    return db_fat
+
+def update_fat(db: Session, fat_id: str, fat: schemas.FATUpdate, user_id: int = None, username: str = None):
+    db_fat = db.query(FAT).filter(FAT.id == fat_id).first()
+    if db_fat:
+        old_val = {c.name: getattr(db_fat, c.name) for c in db_fat.__table__.columns}
+        
+        d = fat.dict(exclude_unset=True)
+        d = _json_serialize(d, ['detail_data', 'attachments'])
+        
+        for key, value in d.items():
+            setattr(db_fat, key, value)
+            
+        db_fat.updated_at = datetime.now().isoformat()
+            
+        log_audit(db, "UPDATE", "FAT", fat_id, db_fat.equipment, 
+                  old_value=old_val, new_value=fat.dict(exclude_unset=True), 
+                  user_id=user_id, username=username)
+        
+        db.commit()
+        db.refresh(db_fat)
+    return db_fat
+
+def delete_fat(db: Session, fat_id: str, user_id: int = None, username: str = None):
+    db_fat = db.query(FAT).filter(FAT.id == fat_id).first()
+    if db_fat:
+        old_val = {c.name: getattr(db_fat, c.name) for c in db_fat.__table__.columns}
+        log_audit(db, "DELETE", "FAT", fat_id, db_fat.equipment, 
+                  old_value=old_val, user_id=user_id, username=username)
+        db.delete(db_fat)
+        db.commit()
+        return db_fat
+    return None
+
+def update_fat_detail(db: Session, fat_id: str, details: list, user_id: int = None, username: str = None):
+    db_fat = db.query(FAT).filter(FAT.id == fat_id).first()
+    if db_fat:
+        old_val = db_fat.detail_data
+        db_fat.detail_data = json.dumps(details)
+        db_fat.hasDetails = True if details and len(details) > 0 else False
+        db_fat.updated_at = datetime.now().isoformat()
+        
+        log_audit(db, "UPDATE_DETAIL", "FAT", fat_id, db_fat.equipment, 
+                  old_value=old_val, new_value=details, 
+                  user_id=user_id, username=username)
+        
+        db.commit()
+        db.refresh(db_fat)
+    return db_fat

@@ -42,3 +42,11 @@ export interface ITPData {
         self_inspection?: any;
     };
 }
+
+export interface ITPHeaderData {
+    referenceNo: string;
+    description: string;
+    rev: string;
+    vendor: string;
+    submissionDate: string;
+}

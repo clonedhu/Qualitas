@@ -173,6 +173,18 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
     };
 
     const handleSave = () => {
+        if (!formData.contractor) {
+            alert(t('common.selectContractor'));
+            return;
+        }
+        if (!formData.itpNo) {
+            alert(t('noi.validation.missingITP') || "ITP Reference is required (Strict QC Process)");
+            return;
+        }
+        if (!formData.issueDate) {
+            alert(t('common.selectDate'));
+            return;
+        }
         onSave(formData);
         onClose();
     };

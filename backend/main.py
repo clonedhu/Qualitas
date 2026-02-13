@@ -12,7 +12,7 @@ import db_migrations
 import db_seeder
 from scheduler import start_scheduler
 from middleware.rate_limiter import RateLimitMiddleware
-from routers import itp, ncr, noi, itr, pqp, obs, contractors, followup, iam, audit, checklist, kpi, file_router, auth, settings as settings_router
+from routers import itp, ncr, noi, itr, pqp, obs, contractors, followup, iam, audit, checklist, kpi, file_router, fat, auth, settings as settings_router
 
 # Setup Logger
 logging.basicConfig(level=logging.INFO)
@@ -66,7 +66,7 @@ for router in [
     auth, 
     settings_router, 
     iam, 
-    itp, ncr, noi, itr, pqp, obs, contractors, followup, audit, checklist, kpi, file_router
+    itp, ncr, noi, itr, pqp, obs, contractors, followup, audit, checklist, kpi, file_router, fat
 ]:
     api.include_router(router.router)
 

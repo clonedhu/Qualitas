@@ -19,9 +19,15 @@ def get_password_hash(password):
 def run_seeding():
     """Run all database seeding"""
     print("Running database seeding...")
+    import database
+    # Ensure tables exist
+    models.Base.metadata.create_all(bind=database.engine)
+    
     seed_default_contractors()
     seed_default_pqp()
+    seed_default_pqp()
     seed_initial_data()
+    seed_rebar_itp()
     print("Seeding completed.")
 
 def seed_default_contractors():
@@ -148,6 +154,66 @@ def seed_initial_data():
 
     except Exception as e:
         print(f"Error seeding data: {e}")
+    finally:
+        db.close()
+
+def seed_rebar_itp():
+    db = SessionLocal()
+    try:
+        # Check if exists
+        ref_no = "QTS-RKS-HL-ITP-000001"
+        existing = db.query(models.ITP).filter(models.ITP.referenceNo == ref_no).first()
+        
+        detail_data = {
+            "a": [
+                {"id": "A1", "phase": "A", "activity": {"en": "Rebar Sampling for physical test", "ch": "鋼筋物理試驗取樣"}, "standard": "CNS 560", "criteria": "Extension Test 拉拔試驗\nBending Test 彎曲試驗", "checkTime": {"en": "Before construction", "ch": "施工前"}, "method": {"en": "TAF laboratory", "ch": "TAF 實驗室"}, "frequency": "1pc/25tons or fraction per type/lot. 每 25 噸取 1 支，不足 25 噸取 1 支(每類)。", "vp": {"sub": "H", "teco": "W", "employer": "R", "hse": "-"}, "record": "TAF Testing Report"},
+                {"id": "A2", "phase": "A", "activity": {"en": "Storage status", "ch": "材料暫存狀態"}, "standard": "PCC-01661 PCC-03210", "criteria": "5cm off the ground\n離地 5 公分", "checkTime": {"en": "Deliver to site", "ch": "運抵工地"}, "method": {"en": "Visual", "ch": "目視檢查"}, "frequency": "Each Batch 每批", "vp": {"sub": "H", "teco": "W", "employer": "R", "hse": "-"}, "record": "-"},
+                {"id": "A3", "phase": "A", "activity": {"en": "Dimension", "ch": "尺寸"}, "standard": "Drawing number", "criteria": "Diameter per CNS 560; length Per drawing", "checkTime": {"en": "During construction", "ch": "施工中"}, "method": {"en": "Caliper", "ch": "卡尺"}, "frequency": "Before pouring 灌漿前", "vp": {"sub": "H", "teco": "W", "employer": "R", "hse": "-"}, "record": "-"},
+                {"id": "A4", "phase": "A", "activity": {"en": "Stakeout", "ch": "放樣"}, "standard": "Tolerance ±10mm per DWG-XXXX", "criteria": "Meet design requirement\n符合設計要求", "checkTime": {"en": "Before construction", "ch": "施工前"}, "method": {"en": "Tape Measure", "ch": "捲尺"}, "frequency": "Each Time 每次", "vp": {"sub": "H", "teco": "H", "employer": "H", "hse": "-"}, "record": "-"}
+            ],
+            "b": [
+                {"id": "B1", "phase": "B", "activity": {"en": "Rebar Spacing", "ch": "鋼筋間距"}, "standard": "Drawing number", "criteria": "D13 @ 150", "checkTime": {"en": "Before pouring", "ch": "施工前"}, "method": {"en": "Tape Measure", "ch": "捲尺"}, "frequency": "Before pouring 灌漿前", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": "-"}, "record": "-"},
+                {"id": "B2", "phase": "B", "activity": {"en": "Tie Spacing", "ch": "綁筋間距"}, "standard": "Drawing number", "criteria": "Tie at each crossing point\n每處交接點", "checkTime": {"en": "During construction", "ch": "施工中"}, "method": {"en": "Tape Measure", "ch": "捲尺"}, "frequency": "Before pouring 灌漿前", "vp": {"sub": "H", "teco": "H", "employer": "W", "hse": "※"}, "record": "-"},
+                {"id": "B3", "phase": "B", "activity": {"en": "Protection cover", "ch": "保護層"}, "standard": "Drawing number", "criteria": "7.5 ± 0.6cm", "checkTime": {"en": "During construction", "ch": "施工中"}, "method": {"en": "Tape Measure", "ch": "捲尺"}, "frequency": "Before pouring 灌漿前", "vp": {"sub": "H", "teco": "H", "employer": "W", "hse": "-"}, "record": "-"},
+                {"id": "B4", "phase": "B", "activity": {"en": "Spacer distance", "ch": "水泥墊塊間距"}, "standard": "PCC-03210", "criteria": "#3：< 60cm\n#4：< 80cm\n#5 or larger：<100cm。", "checkTime": {"en": "During construction", "ch": "施工中"}, "method": {"en": "Tape Measure", "ch": "捲尺"}, "frequency": "Before pouring 灌漿前", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": "-"}, "record": "-"},
+                {"id": "B5", "phase": "B", "activity": {"en": "Overlap length", "ch": "搭接長度"}, "standard": "Approved Drawings\n核准圖說", "criteria": "Over or conform to approved drawings\n超過或符合核准圖說", "checkTime": {"en": "Before pouring", "ch": "灌漿前"}, "method": {"en": "Tape Measure", "ch": "捲尺"}, "frequency": "Before pouring 灌漿前", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": "-"}, "record": "-"},
+                {"id": "B6", "phase": "B", "activity": {"en": "Embedment", "ch": "預埋件"}, "standard": "Approved Drawings\n核准圖說", "criteria": "Check if any Embedment\n確認是否有預埋件", "checkTime": {"en": "Before pouring", "ch": "灌漿前"}, "method": {"en": "Visual", "ch": "目視檢查"}, "frequency": "Before pouring 灌漿前", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": "-"}, "record": "-"},
+                {"id": "B7", "phase": "B", "activity": {"en": "Anchorage", "ch": "錨定長度"}, "standard": "Approved Drawings\n核准圖說", "criteria": "Over or conform to approved drawings\n超過或符合核准圖說", "checkTime": {"en": "During construction", "ch": "施工中"}, "method": {"en": "Tape Measure", "ch": "捲尺"}, "frequency": "Before pouring 灌漿前", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": "-"}, "record": "-"},
+                {"id": "B8", "phase": "B", "activity": {"en": "Hook length", "ch": "彎鉤長度"}, "standard": "Approved Drawings\n核准圖說", "criteria": "Over or conform to approved drawings\n超過或符合核准圖說", "checkTime": {"en": "During construction", "ch": "施工中"}, "method": {"en": "Tape Measure", "ch": "捲尺"}, "frequency": "Before pouring 灌漿前", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": "-"}, "record": "-"},
+                {"id": "B9", "phase": "B", "activity": {"en": "Assembly Rebar Appearance", "ch": "鋼筋外觀"}, "standard": "CNS 560", "criteria": "No scaling allowed\n不允許鏽蝕層。", "checkTime": {"en": "During construction", "ch": "施工中"}, "method": {"en": "Visual", "ch": "目視檢查"}, "frequency": "Before pouring 灌漿前", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": "-"}, "record": "-"}
+            ],
+            "c": [
+                {"id": "C1", "phase": "C", "activity": {"en": "Rebar assembly integration", "ch": "鋼筋組立"}, "standard": "As per design drawing\n符合設計圖", "criteria": "No collapse or deform\n無坍塌或變形", "checkTime": {"en": "Before pouring", "ch": "灌漿前"}, "method": {"en": "Tap Measure", "ch": "捲尺"}, "frequency": "Before pouring 灌漿前", "vp": {"sub": "H", "teco": "H", "employer": "H", "hse": "-"}, "record": "-"}
+            ]
+        }
+        
+        # Prepare data
+        itp_data = {
+            "referenceNo": ref_no,
+            "description": "Rebar Works 鋼筋工程",
+            "vendor": "廠商A", # Default vendor
+            "status": "Approved",
+            "rev": "Rev1.0",
+            "detail_data": json.dumps(detail_data),
+            "submissionDate": datetime.now().strftime("%Y-%m-%d"),
+            "submit": ""
+        }
+
+        if existing:
+            print(f"Updating existing Rebar ITP: {ref_no}")
+            for key, value in itp_data.items():
+                setattr(existing, key, value)
+        else:
+            print(f"Creating new Rebar ITP: {ref_no}")
+            new_itp = models.ITP(**itp_data, id=str(uuid.uuid4()))
+            db.add(new_itp)
+        
+        db.commit()
+        print("Rebar ITP seeded successfully.")
+
+    except Exception as e:
+        print(f"Error seeding Rebar ITP: {e}")
+        db.rollback()
     finally:
         db.close()
 

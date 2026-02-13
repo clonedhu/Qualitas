@@ -11,6 +11,7 @@ endpoints = [
     "/obs/",
     "/pqp/",
     "/contractors/",
+    "/fat/",
     "/settings/naming-rules"
 ]
 

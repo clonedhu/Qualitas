@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useITR } from '../../context/ITRContext';
@@ -11,7 +12,9 @@ import { BackButton } from '../ui/BackButton';
 import { toast } from 'sonner';
 import { InspectionItem, ITPData } from '../../types/itp';
 import { PHASES, INITIAL_ITEMS, EMPTY_ITEM } from '../../constants/itp';
+import { getNextRevision } from '../../utils/revision';
 import './ITPDetail.print.css';
+import './itp-print-global.css';
 
 // --- VP 標籤元件 ---
 const VPBadge = ({ type }: { type: string }) => {
@@ -45,6 +48,57 @@ const ITPDetail: React.FC = () => {
   const [viewingItrItem, setViewingItrItem] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [rev, setRev] = useState("");
+
+  const handlePublish = async () => {
+    if (!id) return;
+    const nextRev = getNextRevision(rev);
+    if (!window.confirm(`Are you sure you want to publish this ITP as Revision ${nextRev}?`)) return;
+
+    setSaving(true);
+    try {
+      // 1. Update Revision & Title
+      await api.put(`/itp/${id}`, {
+        description: workTitle,
+        rev: nextRev,
+        status: 'Approved' // Optional: set status to Approved on publish
+      });
+      setRev(nextRev); // Update local state immediately
+
+      // 2. Update Details (same as save)
+      const payload = {
+        a: items.filter(i => i.phase === 'A').map(({ phase, ...rest }) => rest),
+        b: items.filter(i => i.phase === 'B').map(({ phase, ...rest }) => rest),
+        c: items.filter(i => i.phase === 'C').map(({ phase, ...rest }) => rest),
+        checklist: [],
+        self_inspection: null
+      };
+      await api.put(`/itp/${id}/detail`, payload);
+      toast.success(`Published successfully as Revision ${nextRev}!`);
+    } catch (error) {
+      console.error("Failed to publish ITP:", error);
+      toast.error("Failed to publish document.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isPrinting) {
+      const timer = setTimeout(() => {
+        window.print();
+      }, 500); // Wait for portal to render
+
+      const onAfterPrint = () => setIsPrinting(false);
+      window.addEventListener('afterprint', onAfterPrint);
+
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('afterprint', onAfterPrint);
+      };
+    }
+  }, [isPrinting]);
 
   // Fetch data on mount
   useEffect(() => {
@@ -57,6 +111,7 @@ const ITPDetail: React.FC = () => {
         if (data) {
           if (data.description) setWorkTitle(data.description);
           if (data.referenceNo) setReferenceNo(data.referenceNo);
+          if (data.rev) setRev(data.rev);
 
           let details: any = {};
           if (typeof data.detail_data === 'string') {
@@ -246,7 +301,14 @@ const ITPDetail: React.FC = () => {
             <Plus size={14} strokeWidth={3} /> Add New Item
           </button>
           <button
-            onClick={() => window.print()}
+            onClick={handlePublish}
+            disabled={saving}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-indigo-700 shadow-sm hover:shadow active:scale-95 transition-all disabled:opacity-50"
+          >
+            <ShieldCheck size={14} strokeWidth={3} /> Publish
+          </button>
+          <button
+            onClick={() => setIsPrinting(true)}
             className="flex items-center gap-2 bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-all"
           >
             <Printer size={14} /> Print / PDF
@@ -504,7 +566,10 @@ const ITPDetail: React.FC = () => {
           </div>
 
           {/* Form No. - Inside Header, Bottom Right */}
-          <div className="flex justify-end mt-1">
+          <div className="flex justify-end mt-1 gap-4">
+            <div className="text-xs font-bold text-slate-700">
+              Rev: {rev || '-'}
+            </div>
             <div className="text-xs font-bold text-slate-700">
               {referenceNo}
             </div>
@@ -625,6 +690,123 @@ const ITPDetail: React.FC = () => {
           End of Document - Total {items.length} Inspection Items
         </div>
       </div>
+
+      {/* --- Print View (Portal) --- */}
+      {/* Always render portal but hide via CSS to support Ctrl+P */}
+      {ReactDOM.createPortal(
+        <div id="itp-print-root">
+          <div className="max-w-[1400px] min-w-[1024px] mx-auto bg-white rounded-xl shadow-lg border-x-0 border-t-0 overflow-hidden print-container">
+            {/* Document Header Section - Duplicated for Print */}
+            <div className="bg-white px-8 pt-8 pb-2 border-b border-slate-200 relative">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600"></div>
+              <div className="flex justify-between items-center mb-1 pt-2">
+                <div className="w-48 opacity-40">
+                  {/* Logo Placeholder */}
+                  <div className="h-12 w-32 bg-slate-100 rounded flex items-center justify-center text-xs text-slate-400 font-medium border border-dashed border-slate-300">
+                    Logo Area
+                  </div>
+                </div>
+                <div className="flex-1 text-center">
+                  <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight flex flex-col items-center gap-2">
+                    Inspection & Test Plan
+                  </h1>
+                  <div className="mt-2 text-xl font-bold text-slate-700">
+                    <span className="border-b-2 border-dashed border-slate-300 px-2 py-0.5 min-w-[200px] inline-block">
+                      {workTitle}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end mt-1 gap-4">
+                <div className="text-xs font-bold text-slate-700">
+                  Rev: {rev || '-'}
+                </div>
+                <div className="text-xs font-bold text-slate-700">
+                  {referenceNo}
+                </div>
+              </div>
+            </div>
+
+            {/* Table Content - Duplicated for Print */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm border-collapse border border-black border-t-2">
+                <thead className="bg-slate-800 text-white font-bold text-xs uppercase tracking-wider border-b-2 border-black leading-tight">
+                  <tr>
+                    <th rowSpan={2} className="px-5 py-4 w-16 border-r border-black bg-slate-800 text-center">Event No.</th>
+                    <th rowSpan={2} className="px-5 py-4 w-64 border-r border-black text-center">Inspection Activity</th>
+                    <th rowSpan={2} className="px-5 py-4 w-56 border-r border-black text-center">Standard / Criteria</th>
+                    <th rowSpan={2} className="px-5 py-4 w-40 border-r border-black bg-slate-800 text-center">Check Time</th>
+                    <th rowSpan={2} className="px-5 py-4 w-40 border-r border-black text-center">Method</th>
+                    <th rowSpan={2} className="px-5 py-4 w-28 border-r border-black text-center">Frequency</th>
+                    <th rowSpan={2} className="px-5 py-4 w-32 border-r border-black bg-slate-800 text-center">Records</th>
+                    <th colSpan={4} className="px-2 py-3 text-center border-b border-black bg-slate-800">Verification Point</th>
+                  </tr>
+                  <tr>
+                    <th className="px-2 py-2 text-center border-r border-black w-12 bg-slate-800 text-[11px] font-bold">Sub.</th>
+                    <th className="px-2 py-2 text-center border-r border-black w-12 bg-slate-800 text-[11px] font-bold">TECO</th>
+                    <th className="px-2 py-2 text-center border-r border-black w-12 bg-slate-800 text-[11px] font-bold">Emp.</th>
+                    <th className="px-2 py-2 text-center w-12 bg-slate-800 text-[11px] font-bold">HSE</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black">
+                  {PHASES.map((phase) => (
+                    <React.Fragment key={phase.code}>
+                      <tr className="border-y border-black">
+                        <td colSpan={11} className={`px-0 py-0 border-b border-black ${phase.color}`}>
+                          <div className="px-6 py-3 font-bold text-sm flex items-center gap-2 uppercase tracking-wide w-full text-black">
+                            {phase.title}
+                          </div>
+                        </td>
+                      </tr>
+                      {items.filter(item => item.phase === phase.code).map((item) => (
+                        <tr key={item.id} className="border-b border-black last:border-0 relative">
+                          <td className="px-5 py-4 font-mono text-slate-900 font-bold border-r border-black bg-slate-50/30 align-top pt-5">
+                            {item.id}
+                          </td>
+                          <td className="px-5 py-4 border-r border-black align-top text-slate-800">
+                            <div className="font-bold text-sm mb-1">{item.activity.en}</div>
+                            <div className="text-slate-600 text-xs font-medium">{item.activity.ch}</div>
+                          </td>
+                          <td className="px-5 py-4 border-r border-black align-top">
+                            <div className="inline-block bg-slate-100 text-slate-600 text-[11px] font-mono px-2 py-0.5 rounded mb-2 border border-black">
+                              {item.standard}
+                            </div>
+                            <div className="text-slate-800 text-sm leading-relaxed font-medium">{item.criteria}</div>
+                          </td>
+                          <td className="px-5 py-4 border-r border-black bg-slate-50 align-top">
+                            <div className="text-black text-sm font-medium">{item.checkTime.en}</div>
+                            <div className="text-slate-500 text-xs mt-1">{item.checkTime.ch}</div>
+                          </td>
+                          <td className="px-5 py-4 border-r border-black align-top">
+                            <div className="text-black text-sm">{item.method.en}</div>
+                            <div className="text-slate-500 text-xs mt-1">{item.method.ch}</div>
+                          </td>
+                          <td className="px-5 py-4 border-r border-black align-top"><div className="text-slate-800 text-xs">{item.frequency}</div></td>
+                          <td className="px-5 py-4 border-r border-black bg-slate-50 align-top">
+                            {item.record !== '-' ? (
+                              <span className="font-mono text-xs font-bold text-slate-900">{item.record}</span>
+                            ) : <span className="text-slate-400 text-xs pl-2">-</span>}
+                          </td>
+                          <td className="px-2 py-4 text-center border-r border-black align-middle"><VPBadge type={item.vp.sub} /></td>
+                          <td className="px-2 py-4 text-center border-r border-black align-middle"><VPBadge type={item.vp.teco} /></td>
+                          <td className="px-2 py-4 text-center border-r border-black align-middle"><VPBadge type={item.vp.employer} /></td>
+                          <td className="px-2 py-4 text-center align-middle"><VPBadge type={item.vp.hse} /></td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Footer info */}
+            <div className="bg-slate-50 border-t border-black p-4 text-center text-xs text-slate-500 font-medium">
+              End of Document - Total {items.length} Inspection Items
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Viewing ITR Details Modal */}
       {viewingItrItem && (

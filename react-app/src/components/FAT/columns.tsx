@@ -4,20 +4,7 @@ import { DataTableColumnHeader } from "../Shared/DataTable/DataTableColumnHeader
 // It is defined in FAT.tsx but not exported. I should probably export it or redefine it.
 // To avoid circular dependency or editing FAT.tsx just for export before refactor, 
 // I will define a matching interface here since I will eventually update FAT.tsx to use this.
-export interface FATItem {
-    id: string;
-    equipment: string;
-    supplier: string;
-    procedure: string;
-    location: string;
-    startDate: string;
-    endDate: string;
-    deliveryFrom: string;
-    deliveryTo: string;
-    siteReadiness: string;
-    moveInDate: string;
-    hasDetails?: boolean;
-}
+import { FATItem } from "../../context/FATContext";
 
 import { Edit, FileText, Trash2, PlusSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";

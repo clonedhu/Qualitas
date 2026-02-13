@@ -690,21 +690,25 @@
 
 .saveButton,
 .printButton {
-  padding: 12px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 24px;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 15px;
+  border-radius: 6px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .printButton {
   background: #2563eb;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.3);
 }
 
 .saveButton:hover,
@@ -718,12 +722,12 @@
 }
 
 .cancelButton {
-  padding: 12px 32px;
+  padding: 8px 24px;
   background: white;
   color: #6b7280;
-  border: 1.5px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 15px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -747,20 +751,14 @@
 }
 
 @media print {
-  .modalOverlay {
-    position: absolute;
-    background: white;
+  :global(#root) {
+    display: none !important;
   }
 
-  .modalContent {
-    box-shadow: none;
-    width: 100%;
-    max-width: none;
-  }
-
-  .modalHeader button,
-  .modalActions {
-    display: none;
+  :global(body) {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
   }
 }
 
@@ -833,4 +831,63 @@
   background: #e5e7eb;
   border-color: #9ca3af;
   color: #374151;
+}
+
+/* Tabs Styles */
+.tabsContainer {
+  display: flex;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 24px;
+  padding: 0 32px;
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.tabButton {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 15px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+}
+
+.tabButton:hover {
+  color: #374151;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.activeTab {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+}
+
+.printablePage {
+  width: 100%;
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 10mm;
+  /* Changed from 15mm to match 1cm request */
+  background: white;
+  color: black;
+  box-sizing: border-box;
+}
+
+@media print {
+  @page {
+    margin: 10mm !important;
+    size: landscape;
+  }
+
+  .printablePage {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
 }
