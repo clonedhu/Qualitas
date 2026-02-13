@@ -22,7 +22,9 @@ def read_pqps(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
-    db: Session = Depends(get_db)
+
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     return crud.get_pqps(
         db, 
@@ -35,7 +37,7 @@ def read_pqps(
     )
 
 @router.get("/{pqp_id}", response_model=schemas.PQP)
-def read_pqp(pqp_id: str, db: Session = Depends(get_db)):
+def read_pqp(pqp_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     db_pqp = crud.get_pqp(db, pqp_id=pqp_id)
     if db_pqp is None:
         raise HTTPException(status_code=404, detail="PQP not found")

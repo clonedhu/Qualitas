@@ -28,7 +28,9 @@ def read_fats(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
-    db: Session = Depends(get_db)
+
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     fats = crud.get_fats(
         db, 
@@ -42,7 +44,7 @@ def read_fats(
     return fats
 
 @router.get("/{fat_id}", response_model=schemas.FAT)
-def read_fat(fat_id: str, db: Session = Depends(get_db)):
+def read_fat(fat_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     db_fat = crud.get_fat(db, fat_id=fat_id)
     if db_fat is None:
         raise HTTPException(status_code=404, detail="FAT not found")

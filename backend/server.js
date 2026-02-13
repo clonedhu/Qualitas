@@ -229,23 +229,25 @@ async function checkAndSendReminders() {
             f.status !== 'Closed' && f.status !== '結案' && f.dueDate === targetDateStr
         ) : [];
 
-        // 3. Process NCR Reminders
+        // 3. Fetch Contractors (Optimized: Fetch once)
+        const contractorsResp = await axios.get(`${PYTHON_API}/api/contractors/`);
+        const contractors = Array.isArray(contractorsResp.data) ? contractorsResp.data : [];
+
+        // 4. Process NCR Reminders
         for (const ncr of openNcrs) {
             // Find contractor email
-            const contractorsResp = await axios.get(`${PYTHON_API}/api/contractors/`);
-            const contractor = contractorsResp.data.find(c => c.name === ncr.vendor);
+            const contractor = contractors.find(c => c.name === ncr.vendor);
             const email = contractor ? contractor.email : 'admin@example.com';
 
             await sendEmailNotification(email, `NCR: ${ncr.documentNumber}`, 'NCR', ncr.dueDate);
         }
 
-        // 4. Process FollowUp Reminders
+        // 5. Process FollowUp Reminders
         for (const f of openFollowups) {
             // Priority: Check if vendor email exists, otherwise assignedTo or admin
             let email = 'admin@example.com';
             if (f.vendor) {
-                const contractorsResp = await axios.get(`${PYTHON_API}/api/contractors/`);
-                const contractor = contractorsResp.data.find(c => c.name === f.vendor);
+                const contractor = contractors.find(c => c.name === f.vendor);
                 if (contractor) email = contractor.email;
             }
 
@@ -258,10 +260,10 @@ async function checkAndSendReminders() {
     }
 }
 
-// 排程任務：每天早上 08:00 執行
-cron.schedule('0 8 * * *', () => {
-    checkAndSendReminders();
-});
+// 排程任務：每天早上 08:00 執行 (已由 Python Backend 取代，故停用)
+// cron.schedule('0 8 * * *', () => {
+//     checkAndSendReminders();
+// });
 
 // 手動觸發提醒測試端點
 app.post('/api/remind/test', async (req, res) => {

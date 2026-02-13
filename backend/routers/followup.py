@@ -5,7 +5,7 @@ from typing import List
 import schemas
 import crud
 from database import get_db
-from middleware.auth import PermissionChecker, Permission
+from middleware.auth import get_current_user, PermissionChecker, Permission
 
 router = APIRouter(
     prefix="/followup",
@@ -15,11 +15,11 @@ router = APIRouter(
 
 # 讀取操作 - 無需認證
 @router.get("/", response_model=List[schemas.FollowUp])
-def read_followups(skip: int = 0, limit: int = 500, db: Session = Depends(get_db)):
+def read_followups(skip: int = 0, limit: int = 500, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user or get_current_user)):
     return crud.get_followups(db, skip=skip, limit=limit)
 
 @router.get("/{followup_id}", response_model=schemas.FollowUp)
-def read_followup(followup_id: str, db: Session = Depends(get_db)):
+def read_followup(followup_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     db_f = crud.get_followup(db, followup_id=followup_id)
     if db_f is None:
         raise HTTPException(status_code=404, detail="FollowUp not found")

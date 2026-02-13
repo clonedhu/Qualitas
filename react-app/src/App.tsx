@@ -1,6 +1,7 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { useAuth } from './context/AuthContext';
+import { AppProviders } from './components/Shared/AppProviders';
 import Login from './components/Login/Login';
 import Home from './components/Home/Home';
 import Dashboard from './components/Dashboard/Dashboard';
@@ -34,166 +35,36 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route
-          path="/"
-          element={
-            <PrivateRoute>
-              <Home />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/kpi"
-          element={
-            <PrivateRoute>
-              <KPI />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/iam"
-          element={
-            <PrivateRoute>
-              <IAM />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/followup"
-          element={
-            <PrivateRoute>
-              <FollowUpIssue />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/pqp"
-          element={
-            <PrivateRoute>
-              <PQP />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/itp"
-          element={
-            <PrivateRoute>
-              <ITP />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/itp/:id"
-          element={
-            <PrivateRoute>
-              <ITPDetail />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/noi"
-          element={
-            <PrivateRoute>
-              <NOI />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/contractors"
-          element={
-            <PrivateRoute>
-              <Contractors />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/km"
-          element={
-            <PrivateRoute>
-              <KM />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/osd"
-          element={
-            <PrivateRoute>
-              <OSD />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/obs"
-          element={
-            <PrivateRoute>
-              <OBS />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/ncr"
-          element={
-            <PrivateRoute>
-              <NCR />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/itr"
-          element={
-            <PrivateRoute>
-              <ITR />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/fat"
-          element={
-            <PrivateRoute>
-              <FAT />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/audit"
-          element={
-            <PrivateRoute>
-              <Audit />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/owner-performance"
-          element={
-            <PrivateRoute>
-              <OwnerPerformance />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/document-naming-rules"
-          element={
-            <PrivateRoute>
-              <DocumentNamingRules />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/checklist"
-          element={
-            <PrivateRoute>
-              <Checklist />
-            </PrivateRoute>
-          }
-        />
+
+        {/* Protected Routes with Data Providers */}
+        <Route element={
+          <PrivateRoute>
+            <AppProviders>
+              <Outlet />
+            </AppProviders>
+          </PrivateRoute>
+        }>
+          <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/kpi" element={<KPI />} />
+          <Route path="/iam" element={<IAM />} />
+          <Route path="/followup" element={<FollowUpIssue />} />
+          <Route path="/pqp" element={<PQP />} />
+          <Route path="/itp" element={<ITP />} />
+          <Route path="/itp/:id" element={<ITPDetail />} />
+          <Route path="/noi" element={<NOI />} />
+          <Route path="/contractors" element={<Contractors />} />
+          <Route path="/km" element={<KM />} />
+          <Route path="/osd" element={<OSD />} />
+          <Route path="/obs" element={<OBS />} />
+          <Route path="/ncr" element={<NCR />} />
+          <Route path="/itr" element={<ITR />} />
+          <Route path="/fat" element={<FAT />} />
+          <Route path="/audit" element={<Audit />} />
+          <Route path="/owner-performance" element={<OwnerPerformance />} />
+          <Route path="/document-naming-rules" element={<DocumentNamingRules />} />
+          <Route path="/checklist" element={<Checklist />} />
+        </Route>
       </Routes>
       <Toaster position="top-center" richColors />
     </BrowserRouter>

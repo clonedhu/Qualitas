@@ -14,7 +14,9 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException, R
 from sqlalchemy.orm import Session
 
 from database import get_db
+from middleware.auth import get_current_user
 from models import Attachment
+import schemas
 from schemas import AttachmentResponse
 
 logger = logging.getLogger(__name__)
@@ -62,6 +64,7 @@ async def upload_files(
     category: str = Form("attachment"),
     files: list[UploadFile] = File(...),
     db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
 ) -> list[AttachmentResponse]:
     """
     上傳一個或多個檔案
@@ -112,8 +115,9 @@ async def upload_files(
             file_path=relative_path,
             file_size=len(content),
             mime_type=mime,
+
             category=category,
-            uploaded_by=None,  # TODO: 從 JWT token 取得目前使用者
+            uploaded_by=current_user.username,
             uploaded_at=datetime.now(timezone.utc).isoformat(),
             is_deleted=False,
         )
@@ -132,6 +136,7 @@ def get_entity_files(
     entity_id: str,
     category: Optional[str] = None,
     db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
 ) -> list[AttachmentResponse]:
     """查詢指定實體的所有附件"""
     query = db.query(Attachment).filter(
@@ -151,6 +156,7 @@ def get_file(
     file_id: str,
     request: Request,
     db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
 ) -> AttachmentResponse:
     """取得單一附件 metadata"""
     attachment = db.query(Attachment).filter(
@@ -166,6 +172,7 @@ def get_file(
 def delete_file(
     file_id: str,
     db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user),
 ) -> dict:
     """軟刪除附件（保留磁碟檔案，僅標記為已刪除）"""
     attachment = db.query(Attachment).filter(

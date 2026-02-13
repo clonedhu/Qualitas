@@ -159,6 +159,13 @@ def get_contractor_abbreviation(db: Session, vendor_name: str) -> str:
     # fallback: 用名稱前 3 字元
     return re.sub(r'[^A-Z0-9]', '', vendor_name.upper()[:10]) or "NA"
 
+def _resolve_vendor_id(db: Session, vendor_name: str) -> str:
+    """Helper: Resolve vendor name to ID"""
+    if not vendor_name:
+        return None
+    contractor = db.query(Contractor).filter(Contractor.name == vendor_name).first()
+    return contractor.id if contractor else None
+
 
 def generate_reference_no(db: Session, vendor_name: str, doc_type: str) -> str:
     """
@@ -236,9 +243,17 @@ def get_itps(db: Session, skip: int = 0, limit: int = 100,
 
 def create_itp(db: Session, itp: schemas.ITPCreate, user_id: int = None, username: str = None):
     data = _json_serialize(itp.dict(), ['attachments', 'detail_data'])
+    
+    # Handle Vendor Name -> ID mapping
+    vendor_name = data.pop('vendor', None)
+    if vendor_name:
+        data['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
     # 自動產生 Reference No（若未提供或為空）
+    # Note: generate_reference_no still needs the Name
     if not data.get('referenceNo'):
-        data['referenceNo'] = generate_reference_no(db, data.get('vendor', ''), 'ITP')
+        data['referenceNo'] = generate_reference_no(db, vendor_name or '', 'ITP')
+        
     db_itp = ITP(**data)
     if not db_itp.id:
         db_itp.id = str(uuid.uuid4())
@@ -261,6 +276,12 @@ def update_itp(db: Session, itp_id: str, itp: schemas.ITPUpdate, user_id: int = 
         old_val = {c.name: getattr(db_itp, c.name) for c in db_itp.__table__.columns}
         d = itp.dict(exclude_unset=True)
         d = _json_serialize(d, ['attachments', 'detail_data'])
+        
+        # Handle Vendor Name -> ID mapping
+        if 'vendor' in d:
+            vendor_name = d.pop('vendor')
+            d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+            
         for key, value in d.items():
             setattr(db_itp, key, value)
         
@@ -321,9 +342,16 @@ def get_ncrs(db: Session, skip: int = 0, limit: int = 500,
 
 def create_ncr(db: Session, ncr: schemas.NCRCreate, user_id: int = None, username: str = None):
     d = _json_serialize(ncr.dict(), ['defectPhotos', 'improvementPhotos', 'attachments'])
+    
+    # Handle Vendor Name -> ID mapping
+    vendor_name = d.pop('vendor', None)
+    if vendor_name:
+        d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
     # 自動產生 Reference No（若未提供或為空）
     if not d.get('documentNumber'):
-        d['documentNumber'] = generate_reference_no(db, d.get('vendor', ''), 'NCR')
+        d['documentNumber'] = generate_reference_no(db, vendor_name or '', 'NCR')
+        
     db_ncr = NCR(**d)
     if not db_ncr.id:
         db_ncr.id = str(uuid.uuid4())
@@ -346,6 +374,12 @@ def update_ncr(db: Session, ncr_id: str, ncr: schemas.NCRUpdate, user_id: int = 
         old_val = {c.name: getattr(db_ncr, c.name) for c in db_ncr.__table__.columns}
         d = ncr.dict(exclude_unset=True)
         d = _json_serialize(d, ['defectPhotos', 'improvementPhotos', 'attachments'])
+        
+        # Handle Vendor Name -> ID mapping
+        if 'vendor' in d:
+            vendor_name = d.pop('vendor')
+            d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
         for key, value in d.items():
             setattr(db_ncr, key, value)
             
@@ -394,9 +428,16 @@ def get_nois(db: Session, skip: int = 0, limit: int = 500,
 
 def create_noi(db: Session, noi: schemas.NOICreate, user_id: int = None, username: str = None):
     data = _json_serialize(noi.dict(), ['attachments'])
+
+    # Handle Vendor Name -> ID mapping (NOI uses 'contractor' in schema)
+    vendor_name = data.pop('contractor', None)
+    if vendor_name:
+        data['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
     # 自動產生 Reference No（若未提供或為空）
     if not data.get('referenceNo'):
-        data['referenceNo'] = generate_reference_no(db, data.get('contractor', ''), 'NOI')
+        data['referenceNo'] = generate_reference_no(db, vendor_name or '', 'NOI')
+        
     db_noi = NOI(**data)
     if not db_noi.id:
         db_noi.id = str(uuid.uuid4())
@@ -418,6 +459,12 @@ def update_noi(db: Session, noi_id: str, noi: schemas.NOIUpdate, user_id: int = 
 
         old_val = {c.name: getattr(db_noi, c.name) for c in db_noi.__table__.columns}
         d = _json_serialize(noi.dict(exclude_unset=True), ['attachments'])
+        
+        # Handle Vendor Name -> ID mapping
+        if 'contractor' in d:
+            vendor_name = d.pop('contractor')
+            d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
         for key, value in d.items():
             setattr(db_noi, key, value)
             
@@ -465,9 +512,16 @@ def get_itrs(db: Session, skip: int = 0, limit: int = 500,
 
 def create_itr(db: Session, itr: schemas.ITRCreate, user_id: int = None, username: str = None):
     d = _json_serialize(itr.dict(), ['defectPhotos', 'improvementPhotos', 'attachments'])
+
+    # Handle Vendor Name -> ID mapping
+    vendor_name = d.pop('vendor', None)
+    if vendor_name:
+        d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
     # 自動產生 Reference No（若未提供或為空）
     if not d.get('documentNumber'):
-        d['documentNumber'] = generate_reference_no(db, d.get('vendor', ''), 'ITR')
+        d['documentNumber'] = generate_reference_no(db, vendor_name or '', 'ITR')
+        
     db_itr = ITR(**d)
     if not db_itr.id:
         db_itr.id = str(uuid.uuid4())
@@ -490,6 +544,12 @@ def update_itr(db: Session, itr_id: str, itr: schemas.ITRUpdate, user_id: int = 
         old_val = {c.name: getattr(db_itr, c.name) for c in db_itr.__table__.columns}
         d = itr.dict(exclude_unset=True)
         d = _json_serialize(d, ['defectPhotos', 'improvementPhotos', 'attachments'])
+        
+        # Handle Vendor Name -> ID mapping
+        if 'vendor' in d:
+            vendor_name = d.pop('vendor')
+            d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
         for key, value in d.items():
             setattr(db_itr, key, value)
             
@@ -538,9 +598,16 @@ def get_pqps(db: Session, skip: int = 0, limit: int = 500,
 def create_pqp(db: Session, pqp: schemas.PQPCreate, user_id: int = None, username: str = None):
     data = pqp.dict()
     data = _json_serialize(data, ['attachments'])
+    
+    # Handle Vendor Name -> ID mapping
+    vendor_name = data.pop('vendor', None)
+    if vendor_name:
+        data['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
     # 自動產生 Reference No（若未提供或為空）
     if not data.get('pqpNo'):
-        data['pqpNo'] = generate_reference_no(db, data.get('vendor', ''), 'PQP')
+        data['pqpNo'] = generate_reference_no(db, vendor_name or '', 'PQP')
+        
     db_pqp = PQP(**data)
     if not db_pqp.id:
         db_pqp.id = str(uuid.uuid4())
@@ -563,6 +630,12 @@ def update_pqp(db: Session, pqp_id: str, pqp: schemas.PQPUpdate, user_id: int = 
         old_val = {c.name: getattr(db_pqp, c.name) for c in db_pqp.__table__.columns}
         d = pqp.dict(exclude_unset=True)
         d = _json_serialize(d, ['attachments'])
+        
+        # Handle Vendor Name -> ID mapping
+        if 'vendor' in d:
+            vendor_name = d.pop('vendor')
+            d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
         for key, value in d.items():
             setattr(db_pqp, key, value)
             
@@ -610,9 +683,16 @@ def get_obss(db: Session, skip: int = 0, limit: int = 500,
 
 def create_obs(db: Session, obs: schemas.OBSCreate, user_id: int = None, username: str = None):
     d = _json_serialize(obs.dict(), ['defectPhotos', 'improvementPhotos', 'attachments'])
+    
+    # Handle Vendor Name -> ID mapping
+    vendor_name = d.pop('vendor', None)
+    if vendor_name:
+        d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
     # 自動產生 Reference No（若未提供或為空）
     if not d.get('documentNumber'):
-        d['documentNumber'] = generate_reference_no(db, d.get('vendor', ''), 'OBS')
+        d['documentNumber'] = generate_reference_no(db, vendor_name or '', 'OBS')
+        
     db_obs = OBS(**d)
     if not db_obs.id:
         db_obs.id = str(uuid.uuid4())
@@ -635,6 +715,12 @@ def update_obs(db: Session, obs_id: str, obs: schemas.OBSUpdate, user_id: int = 
         old_val = {c.name: getattr(db_obs, c.name) for c in db_obs.__table__.columns}
         d = obs.dict(exclude_unset=True)
         d = _json_serialize(d, ['defectPhotos', 'improvementPhotos', 'attachments'])
+        
+        # Handle Vendor Name -> ID mapping
+        if 'vendor' in d:
+            vendor_name = d.pop('vendor')
+            d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
         for key, value in d.items():
             setattr(db_obs, key, value)
             
@@ -713,9 +799,17 @@ def get_followups(db: Session, skip: int = 0, limit: int = 500):
 
 def create_followup(db: Session, followup: schemas.FollowUpCreate, user_id: int = None, username: str = None):
     data = followup.dict()
+    
+    # Handle Vendor Name -> ID mapping
+    vendor_name = data.pop('vendor', None)
+    if vendor_name:
+        data['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
     # 自動產生 Reference No（若未提供或為空）
     if not data.get('issueNo'):
-        data['issueNo'] = generate_reference_no(db, data.get('vendor', '') or data.get('assignedTo', ''), 'followup')
+        # Pass vendor_name explicitly or assignedTo
+        data['issueNo'] = generate_reference_no(db, vendor_name or data.get('assignedTo', ''), 'followup')
+        
     db_f = FollowUp(**data)
     if not db_f.id:
         db_f.id = str(uuid.uuid4())
@@ -732,7 +826,14 @@ def update_followup(db: Session, followup_id: str, followup: schemas.FollowUpUpd
     db_f = db.query(FollowUp).filter(FollowUp.id == followup_id).first()
     if db_f:
         old_val = {c.name: getattr(db_f, c.name) for c in db_f.__table__.columns}
-        for key, value in followup.dict(exclude_unset=True).items():
+        data = followup.dict(exclude_unset=True)
+        
+        # Handle Vendor Name -> ID mapping
+        if 'vendor' in data:
+            vendor_name = data.pop('vendor')
+            data['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+            
+        for key, value in data.items():
             setattr(db_f, key, value)
             
         log_audit(db, "UPDATE", "FollowUp", followup_id, db_f.issueNo, 
@@ -935,6 +1036,8 @@ def get_checklists(db: Session, skip: int = 0, limit: int = 500,
 
 def create_checklist(db: Session, chk: schemas.ChecklistCreate, user_id: int = None, username: str = None):
     data = chk.dict()
+    data = _json_serialize(data, ['detail_data']) # Added _json_serialize for detail_data
+    
     # 自動產生 Records No（若未提供或由前端傳來的佔位符）
     if not data.get('recordsNo') or data.get('recordsNo') == "[AUTO-GENERATE]":
         # 注意這裡傳給 generate_reference_no 的 doc_type 建議統一為 CHECKLIST 或 CHK
@@ -960,7 +1063,10 @@ def update_checklist(db: Session, checklist_id: str, chk: schemas.ChecklistUpdat
             raise ValueError(f"Invalid status transition from {db_chk.status} to {chk.status}")
 
         old_val = {c.name: getattr(db_chk, c.name) for c in db_chk.__table__.columns}
-        for key, value in chk.dict(exclude_unset=True).items():
+        d = chk.dict(exclude_unset=True) # Renamed 'checklist' to 'chk' for consistency
+        d = _json_serialize(d, ['detail_data']) # Added _json_serialize for detail_data
+        
+        for key, value in d.items(): # Iterate over 'd' after serialization
             setattr(db_chk, key, value)
             
         log_audit(db, "UPDATE", "Checklist", checklist_id, db_chk.recordsNo, 
@@ -1064,8 +1170,14 @@ def get_fats(db: Session, skip: int = 0, limit: int = 500,
     return query.offset(skip).limit(limit).all()
 
 def create_fat(db: Session, fat: schemas.FATCreate, user_id: int = None, username: str = None):
-    d = _json_serialize(fat.dict(), ['detail_data', 'attachments'])
+    d = fat.dict() # Use 'd' for the dictionary
+    d = _json_serialize(d, ['detail_data', 'attachments'])
     
+    # Handle Vendor Name -> ID mapping (FAT uses 'supplier' in schema)
+    vendor_name = d.pop('supplier', None)
+    if vendor_name:
+        d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
     db_fat = FAT(**d)
     if not db_fat.id:
         db_fat.id = str(uuid.uuid4())
@@ -1092,6 +1204,11 @@ def update_fat(db: Session, fat_id: str, fat: schemas.FATUpdate, user_id: int = 
         d = fat.dict(exclude_unset=True)
         d = _json_serialize(d, ['detail_data', 'attachments'])
         
+        # Handle Vendor Name -> ID mapping
+        if 'supplier' in d:
+            vendor_name = d.pop('supplier')
+            d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+            
         for key, value in d.items():
             setattr(db_fat, key, value)
             

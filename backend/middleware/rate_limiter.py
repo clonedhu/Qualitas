@@ -13,12 +13,35 @@ class RateLimiter:
     def is_allowed(self, ip: str) -> bool:
         now = time.time()
         # 移除已過期的請求紀錄
-        self.requests[ip] = [t for t in self.requests[ip] if now - t < self.window_seconds]
+        if ip in self.requests:
+            self.requests[ip] = [t for t in self.requests[ip] if now - t < self.window_seconds]
+            # 如果該 IP 已無請求，則移除該 key (防止 memory leak)
+            if not self.requests[ip]:
+                del self.requests[ip]
         
-        if len(self.requests[ip]) < self.requests_limit:
+        # 簡單的清理機制：每 1000 次請求清理一次所有過期 key
+        # (生產環境可改為背景排程或 lazy cleanup)
+        if len(self.requests) > 1000:
+             self.cleanup_old_entries(now)
+
+        current_requests = self.requests.get(ip, [])
+        if len(current_requests) < self.requests_limit:
             self.requests[ip].append(now)
             return True
         return False
+
+    def cleanup_old_entries(self, now: float):
+        """清除所有 IP 的過期紀錄"""
+        keys_to_delete = []
+        for ip, timestamps in self.requests.items():
+            valid_timestamps = [t for t in timestamps if now - t < self.window_seconds]
+            if not valid_timestamps:
+                keys_to_delete.append(ip)
+            else:
+                self.requests[ip] = valid_timestamps
+        
+        for ip in keys_to_delete:
+            del self.requests[ip]
 
 # 定義不同場景的限制器
 api_limiter = RateLimiter(requests_limit=500, window_seconds=60)      # API: 每分鐘 500 次

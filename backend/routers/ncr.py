@@ -22,7 +22,8 @@ def read_ncrs(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     return crud.get_ncrs(
         db, 
@@ -35,7 +36,7 @@ def read_ncrs(
     )
 
 @router.get("/{ncr_id}", response_model=schemas.NCR)
-def read_ncr(ncr_id: str, db: Session = Depends(get_db)):
+def read_ncr(ncr_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     db_ncr = crud.get_ncr(db, ncr_id=ncr_id)
     if db_ncr is None:
         raise HTTPException(status_code=404, detail="NCR not found")

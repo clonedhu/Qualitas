@@ -5,11 +5,15 @@ from typing import List
 from database import get_db
 import models
 import schemas
+from middleware.auth import get_current_user, PermissionChecker, Permission
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
 
 @router.get("/naming-rules", response_model=List[schemas.NamingRule])
-def get_naming_rules(db: Session = Depends(get_db)):
+def get_naming_rules(
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
+):
     rules = db.query(models.DocumentNamingRule).all()
     if not rules:
         # If empty, seed again (double check)
@@ -24,7 +28,11 @@ def get_naming_rules(db: Session = Depends(get_db)):
     return rules
 
 @router.put("/naming-rules", response_model=List[schemas.NamingRule])
-def update_naming_rules(rules: List[schemas.NamingRuleBase], db: Session = Depends(get_db)):
+def update_naming_rules(
+    rules: List[schemas.NamingRuleBase], 
+    db: Session = Depends(get_db),
+    _: bool = Depends(PermissionChecker([Permission.WRITE, Permission.MANAGE_SETTINGS]))
+):
     try:
         for rule in rules:
             doc_type_normalized = (rule.doc_type or "").strip().lower()

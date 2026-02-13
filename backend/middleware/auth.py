@@ -12,17 +12,8 @@ from sqlalchemy.orm import Session
 from database import get_db
 import crud
 
-# JWT 設定 - 從環境變數讀取
-SECRET_KEY = os.getenv("SECRET_KEY")
-if not SECRET_KEY:
-    import warnings
-    warnings.warn(
-        "SECRET_KEY 未設定，使用預設值。請在 .env 檔案中設定 SECRET_KEY。",
-        UserWarning
-    )
-    SECRET_KEY = "qualitas-dev-secret-key-change-in-production"  # 與 main.py 保持一致
-
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
+# JWT 設定 - 使用 core.config.settings
+# SECRET_KEY and ALGORITHM are now accessed via settings.SECRET_KEY and settings.ALGORITHM
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
 
@@ -33,7 +24,12 @@ class Permission:
     DELETE = "delete"
     MANAGE_USERS = "manage_users"
     MANAGE_ROLES = "manage_roles"
+    MANAGE_SETTINGS = "manage_settings"
 
+
+from core.config import settings
+
+# ...
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme),
@@ -47,35 +43,42 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    try:
-        if token.startswith("mock_"):
-            # Handle mock token: mock_access_token_{user_id}_{random}
-            parts = token.split("_")
-            if len(parts) >= 4:
+
+    user = None
+
+    # 1. Mock Token Logic (Development Environment Only)
+    if settings.ENVIRONMENT != 'production' and token.startswith("mock_"):
+        # Handle mock token: mock_access_token_{user_id}_{random}
+        parts = token.split("_")
+        if len(parts) >= 4:
+            try:
                 user_id = int(parts[3])
-            else:
-                user_id = 1 # Fallback for legacy mock tokens
+                user = crud.get_user(db, user_id)
+            except (ValueError, IndexError):
+                pass
         else:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            user_id: int = payload.get("user_id")
-            
-        if user_id is None:
-            raise credentials_exception
-    except Exception as e:
-        import traceback
-        with open("auth_debug.log", "a") as f:
-            f.write(f"Auth Error: {e}\n")
-            f.write(traceback.format_exc())
-            f.write("\n")
-        print(f"Auth Error: {e}")
+             # Fallback for legacy mock tokens if needed, or just fail
+             pass
+    
+    # 2. Real JWT Logic
+    elif not token.startswith("mock_"):
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            # 統一使用 sub (username) 來識別使用者，與 core/security.py 保持一致
+            username: str = payload.get("sub")
+            if username:
+                user = crud.get_user_by_username(db, username=username)
+        except JWTError:
+            # log to stdout instead of file
+            print(f"JWT Verification Failed")
+            pass
+        except Exception as e:
+            print(f"Auth Error: {e}")
+            pass
+
+    if user is None:
         raise credentials_exception
     
-    user = crud.get_user(db, user_id)
-    if user is None:
-        with open("auth_debug.log", "a") as f:
-            f.write(f"User not found for id: {user_id}\n")
-        print(f"User not found for id: {user_id}")
-        raise credentials_exception
     return user
 
 

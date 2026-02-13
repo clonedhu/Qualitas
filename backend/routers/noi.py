@@ -22,7 +22,8 @@ def read_nois(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     return crud.get_nois(
         db, 
@@ -35,7 +36,7 @@ def read_nois(
     )
 
 @router.get("/{noi_id}", response_model=schemas.NOI)
-def read_noi(noi_id: str, db: Session = Depends(get_db)):
+def read_noi(noi_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     db_noi = crud.get_noi(db, noi_id=noi_id)
     if db_noi is None:
         raise HTTPException(status_code=404, detail="NOI not found")

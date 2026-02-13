@@ -11,6 +11,12 @@ const api = axios.create({
   },
 });
 
+let logoutHandler: (() => void) | null = null;
+
+export const setupLogoutHandler = (handler: () => void) => {
+  logoutHandler = handler;
+};
+
 // Request interceptor to add token
 api.interceptors.request.use(
   (config) => {
@@ -41,8 +47,13 @@ api.interceptors.response.use(
       const isAlreadyOnLogin = window.location.pathname === '/login';
 
       if (!isAuthEndpoint && !isAlreadyOnLogin) {
-        localStorage.removeItem('token');
-        window.location.href = '/login';
+        if (logoutHandler) {
+          logoutHandler();
+        } else {
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

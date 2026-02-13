@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import api, { User } from '../services/api';
+import api, { User, setupLogoutHandler } from '../services/api';
 export type { User };
 
 interface AuthContextType {
@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   login: (accessToken: string, refreshToken: string) => Promise<void>;
   logout: () => void;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -14,11 +15,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Register the logout function to be called on 401 responses
+    setupLogoutHandler(logout);
+
     const token = localStorage.getItem('token');
     if (token) {
       verifyToken(token);
+    } else {
+      setLoading(false);
     }
   }, []);
 
@@ -32,6 +39,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       localStorage.removeItem('token');
       setIsAuthenticated(false);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -61,8 +70,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
-      {children}
+    <AuthContext.Provider value={{ isAuthenticated, user, login, logout, loading }}>
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

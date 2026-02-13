@@ -5,7 +5,7 @@ from typing import List
 import schemas
 import crud
 from database import get_db
-from middleware.auth import PermissionChecker, Permission
+from middleware.auth import get_current_user, PermissionChecker, Permission
 
 router = APIRouter(
     prefix="/audit",
@@ -15,11 +15,11 @@ router = APIRouter(
 
 # 讀取操作 - 無需認證
 @router.get("/", response_model=List[schemas.Audit])
-def read_audits(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+def read_audits(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user or get_current_user)):
     return crud.get_audits(db, skip=skip, limit=limit)
 
 @router.get("/{audit_id}", response_model=schemas.Audit)
-def read_audit(audit_id: str, db: Session = Depends(get_db)):
+def read_audit(audit_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     db_audit = crud.get_audit(db, audit_id=audit_id)
     if db_audit is None:
         raise HTTPException(status_code=404, detail="Audit not found")

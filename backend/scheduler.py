@@ -36,9 +36,10 @@ async def check_and_send_reminders():
         
         # 3. 處理 NCR 提醒
         for ncr in ncrs:
-            # 查找廠商郵件
-            vendor = db.query(models.Contractor).filter(models.Contractor.name == ncr.vendor).first()
-            email = vendor.email if vendor and vendor.email else "admin@example.com"
+            # 直接使用關聯物件取得郵件 (Refactored to use vendor_ref)
+            email = "admin@example.com"
+            if ncr.vendor_ref and ncr.vendor_ref.email:
+                email = ncr.vendor_ref.email
             
             await send_email_notification(email, f"NCR: {ncr.documentNumber}", "NCR", ncr.dueDate)
             
@@ -46,10 +47,8 @@ async def check_and_send_reminders():
         for f in followups:
             # 優先檢查廠商郵件，否則發給管理員
             email = "admin@example.com"
-            if f.vendor:
-                vendor = db.query(models.Contractor).filter(models.Contractor.name == f.vendor).first()
-                if vendor and vendor.email:
-                    email = vendor.email
+            if f.vendor_ref and f.vendor_ref.email:
+                email = f.vendor_ref.email
             
             await send_email_notification(email, f"Follow-up Issue: {f.issueNo} - {f.title}", "Follow-up Issue", f.dueDate)
             

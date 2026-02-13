@@ -32,7 +32,8 @@ def read_itps(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     try:
         itps = crud.get_itps(
@@ -56,27 +57,21 @@ def read_itps(
             except Exception as e:
                 import traceback
                 error_msg = f"Serialization Error on ITP ID: {itp_obj.id}, Ref: {itp_obj.referenceNo}\nError: {e}\n"
-                with open("backend_validation_error.log", "a") as f:
-                    f.write(error_msg)
-                    f.write(traceback.format_exc())
-                    f.write("\n")
-                # We can either skip the bad record or raise error. 
-                # Let's skip it so the user can at least see the other records, 
-                # but log it so we can fix it.
-                print(error_msg) # Print to console too
+                # Removed file logging
+                print(error_msg) # Print to console
+                print(traceback.format_exc())
                 continue 
 
         return JSONResponse(content=validated_itps)
     except Exception as e:
         import traceback
-        with open("backend_error.log", "a") as f:
-            f.write(f"Error in read_itps: {str(e)}\n")
-            f.write(traceback.format_exc())
-            f.write("\n")
+        # Removed file logging
+        print(f"Error in read_itps: {str(e)}\n")
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{itp_id}", response_model=schemas.ITP)
-def read_itp(itp_id: str, db: Session = Depends(get_db)):
+def read_itp(itp_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     db_itp = crud.get_itp(db, itp_id=itp_id)
     if db_itp is None:
         raise HTTPException(status_code=404, detail="ITP not found")
@@ -95,10 +90,9 @@ def update_itp(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         import traceback
-        with open("itp_update_debug.log", "a") as f:
-            f.write(f"Error updating ITP {itp_id}: {str(e)}\n")
-            f.write(traceback.format_exc())
-            f.write("\n")
+        # Removed file logging
+        print(f"Error updating ITP {itp_id}: {str(e)}\n")
+        print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
     if db_itp is None:

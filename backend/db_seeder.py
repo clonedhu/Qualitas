@@ -187,10 +187,16 @@ def seed_rebar_itp():
         }
         
         # Prepare data
+        # Prepare data
+        # Resolve vendor
+        vendor_name = "廠商A"
+        vendor = db.query(models.Contractor).filter(models.Contractor.name == vendor_name).first()
+        vendor_id = vendor.id if vendor else None
+
         itp_data = {
             "referenceNo": ref_no,
             "description": "Rebar Works 鋼筋工程",
-            "vendor": "廠商A", # Default vendor
+            "vendor_id": vendor_id, # Use vendor_id
             "status": "Approved",
             "rev": "Rev1.0",
             "detail_data": json.dumps(detail_data),
@@ -245,10 +251,16 @@ def seed_piling_itp():
         }
         
         # Prepare data
+        # Prepare data
+        # Resolve vendor
+        vendor_name = "廠商C"
+        vendor = db.query(models.Contractor).filter(models.Contractor.name == vendor_name).first()
+        vendor_id = vendor.id if vendor else None
+
         itp_data = {
             "referenceNo": ref_no,
             "description": "Piling Works 樁基礎工程",
-            "vendor": "廠商C", # Default vendor for Piling
+            "vendor_id": vendor_id, # Use vendor_id
             "status": "Approved",
             "rev": "Rev1.0",
             "detail_data": json.dumps(detail_data),

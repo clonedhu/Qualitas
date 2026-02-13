@@ -22,7 +22,9 @@ def read_itrs(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
-    db: Session = Depends(get_db)
+
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     return crud.get_itrs(
         db, 
@@ -35,7 +37,7 @@ def read_itrs(
     )
 
 @router.get("/{itr_id}", response_model=schemas.ITR)
-def read_itr(itr_id: str, db: Session = Depends(get_db)):
+def read_itr(itr_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     db_itr = crud.get_itr(db, itr_id=itr_id)
     if db_itr is None:
         raise HTTPException(status_code=404, detail="ITR not found")

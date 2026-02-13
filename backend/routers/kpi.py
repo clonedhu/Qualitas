@@ -15,7 +15,7 @@ router = APIRouter(
 # --- KPI Weight Endpoints ---
 
 @router.get("/weights", response_model=schemas.KPIWeight)
-def read_kpi_weight(db: Session = Depends(get_db)):
+def read_kpi_weight(db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     return crud.get_kpi_weight(db)
 
 @router.put("/weights", response_model=schemas.KPIWeight)
@@ -32,7 +32,9 @@ def update_kpi_weight(
 @router.get("/performance", response_model=List[schemas.OwnerPerformance])
 def read_owner_performances(
     month: Optional[str] = None, 
-    db: Session = Depends(get_db)
+ 
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     return crud.get_owner_performances(db, month=month)
 

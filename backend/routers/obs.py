@@ -22,7 +22,9 @@ def read_obss(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
-    db: Session = Depends(get_db)
+
+    db: Session = Depends(get_db),
+    current_user: schemas.User = Depends(get_current_user)
 ):
     return crud.get_obss(
         db, 
@@ -35,7 +37,7 @@ def read_obss(
     )
 
 @router.get("/{obs_id}", response_model=schemas.OBS)
-def read_obs(obs_id: str, db: Session = Depends(get_db)):
+def read_obs(obs_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     db_obs = crud.get_obs(db, obs_id=obs_id)
     if db_obs is None:
         raise HTTPException(status_code=404, detail="OBS not found")

@@ -6,7 +6,7 @@ class ITP(Base):
     __tablename__ = "itp"
 
     id = Column(String, primary_key=True, index=True)
-    vendor = Column(String, ForeignKey("contractors.name"), index=True)
+    vendor_id = Column(String, ForeignKey("contractors.id"), index=True)
     referenceNo = Column(String, index=True, unique=True)  # 由後端自動產生
     description = Column(String, nullable=True)
     rev = Column(String, nullable=True)
@@ -24,12 +24,16 @@ class ITP(Base):
     vendor_ref = relationship("Contractor", back_populates="itps")
     nois = relationship("NOI", back_populates="itp_ref")
 
+    @property
+    def vendor(self):
+        return self.vendor_ref.name if self.vendor_ref else None
+
 
 class NCR(Base):
     __tablename__ = "ncr"
 
     id = Column(String, primary_key=True, index=True)
-    vendor = Column(String, ForeignKey("contractors.name"), index=True)
+    vendor_id = Column(String, ForeignKey("contractors.id"), index=True)
     documentNumber = Column(String, index=True, unique=True)  # 由後端自動產生
     description = Column(String, nullable=True)
     rev = Column(String, nullable=True)
@@ -60,6 +64,10 @@ class NCR(Base):
     vendor_ref = relationship("Contractor", back_populates="ncrs")
     noi_ref = relationship("NOI", back_populates="ncrs")
 
+    @property
+    def vendor(self):
+        return self.vendor_ref.name if self.vendor_ref else None
+
 
 class FollowUp(Base):
     __tablename__ = "followup"
@@ -71,7 +79,7 @@ class FollowUp(Base):
     status = Column(String)
     priority = Column(String, nullable=True)
     assignedTo = Column(String, nullable=True)
-    vendor = Column(String, ForeignKey("contractors.name"), nullable=True, index=True) # 關聯廠商
+    vendor_id = Column(String, ForeignKey("contractors.id"), nullable=True, index=True) # 關聯廠商
     dueDate = Column(String, nullable=True)
     createdAt = Column(String)
     updatedAt = Column(String)
@@ -82,6 +90,10 @@ class FollowUp(Base):
 
     # Relationships
     vendor_ref = relationship("Contractor", back_populates="followups")
+
+    @property
+    def vendor(self):
+        return self.vendor_ref.name if self.vendor_ref else None
 
 
 class NOI(Base):
@@ -97,7 +109,7 @@ class NOI(Base):
     checkpoint = Column(String, nullable=True)
     inspectionDate = Column(String)
     type = Column(String)
-    contractor = Column(String, ForeignKey("contractors.name"), index=True)
+    vendor_id = Column(String, ForeignKey("contractors.id"), index=True)
     contacts = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     email = Column(String, nullable=True)
@@ -116,12 +128,16 @@ class NOI(Base):
     itrs = relationship("ITR", back_populates="noi_ref")
     checklists = relationship("Checklist", back_populates="noi_ref")
 
+    @property
+    def contractor(self):
+        return self.vendor_ref.name if self.vendor_ref else None
+
 
 class ITR(Base):
     __tablename__ = "itr"
 
     id = Column(String, primary_key=True, index=True)
-    vendor = Column(String, ForeignKey("contractors.name"), index=True)
+    vendor_id = Column(String, ForeignKey("contractors.id"), index=True)
     documentNumber = Column(String, index=True, unique=True)
     description = Column(String)
     rev = Column(String)
@@ -149,6 +165,10 @@ class ITR(Base):
     # Relationships
     vendor_ref = relationship("Contractor", back_populates="itrs")
     noi_ref = relationship("NOI", back_populates="itrs")
+
+    @property
+    def vendor(self):
+        return self.vendor_ref.name if self.vendor_ref else None
     checklists = relationship("Checklist", back_populates="itr_ref", foreign_keys="Checklist.itrId")
 
 
@@ -159,7 +179,7 @@ class PQP(Base):
     pqpNo = Column(String, index=True, unique=True)
     title = Column(String)
     description = Column(String)
-    vendor = Column(String, ForeignKey("contractors.name"), index=True)
+    vendor_id = Column(String, ForeignKey("contractors.id"), index=True)
     status = Column(String)
     version = Column(String)
     createdAt = Column(String)
@@ -169,12 +189,16 @@ class PQP(Base):
     # Relationships
     vendor_ref = relationship("Contractor", back_populates="pqps")
 
+    @property
+    def vendor(self):
+        return self.vendor_ref.name if self.vendor_ref else None
+
 
 class OBS(Base):
     __tablename__ = "obs"
 
     id = Column(String, primary_key=True, index=True)
-    vendor = Column(String, ForeignKey("contractors.name"), index=True)
+    vendor_id = Column(String, ForeignKey("contractors.id"), index=True)
     documentNumber = Column(String, index=True, unique=True)
     description = Column(String)
     rev = Column(String)
@@ -203,6 +227,10 @@ class OBS(Base):
     # Relationships
     vendor_ref = relationship("Contractor", back_populates="obss")
 
+    @property
+    def vendor(self):
+        return self.vendor_ref.name if self.vendor_ref else None
+
 
 class Contractor(Base):
     __tablename__ = "contractors"
@@ -225,6 +253,7 @@ class Contractor(Base):
     itrs = relationship("ITR", back_populates="vendor_ref")
     pqps = relationship("PQP", back_populates="vendor_ref")
     obss = relationship("OBS", back_populates="vendor_ref")
+    fats = relationship("FAT", back_populates="vendor_ref")
     followups = relationship("FollowUp", back_populates="vendor_ref")
 
 
@@ -303,13 +332,18 @@ class Checklist(Base):
     failCount = Column(Integer, default=0) # 統計數據
     detail_data = Column(Text, nullable=True) # JSON 數據
     noiNumber = Column(String, ForeignKey("noi.referenceNo"), nullable=True, index=True)
-    contractor = Column(String, ForeignKey("contractors.name"), nullable=True, index=True) # 新增承包商關聯
+    contractor_id = Column("vendor_id", String, ForeignKey("contractors.id"), nullable=True, index=True) # 新增承包商關聯
     itrId = Column(String, ForeignKey("itr.id"), nullable=True, index=True) # ITR 關聯
     itrNumber = Column(String, ForeignKey("itr.documentNumber"), nullable=True, index=True) # ITR 單號
 
     # Relationships
     noi_ref = relationship("NOI", back_populates="checklists")
     itr_ref = relationship("ITR", back_populates="checklists", foreign_keys=[itrId])
+    vendor_ref = relationship("Contractor")
+
+    @property
+    def contractor(self):
+        return self.vendor_ref.name if self.vendor_ref else None
 
 # 審計日誌 - 記錄所有 CRUD 操作
 class AuditLog(Base):
@@ -384,7 +418,7 @@ class FAT(Base):
 
     id = Column(String, primary_key=True, index=True)
     equipment = Column(String, index=True)
-    supplier = Column(String, ForeignKey("contractors.name"), index=True)
+    vendor_id = Column(String, ForeignKey("contractors.id"), index=True)
     procedure = Column(String, nullable=True)
     location = Column(String, nullable=True)
     startDate = Column(String, nullable=True)
@@ -403,6 +437,9 @@ class FAT(Base):
     # Relationships
     vendor_ref = relationship("Contractor", back_populates="fats")
 
-# Monkey patch Contractor to add 'fats' relationship
-Contractor.fats = relationship("FAT", back_populates="vendor_ref")
+    @property
+    def supplier(self):
+        return self.vendor_ref.name if self.vendor_ref else None
+
+
 
