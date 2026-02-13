@@ -93,6 +93,14 @@ def update_itp(
         db_itp = crud.update_itp(db, itp_id=itp_id, itp=itp, user_id=current_user.id, username=current_user.username)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        import traceback
+        with open("itp_update_debug.log", "a") as f:
+            f.write(f"Error updating ITP {itp_id}: {str(e)}\n")
+            f.write(traceback.format_exc())
+            f.write("\n")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
     if db_itp is None:
         raise HTTPException(status_code=404, detail="ITP not found")
     return db_itp

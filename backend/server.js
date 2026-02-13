@@ -46,6 +46,11 @@ const ENABLE_MOCK_AUTH = process.env.ENABLE_MOCK_AUTH === 'true';
 const TOKEN_EXPIRY_MS = 30 * 60 * 1000; // 30 分鐘
 const tokenStore = new Map(); // 儲存 token 和過期時間
 
+// Mock Users for development/fallback
+const users = [
+    { id: '1', name: 'System Administrator', email: 'admin@example.com', role: 'admin' }
+];
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Backend server is running' });
@@ -83,9 +88,11 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
             console.log('[Backend] Python backend unavailable, using mock auth');
             // Mock 認證邏輯（僅開發用）
             if (username === 'admin@example.com' && password === 'admin') {
-                const tokenId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const userId = '1';
+                // Generates token format matched by /api/user/profile: mock_access_token_{userId}_{random}
+                const tokenId = `mock_access_token_${userId}_${Date.now()}`;
                 const expiresAt = Date.now() + TOKEN_EXPIRY_MS;
-                tokenStore.set(tokenId, { userId: '1', expiresAt });
+                tokenStore.set(tokenId, { userId, expiresAt });
 
                 return res.json({
                     access_token: tokenId,
@@ -212,15 +219,15 @@ async function checkAndSendReminders() {
 
         // 1. Fetch NCRs
         const ncrsResp = await axios.get(`${PYTHON_API}/api/ncr/`);
-        const openNcrs = ncrsResp.data.filter(n =>
+        const openNcrs = Array.isArray(ncrsResp.data) ? ncrsResp.data.filter(n =>
             n.status !== 'Closed' && n.status !== '結案' && n.dueDate === targetDateStr
-        );
+        ) : [];
 
         // 2. Fetch FollowUp Issues
         const followupsResp = await axios.get(`${PYTHON_API}/api/followup/`);
-        const openFollowups = followupsResp.data.filter(f =>
+        const openFollowups = Array.isArray(followupsResp.data) ? followupsResp.data.filter(f =>
             f.status !== 'Closed' && f.status !== '結案' && f.dueDate === targetDateStr
-        );
+        ) : [];
 
         // 3. Process NCR Reminders
         for (const ncr of openNcrs) {
@@ -245,7 +252,7 @@ async function checkAndSendReminders() {
             await sendEmailNotification(email, `Follow-up Issue: ${f.issueNo} - ${f.title}`, 'Follow-up Issue', f.dueDate);
         }
 
-        console.log(`[Cron] Reminders process finished. Sent ${openNcrs.length + openFollowups.data?.length || 0} notifications.`);
+        console.log(`[Cron] Reminders process finished. Sent ${(openNcrs.length + openFollowups.length) || 0} notifications.`);
     } catch (error) {
         console.error('[Cron] Error during reminder process:', error.message);
     }

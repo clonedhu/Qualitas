@@ -11,7 +11,7 @@ import {
 import { BackButton } from '../ui/BackButton';
 import { toast } from 'sonner';
 import { InspectionItem, ITPData } from '../../types/itp';
-import { PHASES, INITIAL_ITEMS, EMPTY_ITEM } from '../../constants/itp';
+import { PHASES, EMPTY_ITEM } from '../../constants/itp';
 import { getNextRevision } from '../../utils/revision';
 import './ITPDetail.print.css';
 import './itp-print-global.css';

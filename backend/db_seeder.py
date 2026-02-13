@@ -25,7 +25,6 @@ def run_seeding():
     
     seed_default_contractors()
     seed_default_pqp()
-    seed_default_pqp()
     seed_initial_data()
     seed_rebar_itp()
     print("Seeding completed.")
@@ -213,6 +212,64 @@ def seed_rebar_itp():
 
     except Exception as e:
         print(f"Error seeding Rebar ITP: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+def seed_piling_itp():
+    db = SessionLocal()
+    try:
+        # Check if exists
+        ref_no = "ITP-PL-001"
+        existing = db.query(models.ITP).filter(models.ITP.referenceNo == ref_no).first()
+        
+        detail_data = {
+             "a": [
+                {"id": "A1", "phase": "A", "activity": {"en": "Length", "ch": "長度"}, "standard": "CNS 2602", "criteria": "22m ±0.3% / 25m ±0.3%", "checkTime": {"en": "Deliver to site", "ch": "運抵工地"}, "method": {"en": "Tape measure", "ch": "捲尺"}, "frequency": "-", "vp": {"sub": "", "teco": "", "employer": "", "hse": ""}, "record": "-"},
+                {"id": "A2", "phase": "A", "activity": {"en": "Thickness", "ch": "厚度"}, "standard": "CNS 2602", "criteria": "100mm -2/+40mm", "checkTime": {"en": "Deliver to site", "ch": "運抵工地"}, "method": {"en": "Tape measure", "ch": "捲尺"}, "frequency": "-", "vp": {"sub": "", "teco": "", "employer": "", "hse": ""}, "record": "-"},
+                {"id": "A3", "phase": "A", "activity": {"en": "Outer Diameter", "ch": "外徑"}, "standard": "CNS 2602", "criteria": "600mm -4/+7mm", "checkTime": {"en": "Deliver to site", "ch": "運抵工地"}, "method": {"en": "Tape measure", "ch": "捲尺"}, "frequency": "-", "vp": {"sub": "", "teco": "", "employer": "", "hse": ""}, "record": "-"},
+                {"id": "A4", "phase": "A", "activity": {"en": "Quantity", "ch": "數量"}, "standard": "Shipping Order", "criteria": "Meet shipping order", "checkTime": {"en": "Deliver to site", "ch": "運抵工地"}, "method": {"en": "Visual", "ch": "目視檢查"}, "frequency": "Each Time", "vp": {"sub": "H", "teco": "W", "employer": "R", "hse": ""}, "record": "ITP-PL-01"},
+                {"id": "A5", "phase": "A", "activity": {"en": "Stakeout", "ch": "放樣"}, "standard": "HL-ONS-TECO-STR-DWG-02000", "criteria": "Meet design req.", "checkTime": {"en": "Before construction", "ch": "施工前"}, "method": {"en": "Tape Measure", "ch": "捲尺"}, "frequency": "Each Time", "vp": {"sub": "H", "teco": "H", "employer": "H", "hse": ""}, "record": "ITP-SV-01"}
+            ],
+            "b": [
+                {"id": "B1", "phase": "B", "activity": {"en": "Foundation piling position", "ch": "基礎打設座標"}, "standard": "HL-ONS-TECO-STR-DWG-02000", "criteria": "Tolerance ± 7.5 cm", "checkTime": {"en": "During Piling", "ch": "打樁時"}, "method": {"en": "Total Station", "ch": "全站儀"}, "frequency": "Each Pile", "vp": {"sub": "H", "teco": "H", "employer": "H", "hse": ""}, "record": "QTS-RKS-HL-CHK-000001"},
+                {"id": "B2", "phase": "B", "activity": {"en": "Pile Elevation", "ch": "基礎高程"}, "standard": "HL-ONS-TECO-GEO-DWG-08000", "criteria": "Tolerance ± 7.5 cm", "checkTime": {"en": "After Piling", "ch": "打樁後"}, "method": {"en": "Total Station", "ch": "全站儀"}, "frequency": "Each Pile", "vp": {"sub": "H", "teco": "W", "employer": "R", "hse": ""}, "record": "ITP-PL-04"},
+                {"id": "B3", "phase": "B", "activity": {"en": "Pile Joint", "ch": "樁頭檢查"}, "standard": "CNS 2602", "criteria": "No Oil, Rust, Dust", "checkTime": {"en": "Before Welding", "ch": "焊接前"}, "method": {"en": "Visual", "ch": "目視"}, "frequency": "Each Pile", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": "※"}, "record": "ITP-PL-02"},
+                {"id": "B4", "phase": "B", "activity": {"en": "Welding", "ch": "焊接"}, "standard": "CNS 13341", "criteria": "No Defect (無缺失)", "checkTime": {"en": "After Welding", "ch": "焊接後"}, "method": {"en": "NDT - MT", "ch": "MT 檢測"}, "frequency": "1/50 pcs", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": "※"}, "record": "ITP-PL-02"},
+                {"id": "B5", "phase": "B", "activity": {"en": "Verticality of Pile", "ch": "基礎垂直度"}, "standard": "HL-ONS-TECO-GEO-DWG-08000", "criteria": "< 1/75", "checkTime": {"en": "During Piling", "ch": "打樁時"}, "method": {"en": "Spirit Level Ruler", "ch": "水平尺"}, "frequency": "Each Pile", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": ""}, "record": "ITP-PL-02&04"},
+                {"id": "B6", "phase": "B", "activity": {"en": "Hit number of hammers", "ch": "打擊次數"}, "standard": "HL-ONS-TECO-ENG-PLN-00005", "criteria": "< 2000 hits", "checkTime": {"en": "During Piling", "ch": "打樁時"}, "method": {"en": "Visual", "ch": "目視"}, "frequency": "Each Pile", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": ""}, "record": "ITP-PL-02&04"}
+            ],
+            "c": [
+                {"id": "C1", "phase": "C", "activity": {"en": "Pile Position", "ch": "樁位複測"}, "standard": "HL-ONS-TECO-STR-", "criteria": "Tolerance < 7.5cm", "checkTime": {"en": "After Piling", "ch": "打樁後"}, "method": {"en": "Total Station", "ch": "全站儀"}, "frequency": "Each Pile", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": ""}, "record": "ITP-PL-03"}
+            ]
+        }
+        
+        # Prepare data
+        itp_data = {
+            "referenceNo": ref_no,
+            "description": "Piling Works 樁基礎工程",
+            "vendor": "廠商C", # Default vendor for Piling
+            "status": "Approved",
+            "rev": "Rev1.0",
+            "detail_data": json.dumps(detail_data),
+            "submissionDate": datetime.now().strftime("%Y-%m-%d"),
+            "submit": ""
+        }
+
+        if existing:
+            print(f"Updating existing Piling ITP: {ref_no}")
+            for key, value in itp_data.items():
+                setattr(existing, key, value)
+        else:
+            print(f"Creating new Piling ITP: {ref_no}")
+            new_itp = models.ITP(**itp_data, id=str(uuid.uuid4()))
+            db.add(new_itp)
+        
+        db.commit()
+        print("Piling ITP seeded successfully.")
+
+    except Exception as e:
+        print(f"Error seeding Piling ITP: {e}")
         db.rollback()
     finally:
         db.close()

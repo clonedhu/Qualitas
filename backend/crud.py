@@ -32,8 +32,9 @@ PROJECT_CODE = "QTS"
 def _json_serialize(d: dict, list_fields: list):
     d = d.copy()
     for k in list_fields:
-        if k in d and d[k] is not None and isinstance(d[k], list):
-            d[k] = json.dumps(d[k])
+        if k in d and d[k] is not None:
+             if isinstance(d[k], (list, dict)):
+                d[k] = json.dumps(d[k])
     return d
 
 
@@ -44,14 +45,16 @@ class WorkflowEngine:
     TRANSITIONS = {
         "ITP": {
             "Draft": ["Pending", "Void"],
-            "Pending": ["Approved", "Void"],
-            "Approved": ["Void"],
+            "Pending": ["Approved", "Revise & Resubmit", "Void"],
+            "Approved": ["Void", "Pending"],
+            "Revise & Resubmit": ["Pending", "Void"],
             "Void": []
         },
         "PQP": {
             "Draft": ["Pending", "Void"],
-            "Pending": ["Approved", "Void"],
-            "Approved": ["Void"],
+            "Pending": ["Approved", "Revise & Resubmit", "Void"],
+            "Approved": ["Void", "Pending"],
+            "Revise & Resubmit": ["Pending", "Void"],
             "Void": []
         },
         "NCR": {
@@ -218,15 +221,16 @@ def get_itps(db: Session, skip: int = 0, limit: int = 100,
     if search:
         query = query.filter(
             (ITP.referenceNo.ilike(f"%{search}%")) |
-            (ITP.projectTitle.ilike(f"%{search}%")) |
-            (ITP.activity.ilike(f"%{search}%"))
+            (ITP.description.ilike(f"%{search}%")) 
+            # (ITP.activity.ilike(f"%{search}%")) # Removed: activity does not exist
+            # projectTitle also removed
         )
     if status:
         query = query.filter(ITP.status == status)
     if start_date:
-        query = query.filter(ITP.created_at >= start_date) # 假設 ITP 有 created_at 或用其他日期欄位
+        query = query.filter(ITP.submissionDate >= start_date) # Changed from created_at to submissionDate
     if end_date:
-        query = query.filter(ITP.created_at <= end_date)
+        query = query.filter(ITP.submissionDate <= end_date) # Changed from created_at to submissionDate
         
     return query.offset(skip).limit(limit).all()
 

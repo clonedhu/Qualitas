@@ -74,27 +74,27 @@ export const ITPPrintTemplate: React.FC<ITPPrintTemplateProps> = ({ items, heade
                                 <tr key={item.id} className="break-inside-avoid">
                                     <td className="border-b border-r border-slate-300 px-2 py-2 text-center font-mono align-top">{item.id}</td>
                                     <td className="border-b border-r border-slate-300 px-2 py-2 align-top">
-                                        <div className="font-bold mb-0.5">{item.activity.en}</div>
-                                        <div className="text-[10px] text-slate-500">{item.activity.ch}</div>
+                                        <div className="font-bold mb-0.5">{typeof item.activity === 'object' ? item.activity?.en : item.activity || ''}</div>
+                                        <div className="text-[10px] text-slate-500">{typeof item.activity === 'object' ? item.activity?.ch : ''}</div>
                                     </td>
                                     <td className="border-b border-r border-slate-300 px-2 py-2 align-top">
                                         <div className="text-[10px] text-slate-500 mb-1 bg-slate-50 inline-block px-1 border border-slate-200 rounded">{item.standard}</div>
                                         <div className="font-medium">{item.criteria}</div>
                                     </td>
                                     <td className="border-b border-r border-slate-300 px-2 py-2 align-top text-center">
-                                        <div>{item.checkTime.en}</div>
-                                        <div className="text-[10px] text-slate-500">{item.checkTime.ch}</div>
+                                        <div>{typeof item.checkTime === 'object' ? item.checkTime?.en : item.checkTime || ''}</div>
+                                        <div className="text-[10px] text-slate-500">{typeof item.checkTime === 'object' ? item.checkTime?.ch : ''}</div>
                                     </td>
                                     <td className="border-b border-r border-slate-300 px-2 py-2 align-top text-center">
-                                        <div>{item.method.en}</div>
-                                        <div className="text-[10px] text-slate-500">{item.method.ch}</div>
+                                        <div>{typeof item.method === 'object' ? item.method?.en : item.method || ''}</div>
+                                        <div className="text-[10px] text-slate-500">{typeof item.method === 'object' ? item.method?.ch : ''}</div>
                                     </td>
                                     <td className="border-b border-r border-slate-300 px-2 py-2 align-top text-center">{item.frequency}</td>
                                     <td className="border-b border-r border-slate-300 px-2 py-2 align-top text-center font-mono text-[10px]">{item.record !== '-' ? item.record : ''}</td>
-                                    <td className="border-b border-r border-slate-300 px-1 py-2 align-middle text-center"><VPBadge type={item.vp.sub} /></td>
-                                    <td className="border-b border-r border-slate-300 px-1 py-2 align-middle text-center"><VPBadge type={item.vp.teco} /></td>
-                                    <td className="border-b border-r border-slate-300 px-1 py-2 align-middle text-center"><VPBadge type={item.vp.employer} /></td>
-                                    <td className="border-b border-slate-300 px-1 py-2 align-middle text-center"><VPBadge type={item.vp.hse} /></td>
+                                    <td className="border-b border-r border-slate-300 px-1 py-2 align-middle text-center"><VPBadge type={item.vp?.sub} /></td>
+                                    <td className="border-b border-r border-slate-300 px-1 py-2 align-middle text-center"><VPBadge type={item.vp?.teco} /></td>
+                                    <td className="border-b border-r border-slate-300 px-1 py-2 align-middle text-center"><VPBadge type={item.vp?.employer} /></td>
+                                    <td className="border-b border-slate-300 px-1 py-2 align-middle text-center"><VPBadge type={item.vp?.hse} /></td>
                                 </tr>
                             ))}
                         </React.Fragment>
