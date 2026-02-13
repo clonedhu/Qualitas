@@ -133,7 +133,9 @@ app.get('/api/auth/verify', (req, res) => {
     }
 
     // 嘗試代理到 Python 後端驗證
-    return createCrudProxy('/api/auth')(req, res);
+    // 注意：app.get 路由中 req.url 是完整路徑，需要直接使用空前綴
+    const verifyProxy = createCrudProxy('');
+    return verifyProxy(req, res);
 });
 
 // User profile endpoint
@@ -160,7 +162,9 @@ app.get('/api/user/profile', (req, res) => {
         }
     }
 
-    return res.status(401).json({ detail: 'Invalid token' });
+    // 真實 JWT token → 轉發到 Python 後端
+    const profileProxy = createCrudProxy('');
+    return profileProxy(req, res);
 });
 
 // Proxy CRUD paths to Python FastAPI backend (port 8000)
