@@ -181,6 +181,38 @@
     background: #059669;
 }
 
+/* Tabs Styles */
+.tabsContainer {
+    display: flex;
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 24px;
+    padding: 0 32px;
+    background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.tabButton {
+    padding: 12px 24px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 15px;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+
+.tabButton:hover {
+    color: #374151;
+    background: rgba(0, 0, 0, 0.02);
+}
+
+.activeTab {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+}
+
 /* --- Modern Web UI Styles --- */
 .webEditor {
     width: 100%;
@@ -512,7 +544,7 @@
         top: 0 !important;
         width: 100% !important;
         margin: 0 !important;
-        padding: 20mm !important;
+        padding: 10mm !important;
         /* Adjust padding as needed */
         visibility: visible !important;
         background: white !important;

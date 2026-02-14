@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useEffect, useCall
 import api from '../services/api';
 import { parseJsonFields } from '../utils/normalizeApiItem';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useAuth } from './AuthContext';
 
 export interface ITRItem {
   id: string;
@@ -27,11 +28,14 @@ export interface ITRItem {
   defectPhotos?: string[];
   improvementPhotos?: string[];
   attachments?: string[];
+  itpNo?: string;  // Related ITP Reference Number
+  drawings?: string[]; // Latest Drawings
+  certificates?: string[]; // Calibration Certificates
 }
 
 function normalizeItem(item: unknown): ITRItem {
   const record = (typeof item === 'object' && item !== null ? { ...item } : {}) as Record<string, unknown>;
-  return parseJsonFields(record, ['defectPhotos', 'improvementPhotos', 'attachments']) as unknown as ITRItem;
+  return parseJsonFields(record, ['defectPhotos', 'improvementPhotos', 'attachments', 'drawings', 'certificates']) as unknown as ITRItem;
 }
 
 import { FilterParams } from '../types/api';
@@ -71,9 +75,14 @@ export const ITRProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [handleError]);
 
+  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
-    fetchITRs();
-  }, [fetchITRs]);
+    if (isAuthenticated) {
+      fetchITRs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   const addITR = useCallback(async (itr: Omit<ITRItem, 'id'>): Promise<ITRItem> => {
     try {
@@ -89,7 +98,7 @@ export const ITRProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateITR = useCallback(async (id: string, updates: Partial<ITRItem>) => {
     try {
-      const response = await api.put(`/itr/${id}`, updates);
+      const response = await api.put(`/itr/${id}/`, updates);
       const updated = normalizeItem(response.data);
       setItrList(prev => prev.map(i => (i.id === id ? updated : i)));
     } catch (error) {
@@ -100,7 +109,7 @@ export const ITRProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const deleteITR = useCallback(async (id: string) => {
     try {
-      await api.delete(`/itr/${id}`);
+      await api.delete(`/itr/${id}/`);
       setItrList(prev => prev.filter(i => i.id !== id));
     } catch (error) {
       handleError(error, 'Failed to delete ITR');

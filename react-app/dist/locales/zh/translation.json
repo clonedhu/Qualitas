@@ -128,6 +128,11 @@
   "noi.inspectionTime": "檢驗時間",
   "noi.eventNo": "事件編號",
   "noi.checkpoint": "檢查點",
+  "noi.status.open": "開啟",
+  "noi.status.underReview": "審核中",
+  "noi.status.closed": "已關閉",
+  "noi.status.reject": "退件",
+  "noi.bulkAddFailed": "批次新增失敗",
   "noi.relatedITR": "相關 ITR",
   "itr.title": "ITR 列表",
   "itr.addNew": "新增 ITR",
@@ -260,6 +265,8 @@
   "itp.selectContractor": "選擇承包商",
   "itp.revPlaceholder": "請輸入 Rev5.0 以上版本",
   "itp.revSelectCustom": "Rev5.0 以上（手動輸入）",
+  "itp.tab.generalInfo": "基本資訊",
+  "itp.tab.inspectionPlan": "檢驗計畫",
   "itp.confirmDelete": "確定要刪除此 ITP 項目嗎？此操作無法復原。",
   "itp.addError": "新增失敗，請稍後再試",
   "itp.updateError": "更新失敗，請稍後再試",
@@ -467,5 +474,9 @@
   "fat.tooltip.edit": "編輯",
   "fat.tooltip.details": "查看詳情",
   "fat.tooltip.addDetails": "編輯詳情",
-  "fat.tooltip.delete": "刪除"
+  "fat.tooltip.delete": "刪除",
+  "itr.relatedITP": "相關 ITP",
+  "itr.selectITP": "選擇 ITP",
+  "itr.sectionDrawings": "最新圖說",
+  "itr.sectionCertificates": "校正證書"
 }

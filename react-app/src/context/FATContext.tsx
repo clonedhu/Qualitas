@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback, ReactNode } from 'react';
 import api from '../services/api';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useAuth } from './AuthContext';
 
 export interface FATItem {
     id: string;
@@ -76,9 +77,14 @@ export const FATProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
     }, [handleError]);
 
+    const { isAuthenticated } = useAuth();
+
     useEffect(() => {
-        fetchFATs();
-    }, [fetchFATs]);
+        if (isAuthenticated) {
+            fetchFATs();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isAuthenticated]);
 
     const addFAT = useCallback(async (fat: Omit<FATItem, 'id'>): Promise<FATItem> => {
         try {
@@ -94,7 +100,7 @@ export const FATProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const updateFAT = useCallback(async (id: string, updates: Partial<FATItem>) => {
         try {
-            const response = await api.put(`/fat/${id}`, updates);
+            const response = await api.put(`/fat/${id}/`, updates);
             setFatList(prev => prev.map(f => (f.id === id ? response.data : f)));
         } catch (err: unknown) {
             handleError(err, 'Failed to update FAT');
@@ -104,7 +110,7 @@ export const FATProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const deleteFAT = useCallback(async (id: string) => {
         try {
-            await api.delete(`/fat/${id}`);
+            await api.delete(`/fat/${id}/`);
             setFatList(prev => prev.filter(f => f.id !== id));
             setFatDetails(prev => {
                 const newDetails = { ...prev };
@@ -119,7 +125,7 @@ export const FATProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const saveFATDetails = useCallback(async (fatId: string, details: FATDetailItem[]) => {
         try {
-            const response = await api.put(`/fat/${fatId}/details`, details); // 注意：後端 API 接收 list body
+            const response = await api.put(`/fat/${fatId}/details/`, details); // 注意：後端 API 接收 list body
             setFatDetails(prev => ({ ...prev, [fatId]: details }));
             // 更新 list 中的 hasDetails 狀態 (後端應該會回傳更新後的 FAT 物件)
             setFatList(prev => prev.map(f =>

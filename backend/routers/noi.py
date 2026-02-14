@@ -1,15 +1,16 @@
-
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 import schemas
 import crud
 from database import get_db
-from middleware.auth import get_current_user, PermissionChecker, Permission
+from middleware.auth import get_current_user
+from core.dependencies import RoleChecker
+from core.perms import NOI_VIEW, NOI_CREATE, NOI_UPDATE, NOI_DELETE, NOI_APPROVE
 
 router = APIRouter(
     prefix="/noi",
-    tags=["noi"],
+    tags=["NOI"],
     responses={404: {"description": "Not found"}},
 )
 
@@ -23,7 +24,7 @@ def read_nois(
     start_date: str = None,
     end_date: str = None,
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(NOI_VIEW))
 ):
     return crud.get_nois(
         db, 
@@ -35,7 +36,7 @@ def read_nois(
         end_date=end_date
     )
 
-@router.get("/{noi_id}", response_model=schemas.NOI)
+@router.get("/{noi_id}/", response_model=schemas.NOI)
 def read_noi(noi_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     db_noi = crud.get_noi(db, noi_id=noi_id)
     if db_noi is None:
@@ -63,27 +64,25 @@ def create_nois_bulk(
         created.append(crud.create_noi(db=db, noi=noi, user_id=current_user.id, username=current_user.username))
     return created
 
-@router.put("/{noi_id}", response_model=schemas.NOI)
+@router.put("/{noi_id}/", response_model=schemas.NOI)
 def update_noi(
     noi_id: str, 
     noi: schemas.NOIUpdate, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(NOI_UPDATE))
 ):
-    try:
-        db_noi = crud.update_noi(db, noi_id=noi_id, noi=noi, user_id=current_user.id, username=current_user.username)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    db_noi = crud.update_noi(db, noi_id=noi_id, noi=noi, user_id=current_user.id, username=current_user.username)
     if db_noi is None:
         raise HTTPException(status_code=404, detail="NOI not found")
     return db_noi
 
-@router.delete("/{noi_id}")
+@router.delete("/{noi_id}/", response_model=dict)
 def delete_noi(
     noi_id: str, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(NOI_DELETE))
 ):
-    if crud.delete_noi(db, noi_id=noi_id, user_id=current_user.id, username=current_user.username) is None:
+    db_noi = crud.delete_noi(db, noi_id=noi_id, user_id=current_user.id, username=current_user.username)
+    if db_noi is None:
         raise HTTPException(status_code=404, detail="NOI not found")
     return {"ok": True}

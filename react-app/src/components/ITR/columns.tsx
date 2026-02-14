@@ -9,7 +9,6 @@ import { useNavigate } from "react-router-dom";
 
 export const createColumns = (
     handleEdit: (id: string) => void,
-    handleViewDetails: (id: string) => void,
     handleDeleteClick: (id: string) => void,
     navigate: (path: string) => void,
     t: (key: string) => string
@@ -106,6 +105,13 @@ export const createColumns = (
             cell: ({ row }) => <div className="text-center">{row.getValue("raiseDate") || '-'}</div>,
         },
         {
+            accessorKey: "dueDate",
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title={t('common.dueDate')} />
+            ),
+            cell: ({ row }) => <div className="text-center">{row.getValue("dueDate") || '-'}</div>,
+        },
+        {
             accessorKey: "ncrNumber",
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title={t('itr.ncrNo')} />
@@ -142,15 +148,7 @@ export const createColumns = (
                         >
                             <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-100"
-                            onClick={() => handleViewDetails(itr.id)}
-                            title={t('itr.tooltip.details')}
-                        >
-                            <Eye className="h-4 w-4" />
-                        </Button>
+
                         {itr.noiNumber && (
                             <Button
                                 variant="ghost"

@@ -415,15 +415,6 @@ textarea.input {
   border-color: #2563eb;
 }
 
-.selfInspectionInputShort {
-  width: 72px;
-  padding: 4px 6px;
-  border: 1px solid #d1d5db;
-  border-radius: 2px;
-  font-size: 13px;
-  box-sizing: border-box;
-}
-
 .selfInspectionInputTiny {
   width: 48px;
   padding: 2px 4px;
@@ -751,7 +742,6 @@ textarea.input {
   }
 
   .selfInspectionInput,
-  .selfInspectionInputShort,
   .selfInspectionInputTiny {
     border: 1px solid #000 !important;
     background: #fff !important;

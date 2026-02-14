@@ -114,7 +114,8 @@ const ITP: React.FC = () => {
       } as Omit<ITPItem, 'id'>);
       setCurrentItpId(newItem.id);
       setIsEditModalOpen(true);
-    } catch (err: unknown) {
+    } catch (err: any) {
+      if (err?.response?.status === 401) return;
       const msg = getErrorMessage(err, t('itp.addError'));
       alert(t('itp.addError') + '：' + msg);
     }
@@ -140,7 +141,8 @@ const ITP: React.FC = () => {
       try {
         await deleteITP(deleteModal.id);
         setDeleteModal({ isOpen: false, id: null, message: '' });
-      } catch (error) {
+      } catch (error: any) {
+        if (error?.response?.status === 401) return;
         alert(t('itp.deleteError'));
       }
     }
@@ -363,6 +365,7 @@ const ITP: React.FC = () => {
               setIsEditModalOpen(false);
               setCurrentItpId(null);
             } catch (error: any) {
+              if (error?.response?.status === 401) return;
               const detail = error?.response?.data?.detail || t('itp.updateError');
               alert(detail);
             }

@@ -3,36 +3,19 @@ import ReactDOM from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
 import { useITR } from '../../context/ITRContext';
-import { ITRDetailsViewModal } from '../ITR/ITRModals';
+
 import {
   FileText, Printer, Filter, PenTool, LayoutTemplate, Layers, X, Save, AlertCircle, Plus,
   CheckCircle2, ChevronDown, Calendar, Hash, Tag, FileCheck, ShieldCheck, HardHat, User, Building2, Trash2, ArrowDown
 } from 'lucide-react';
 import { BackButton } from '../ui/BackButton';
 import { toast } from 'sonner';
-import { InspectionItem, ITPData } from '../../types/itp';
+import { InspectionItem } from '../../types/itp';
 import { PHASES, EMPTY_ITEM } from '../../constants/itp';
 import { getNextRevision } from '../../utils/revision';
+import VPBadge from './VPBadge';
 import './ITPDetail.print.css';
 import './itp-print-global.css';
-
-// --- VP 標籤元件 ---
-const VPBadge = ({ type }: { type: string }) => {
-  const styles: { [key: string]: string } = {
-    H: "bg-rose-100 text-rose-700 border-rose-200 font-bold ring-1 ring-rose-200 shadow-sm",
-    W: "bg-amber-100 text-amber-700 border-amber-200 font-bold ring-1 ring-amber-200 shadow-sm",
-    R: "bg-sky-100 text-sky-700 border-sky-200 font-bold ring-1 ring-sky-200 shadow-sm",
-    "※": "bg-slate-100 text-slate-600 border-slate-200 font-medium ring-1 ring-slate-200"
-  };
-
-  if (!type) return <span className="text-slate-200 font-light">-</span>;
-
-  return (
-    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm transition-all ${styles[type] || ""}`}>
-      {type}
-    </span>
-  );
-};
 
 
 
@@ -45,7 +28,7 @@ const ITPDetail: React.FC = () => {
   const [editingItem, setEditingItem] = useState<InspectionItem | null>(null);
   const [workTitle, setWorkTitle] = useState(""); // 工項標題狀態
   const [referenceNo, setReferenceNo] = useState(""); // Form No.
-  const [viewingItrItem, setViewingItrItem] = useState<any | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -59,7 +42,7 @@ const ITPDetail: React.FC = () => {
     setSaving(true);
     try {
       // 1. Update Revision & Title
-      await api.put(`/itp/${id}`, {
+      await api.put(`/itp/${id}/`, {
         description: workTitle,
         rev: nextRev,
         status: 'Approved' // Optional: set status to Approved on publish
@@ -106,7 +89,7 @@ const ITPDetail: React.FC = () => {
       if (!id) return;
       setLoading(true);
       try {
-        const response = await api.get(`/itp/${id}`);
+        const response = await api.get(`/itp/${id}/`);
         const data = response.data;
         if (data) {
           if (data.description) setWorkTitle(data.description);
@@ -152,7 +135,7 @@ const ITPDetail: React.FC = () => {
     setSaving(true);
     try {
       // 1. Update Title (Description)
-      await api.put(`/itp/${id}`, { description: workTitle });
+      await api.put(`/itp/${id}/`, { description: workTitle });
 
       // 2. Update Details
       const payload = {
@@ -640,14 +623,8 @@ const ITPDetail: React.FC = () => {
                                 navigate(`/checklist?recordNo=${item.record}&from=itp`);
                                 return;
                               }
-                              const found = itrList.find(itr => itr.documentNumber === item.record);
-                              if (found) {
-                                setViewingItrItem(found);
-                              } else {
-                                // Fallback: if not found in context (might be manually entered or not synced), 
-                                // we could still show a basic view or alert
-                                toast.error('Record document data not found in current list.');
-                              }
+                              navigate('/itr');
+                              toast.info(`Please find ITR ${item.record} in the ITR list.`);
                             }}
                             className="inline-flex items-center px-2.5 py-1.5 rounded-md bg-white text-slate-900 hover:text-blue-800 hover:bg-blue-50 transition-colors font-mono text-xs font-bold border border-slate-300 hover:border-blue-400 whitespace-nowrap shadow-sm group/itr"
                           >
@@ -809,14 +786,7 @@ const ITPDetail: React.FC = () => {
       )}
 
       {/* Viewing ITR Details Modal */}
-      {viewingItrItem && (
-        <ITRDetailsViewModal
-          itrId={viewingItrItem.id}
-          itrItem={viewingItrItem}
-          onPrint={() => window.print()}
-          onClose={() => setViewingItrItem(null)}
-        />
-      )}
+
     </div>
   );
 };

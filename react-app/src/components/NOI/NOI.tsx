@@ -192,6 +192,9 @@ const NOI: React.FC = () => {
         status: details.status || 'Open',
         attachments: details.attachments || [],
         ncrNumber: details.ncrNumber || '',
+        remark: details.remark || '',
+        closeoutDate: details.closeoutDate || '',
+        dueDate: details.dueDate || '',
       };
 
       try {
@@ -524,8 +527,9 @@ const NOI: React.FC = () => {
             try {
               await addBulkNOI(nois);
               setIsBulkModalOpen(false);
-            } catch (err) {
-              alert('批次新增失敗：' + (err instanceof Error ? err.message : '未知錯誤'));
+            } catch (err: any) {
+              const msg = err instanceof Error ? err.message : (t('common.unknownError') || 'Unknown Error');
+              alert(`${t('noi.bulkAddFailed') || 'Bulk add failed'}: ${msg}`);
             }
           }}
           onClose={() => setIsBulkModalOpen(false)}

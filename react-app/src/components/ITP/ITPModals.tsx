@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-
 import { useNavigate } from 'react-router-dom';
+import { BackButton } from '../ui/BackButton';
 import { useLanguage } from '../../context/LanguageContext';
 import { useContractors } from '../../context/ContractorsContext';
 import { ITPItem, ITPInspectionItem } from '../../context/ITPContext';
@@ -12,27 +12,10 @@ import FileAttachment from '../Shared/FileAttachment';
 import styles from './ITP.module.css';
 import { getNextRevision } from '../../utils/revision';
 import { useITR } from '../../context/ITRContext';
-import { ITRDetailsViewModal } from '../ITR/ITRModals';
+
 import { Printer, ShieldCheck, Save, LayoutTemplate, Plus } from 'lucide-react';
 import { PHASES } from '../../constants/itp';
-
-// VP Badge for Print View
-const VPBadge = ({ type }: { type: string }) => {
-    const badgeStyles: { [key: string]: string } = {
-        H: "bg-rose-100 text-rose-700 border-rose-200 font-bold ring-1 ring-rose-200 shadow-sm",
-        W: "bg-amber-100 text-amber-700 border-amber-200 font-bold ring-1 ring-amber-200 shadow-sm",
-        R: "bg-sky-100 text-sky-700 border-sky-200 font-bold ring-1 ring-sky-200 shadow-sm",
-        "※": "bg-slate-100 text-slate-600 border-slate-200 font-medium ring-1 ring-slate-200"
-    };
-
-    if (!type) return <span className="text-slate-200 font-light">-</span>;
-
-    return (
-        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm transition-all ${badgeStyles[type] || ""}`}>
-            {type}
-        </span>
-    );
-};
+import VPBadge from './VPBadge';
 
 export interface ITPDetailModalProps {
     itpId: string;
@@ -50,7 +33,8 @@ export const ITPDetailModal: React.FC<ITPDetailModalProps> = ({ itpId, existingI
     const REV_OPTIONS = ['Rev1.0', 'Rev2.0', 'Rev3.0', 'Rev4.0'];
 
     const [activeTab, setActiveTab] = useState<'general' | 'plan'>('general');
-    const [viewingItrItem, setViewingItrItem] = useState<any | null>(null);
+
+
 
     const [saving, setSaving] = useState(false);
     const [isPrinting, setIsPrinting] = useState(false);
@@ -252,7 +236,10 @@ export const ITPDetailModal: React.FC<ITPDetailModalProps> = ({ itpId, existingI
         <div className={styles.modalOverlay} style={{ padding: 0 }}>
             <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} style={{ maxWidth: '100%', width: '100%', height: '100%', maxHeight: 'none', borderRadius: 0 }}>
                 <div className={styles.modalHeader}>
-                    <h2>{existingItem ? t('itp.editTitle') : t('itp.addTitle')}</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <BackButton onClick={onClose} label={t('common.back')} />
+                        <h2>{existingItem ? t('itp.editTitle') : t('itp.addTitle')}</h2>
+                    </div>
                     <button className={styles.closeButton} onClick={onClose}>×</button>
                 </div>
 
@@ -434,9 +421,14 @@ export const ITPDetailModal: React.FC<ITPDetailModalProps> = ({ itpId, existingI
                             <ITPAdvancedEditor
                                 ref={editorRef}
                                 items={advancedItems}
+
                                 onItemsChange={setAdvancedItems}
-                                onViewRecord={(itr) => setViewingItrItem(itr)}
+                                onViewRecord={(itr) => {
+                                    navigate('/itr');
+                                    // toast.info(`Please find ITR ${itr.documentNumber} in the ITR list.`);
+                                }}
                                 headerData={headerData}
+
                             />
                             {/* <div className="mt-2 text-center text-xs text-slate-500 print:hidden">
                                 Note: Changes to the inspection plan are saved when you click "Save" below.
@@ -494,15 +486,7 @@ export const ITPDetailModal: React.FC<ITPDetailModalProps> = ({ itpId, existingI
 
 
 
-            {/* ITR Details Modal (Nested) */}
-            {viewingItrItem && (
-                <ITRDetailsViewModal
-                    itrId={viewingItrItem.id}
-                    itrItem={viewingItrItem}
-                    onPrint={() => window.print()}
-                    onClose={() => setViewingItrItem(null)}
-                />
-            )}
+
         </div >
     );
 };

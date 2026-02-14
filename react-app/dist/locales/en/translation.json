@@ -129,6 +129,11 @@
   "noi.inspectionTime": "Inspection Time",
   "noi.eventNo": "Event #",
   "noi.checkpoint": "Checkpoint",
+  "noi.status.open": "Open",
+  "noi.status.underReview": "Under Review",
+  "noi.status.closed": "Closed",
+  "noi.status.reject": "Reject",
+  "noi.bulkAddFailed": "Bulk add failed",
   "noi.relatedITR": "Related ITR",
   "itr.title": "ITR List",
   "itr.addNew": "Add New ITR",
@@ -261,6 +266,8 @@
   "itp.selectContractor": "Select Contractor",
   "itp.revPlaceholder": "Enter Rev5.0 or higher",
   "itp.revSelectCustom": "Rev5.0 or higher (Manual)",
+  "itp.tab.generalInfo": "General Information",
+  "itp.tab.inspectionPlan": "Inspection Plan",
   "itp.confirmDelete": "Are you sure you want to delete this ITP item? This action cannot be undone.",
   "itp.addError": "Failed to add. Please try again later.",
   "itp.updateError": "Failed to update. Please try again later.",
@@ -468,5 +475,9 @@
   "fat.tooltip.edit": "Edit",
   "fat.tooltip.details": "View Details",
   "fat.tooltip.addDetails": "Edit Details",
-  "fat.tooltip.delete": "Delete"
+  "fat.tooltip.delete": "Delete",
+  "itr.relatedITP": "Related ITP",
+  "itr.selectITP": "Select ITP",
+  "itr.sectionDrawings": "Latest Drawings",
+  "itr.sectionCertificates": "Calibration Certificates"
 }

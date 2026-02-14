@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback, ReactNode } from 'react';
 import api from '../services/api';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useAuth } from './AuthContext';
 
 export interface NOIItem {
   id: string;
@@ -22,6 +23,7 @@ export interface NOIItem {
   closeoutDate?: string;
   attachments?: string[];
   ncrNumber?: string;  // 若此 NOI 是針對 NCR 的重新檢驗
+  dueDate?: string;
 }
 
 import { FilterParams } from '../types/api';
@@ -61,9 +63,14 @@ export const NOIProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [handleError]);
 
+  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
-    fetchNOIs();
-  }, [fetchNOIs]);
+    if (isAuthenticated) {
+      fetchNOIs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   const addNOI = async (noi: Omit<NOIItem, 'id'>, id?: string): Promise<NOIItem> => {
     try {
@@ -91,7 +98,7 @@ export const NOIProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateNOI = async (id: string, updates: Partial<NOIItem>) => {
     try {
-      const response = await api.put(`/noi/${id}`, updates);
+      const response = await api.put(`/noi/${id}/`, updates);
       setNoiList(prev => prev.map(n => (n.id === id ? response.data : n)));
     } catch (error) {
       handleError(error, 'Failed to update NOI');
@@ -101,7 +108,7 @@ export const NOIProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const deleteNOI = async (id: string) => {
     try {
-      await api.delete(`/noi/${id}`);
+      await api.delete(`/noi/${id}/`);
       setNoiList(prev => prev.filter(n => n.id !== id));
     } catch (error) {
       handleError(error, 'Failed to delete NOI');

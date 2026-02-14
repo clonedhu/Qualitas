@@ -92,6 +92,10 @@ def _add_missing_columns():
             
             # Checklist
             _add_column_if_missing(conn, "checklist", "noiNumber", "VARCHAR")
+
+            # AuditLog
+            _add_column_if_missing(conn, "audit_logs", "reason", "TEXT")
+            _add_column_if_missing(conn, "audit_logs", "details", "TEXT")
             
             conn.commit()
     except Exception as e:

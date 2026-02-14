@@ -7,7 +7,7 @@ import { useITR, ITRItem } from '../../context/ITRContext';
 import { useContractors } from '../../context/ContractorsContext';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
-import { ITRDetailModal, ITRDetailsViewModal, ITRDetailData } from './ITRModals';
+import { ITRDetailModal, ITRDetailData } from './ITRModals';
 import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './ITR.module.css';
 
@@ -25,9 +25,7 @@ const ITR: React.FC = () => {
     refetch({ search: debouncedSearch });
   }, [debouncedSearch, refetch]);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [currentItrId, setCurrentItrId] = useState<string | null>(null);
-  const [viewingItrId, setViewingItrId] = useState<string | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null }>({
     isOpen: false,
     id: null,
@@ -60,11 +58,6 @@ const ITR: React.FC = () => {
   const handleEdit = (id: string) => {
     setCurrentItrId(id);
     setIsEditModalOpen(true);
-  };
-
-  const handleViewDetails = (id: string) => {
-    setViewingItrId(id);
-    setIsDetailsModalOpen(true);
   };
 
   const handleDeleteClick = (id: string) => {
@@ -207,7 +200,7 @@ const ITR: React.FC = () => {
                 {t('itr.addNew') || '+ New ITR'}
               </button>
             }
-            columns={createColumns(handleEdit, handleViewDetails, handleDeleteClick, navigate, t)}
+            columns={createColumns(handleEdit, handleDeleteClick, navigate, t)}
             data={filteredList}
             searchKey=""
             searchPlaceholder={t('itr.searchPlaceholder')}
@@ -233,15 +226,6 @@ const ITR: React.FC = () => {
           itrList={itrList}
           onSave={handleSaveITRDetails}
           onClose={() => setIsEditModalOpen(false)}
-        />
-      )}
-
-      {isDetailsModalOpen && viewingItrId && (
-        <ITRDetailsViewModal
-          itrId={viewingItrId}
-          itrItem={itrList.find(i => i.id === viewingItrId)}
-          onPrint={() => window.print()}
-          onClose={() => setIsDetailsModalOpen(false)}
         />
       )}
     </div>

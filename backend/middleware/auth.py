@@ -36,49 +36,28 @@ async def get_current_user(
     db: Session = Depends(get_db)
 ):
     """
-    從 JWT token 解析當前使用者
+    從 JWT token 解析當前使用者並驗證
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-
-    user = None
-
-    # 1. Mock Token Logic (Development Environment Only)
-    if settings.ENVIRONMENT != 'production' and token.startswith("mock_"):
-        # Handle mock token: mock_access_token_{user_id}_{random}
-        parts = token.split("_")
-        if len(parts) >= 4:
-            try:
-                user_id = int(parts[3])
-                user = crud.get_user(db, user_id)
-            except (ValueError, IndexError):
-                pass
-        else:
-             # Fallback for legacy mock tokens if needed, or just fail
-             pass
-    
-    # 2. Real JWT Logic
-    elif not token.startswith("mock_"):
-        try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-            # 統一使用 sub (username) 來識別使用者，與 core/security.py 保持一致
-            username: str = payload.get("sub")
-            if username:
-                user = crud.get_user_by_username(db, username=username)
-        except JWTError:
-            # log to stdout instead of file
-            print(f"JWT Verification Failed")
-            pass
-        except Exception as e:
-            print(f"Auth Error: {e}")
-            pass
-
-    if user is None:
+    try:
+        # 使用 jose 解析 token
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except JWTError as e:
+        print(f"AUTH DEBUG: JWT Error: {str(e)}")
         raise credentials_exception
     
+    # 從資料庫獲取代碼
+    user = crud.get_user_by_username(db, username=username)
+    if user is None:
+        print(f"AUTH DEBUG: User not found for username: {username}")
+        raise credentials_exception
     return user
 
 
@@ -97,16 +76,10 @@ async def get_user_permissions(
     if not role:
         return []
     
-    # 解析權限（可能是 JSON 字串或列表）
-    permissions = role.permissions
-    if isinstance(permissions, str):
-        import json
-        try:
-            permissions = json.loads(permissions)
-        except json.JSONDecodeError:
-            permissions = []
-    
-    return permissions or []
+    # 解析權限
+    # Fix: Role model uses permissions_rel relationship, incorrectly named 'permissions' in some legacy code
+    # We directly access the relationship to get Permission objects and extract their codes
+    return [p.code for p in role.permissions_rel]
 
 
 def require_permissions(required_permissions: List[str]):

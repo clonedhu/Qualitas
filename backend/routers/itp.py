@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -7,11 +6,13 @@ from typing import List
 import schemas
 import crud
 from database import get_db
-from middleware.auth import get_current_user, PermissionChecker, Permission
+from middleware.auth import get_current_user
+from core.dependencies import RoleChecker
+from core.perms import ITP_VIEW, ITP_CREATE, ITP_UPDATE, ITP_DELETE
 
 router = APIRouter(
     prefix="/itp",
-    tags=["itp"],
+    tags=["ITP"],
     responses={404: {"description": "Not found"}},
 )
 
@@ -20,7 +21,7 @@ router = APIRouter(
 def create_itp(
     itp: schemas.ITPCreate, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(ITP_CREATE))
 ):
     return crud.create_itp(db=db, itp=itp, user_id=current_user.id, username=current_user.username)
 
@@ -70,20 +71,21 @@ def read_itps(
         print(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/{itp_id}", response_model=schemas.ITP)
+@router.get("/{itp_id}/", response_model=schemas.ITP)
 def read_itp(itp_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
     db_itp = crud.get_itp(db, itp_id=itp_id)
     if db_itp is None:
         raise HTTPException(status_code=404, detail="ITP not found")
     return db_itp
 
-@router.put("/{itp_id}", response_model=schemas.ITP)
+@router.put("/{itp_id}/", response_model=schemas.ITP)
 def update_itp(
     itp_id: str, 
-    itp: schemas.ITPUpdate, 
+    itp: schemas.ITPUpdate,
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(ITP_UPDATE))
 ):
+    print(f"DEBUG: update_itp called for ID {itp_id} by user {current_user.username}")
     try:
         db_itp = crud.update_itp(db, itp_id=itp_id, itp=itp, user_id=current_user.id, username=current_user.username)
     except ValueError as e:
@@ -99,11 +101,11 @@ def update_itp(
         raise HTTPException(status_code=404, detail="ITP not found")
     return db_itp
 
-@router.delete("/{itp_id}")
+@router.delete("/{itp_id}/", response_model=dict)
 def delete_itp(
     itp_id: str, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(ITP_DELETE))
 ):
     db_itp = crud.delete_itp(db, itp_id=itp_id, user_id=current_user.id, username=current_user.username)
     if db_itp is None:

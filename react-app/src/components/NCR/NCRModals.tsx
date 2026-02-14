@@ -244,7 +244,7 @@ export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingD
     const handleSave = () => {
         if (!formData.itrNumber && !formData.noiNumber) {
             // Warn if no link to origin
-            if (!window.confirm(t('ncr.validation.noLinkWarning') || 'This NCR is not linked to any ITR or NOI. Do you want to continue?')) {
+            if (!window.confirm('This NCR is not linked to any ITR or NOI. Do you want to continue?')) {
                 return;
             }
         }

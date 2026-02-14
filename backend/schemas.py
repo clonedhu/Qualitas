@@ -14,19 +14,8 @@ def validate_date_format(v: str) -> str:
         raise ValueError('日期格式必須為 YYYY-MM-DD')
     return v
 
-class ITPInspectionItem(BaseModel):
-    id: str
-    itemNo: Optional[str] = ''
-    activity: Optional[str] = ''
-    referenceDoc: Optional[str] = ''
-    acceptanceCriteria: Optional[str] = ''
-    verifyingDocuments: Optional[str] = ''
-    checkpointContractor: Optional[str] = '' # W/H/R/Surveil
-    checkpointMainCon: Optional[str] = ''
-    checkpointClient: Optional[str] = ''
-
 class ITPBase(BaseModel):
-    vendor: str
+    vendor: Optional[str] = None
     referenceNo: Optional[str] = None  # 由後端自動產生
     description: Optional[constr(max_length=MAX_TEXT_LENGTH)] = ''
     rev: Optional[constr(max_length=MAX_SHORT_LENGTH)] = ''
@@ -89,7 +78,7 @@ class ITP(ITPBase):
 
 # NCR
 class NCRBase(BaseModel):
-    vendor: str
+    vendor: Optional[str] = None
     documentNumber: Optional[str] = None  # 由後端自動產生
     description: constr(max_length=MAX_TEXT_LENGTH)
     rev: constr(max_length=MAX_SHORT_LENGTH)
@@ -179,7 +168,7 @@ class NOIBase(BaseModel):
     checkpoint: Optional[str] = None
     inspectionDate: str
     type: str
-    contractor: str
+    contractor: Optional[str] = None
     contacts: Optional[str] = None
     phone: Optional[str] = None
     email: Optional[str] = None
@@ -239,7 +228,7 @@ class NOI(NOIBase):
 
 # ITR
 class ITRBase(BaseModel):
-    vendor: str
+    vendor: Optional[str] = None
     documentNumber: Optional[str] = None  # 由後端自動產生
     description: str
     rev: str
@@ -316,7 +305,7 @@ class PQPBase(BaseModel):
     pqpNo: Optional[str] = None  # 由後端自動產生
     title: str
     description: str
-    vendor: str
+    vendor: Optional[str] = None
     status: str
     version: str
     createdAt: str
@@ -363,7 +352,7 @@ class PQP(PQPBase):
 
 # OBS
 class OBSBase(BaseModel):
-    vendor: str
+    vendor: Optional[str] = None
     documentNumber: Optional[str] = None  # 由後端自動產生
     description: str
     rev: str
@@ -539,14 +528,26 @@ class RoleBase(BaseModel):
         return v
 
 class RoleCreate(RoleBase):
-    pass
+    reason: Optional[str] = None
 
 class RoleUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     permissions: Optional[List[str]] = None
+    reason: Optional[str] = None
 
 class Role(RoleBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+# Permission
+class PermissionBase(BaseModel):
+    code: str
+    description: Optional[str] = None
+
+class Permission(PermissionBase):
     id: int
 
     class Config:
@@ -605,10 +606,10 @@ class UserBase(BaseModel):
     full_name: Optional[str] = None
     is_active: Optional[bool] = True
     role_id: Optional[int] = None
-    created_at: Optional[str] = None  # ISO date string
 
 class UserCreate(UserBase):
     password: str
+    reason: Optional[str] = None
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
@@ -617,10 +618,12 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
     role_id: Optional[int] = None
     password: Optional[str] = None
+    reason: Optional[str] = None
 
 class User(UserBase):
     id: int
-    role_name: Optional[str] = None # For UI convenience
+    role_name: Optional[str] = None
+    created_at: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -720,6 +723,9 @@ class AttachmentResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class TokenData(BaseModel):
+    username: Optional[str] = None
 
 
 # --- FAT Schemas ---

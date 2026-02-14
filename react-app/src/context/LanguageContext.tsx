@@ -279,11 +279,22 @@ const translations: Record<Language, Record<string, string>> = {
     'itr.selectNOI': 'Select NOI',
     'itr.confirmDelete': 'Are you sure you want to delete this ITR item?',
     'itr.saveError': 'ITR save failed, please ensure backend is running and try again.',
+    'itr.relatedITP': 'Related ITP',
+    'itr.selectITP': 'Select ITP',
+    'itr.sectionDrawings': 'Latest Drawings',
+    'itr.sectionCertificates': 'Calibration Certificates',
+    'itr.sectionLinkedChecklists': 'Linked Checklists',
+    'itr.noLinkedChecklists': 'No checklists linked to this ITR yet.',
+    'itr.validation.noiRequired': 'Please select an NOI Number.',
+    'itr.confirmLinkChecklist': 'Are you sure you want to link this checklist to the current ITR?',
+    'itr.confirmUnlinkChecklist': 'Are you sure you want to unlink this checklist?',
 
     // Checklist
     'checklist.title': 'Checklist List',
     'checklist.listTitle': 'Checklist Records',
     'checklist.addNew': 'New Checklist',
+    'checklist.addOrLink': 'Checklist',
+    'checklist.createNew': 'Create New...',
     'checklist.searchPlaceholder': 'Search Checklist...',
     'checklist.recordNotFound': 'Record not found',
     'checklist.selectNoi': 'Select NOI',
@@ -587,6 +598,7 @@ const translations: Record<Language, Record<string, string>> = {
     'iam.roleName': 'Role Name',
     'iam.saveRoleError': 'Failed to save role',
     'iam.saveUserError': 'Failed to save user',
+    'iam.auditReason': 'Change Reason (Audit)',
 
     // ITP
     'itp.title': 'ITP List',
@@ -722,6 +734,7 @@ const translations: Record<Language, Record<string, string>> = {
     'common.total': 'Total',
     'itp.tab.generalInfo': 'General Information',
     'itp.tab.inspectionPlan': 'Inspection Plan',
+
   },
 
   zh: {
@@ -986,12 +999,16 @@ const translations: Record<Language, Record<string, string>> = {
     'itr.reInspectionNo': '複檢編號',
     'itr.photo.defect': '缺失照片',
     'itr.photo.improvement': '改善照片',
+    'itr.confirmUnlinkChecklist': '您確定要解除連結此檢查表嗎？',
     'itr.photo.upload': '上傳照片',
     'itr.revCustom': 'Rev5.0 以上（手動輸入）',
     'itr.revCustomPlaceholder': '請輸入 Rev5.0 以上版本，例如 Rev5.0',
     'itr.selectNOI': '選擇 NOI',
     'itr.confirmDelete': '確定要刪除此 ITR 項目嗎？',
     'itr.saveError': 'ITR 儲存失敗，請確認後端已啟動並稍後再試。',
+    'itr.sectionLinkedChecklists': '關聯檢查表',
+    'itr.noLinkedChecklists': '尚無任何關聯檢查表。',
+    'itr.validation.noiRequired': '請選擇一個 NOI 編號。',
 
     // NCR
     'ncr.title': 'NCR 列表',
@@ -1173,6 +1190,8 @@ const translations: Record<Language, Record<string, string>> = {
     'checklist.title': '檢查表列表',
     'checklist.listTitle': '檢查表紀錄',
     'checklist.addNew': '新增檢查表',
+    'checklist.addOrLink': '檢查表',
+    'checklist.createNew': '建立新檢查表...',
     'checklist.searchPlaceholder': '搜尋檢查表...',
     'checklist.recordNotFound': '找不到紀錄',
     'checklist.selectNoi': '選擇 NOI',
@@ -1402,6 +1421,7 @@ const translations: Record<Language, Record<string, string>> = {
     'iam.roleName': '角色名稱',
     'iam.saveRoleError': '儲存角色失敗',
     'iam.saveUserError': '儲存用戶失敗',
+    'iam.auditReason': '變更原因 (稽核)',
   }, // Close zh
 }; // Close translations
 

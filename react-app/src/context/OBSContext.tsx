@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useEffect, useCall
 import api from '../services/api';
 import { parseJsonFields } from '../utils/normalizeApiItem';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useAuth } from './AuthContext';
 
 export interface OBSItem {
   id: string;
@@ -71,9 +72,14 @@ export const OBSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [handleError]);
 
+  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
-    fetchOBSs();
-  }, [fetchOBSs]);
+    if (isAuthenticated) {
+      fetchOBSs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   const addOBS = useCallback(async (obs: Omit<OBSItem, 'id'>): Promise<OBSItem> => {
     try {
@@ -89,7 +95,7 @@ export const OBSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateOBS = useCallback(async (id: string, updates: Partial<OBSItem>) => {
     try {
-      const response = await api.put(`/obs/${id}`, updates);
+      const response = await api.put(`/obs/${id}/`, updates);
       const updated = normalizeItem(response.data);
       setObsList(prev => prev.map(o => (o.id === id ? updated : o)));
     } catch (error) {
@@ -100,7 +106,7 @@ export const OBSProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const deleteOBS = useCallback(async (id: string) => {
     try {
-      await api.delete(`/obs/${id}`);
+      await api.delete(`/obs/${id}/`);
       setObsList(prev => prev.filter(o => o.id !== id));
     } catch (error) {
       handleError(error, 'Failed to delete OBS');

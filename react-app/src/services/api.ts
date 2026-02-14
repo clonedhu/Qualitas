@@ -68,7 +68,7 @@ export interface NamingRuleApi {
 }
 
 export const getNamingRules = async (): Promise<NamingRuleApi[]> => {
-  const res = await api.get<NamingRuleApi[]>('/settings/naming-rules');
+  const res = await api.get<NamingRuleApi[]>('/settings/naming-rules/');
   return res.data;
 };
 
@@ -81,7 +81,7 @@ export interface NamingRuleUpdatePayload {
 export const updateNamingRules = async (
   rules: NamingRuleUpdatePayload[]
 ): Promise<NamingRuleApi[]> => {
-  const response = await api.put<NamingRuleApi[]>('/settings/naming-rules', rules);
+  const response = await api.put<NamingRuleApi[]>('/settings/naming-rules/', rules);
   return response.data;
 };
 
@@ -115,14 +115,14 @@ export interface CreateContractorPayload {
 export interface UpdateContractorPayload extends Partial<CreateContractorPayload> { }
 
 export const getContractors = async (): Promise<Contractor[]> => {
-  const response = await api.get<Contractor[]>('/contractors');
+  const response = await api.get<Contractor[]>('/contractors/');
   return response.data;
 };
 
 export const createContractor = async (
   data: CreateContractorPayload
 ): Promise<Contractor> => {
-  const response = await api.post<Contractor>('/contractors', data);
+  const response = await api.post<Contractor>('/contractors/', data);
   return response.data;
 };
 
@@ -130,12 +130,12 @@ export const updateContractor = async (
   id: string,
   data: UpdateContractorPayload
 ): Promise<Contractor> => {
-  const response = await api.put<Contractor>(`/contractors/${id}`, data);
+  const response = await api.put<Contractor>(`/contractors/${id}/`, data);
   return response.data;
 };
 
 export const deleteContractor = async (id: string): Promise<void> => {
-  await api.delete(`/contractors/${id}`);
+  await api.delete(`/contractors/${id}/`);
 };
 
 // --- IAM API (Users & Roles) ---
@@ -166,26 +166,24 @@ export interface Permission {
 }
 
 export const getUsers = async (): Promise<User[]> => {
-  const response = await api.get<User[]>('/users');
+  const response = await api.get<User[]>('/iam/users/');
   return response.data;
 };
 
 export const getRoles = async (): Promise<Role[]> => {
-  const response = await api.get<Role[]>('/roles');
+  const response = await api.get<Role[]>('/iam/roles/');
   return response.data;
 };
 
 export const getPermissions = async (): Promise<Permission[]> => {
-  const response = await api.get<Permission[]>('/permissions');
+  const response = await api.get<Permission[]>('/iam/permissions/');
   return response.data;
 };
-
-// ... (previous code)
 
 export interface CreateUserPayload {
   username: string;
   email: string;
-  password?: string; // Optional for now, or handle default
+  password?: string;
   role_id: number;
   is_active: boolean;
 }
@@ -193,12 +191,12 @@ export interface CreateUserPayload {
 export interface UpdateUserPayload extends Partial<CreateUserPayload> { }
 
 export const createUser = async (data: CreateUserPayload): Promise<User> => {
-  const response = await api.post<User>('/users', data);
+  const response = await api.post<User>('/iam/users/', data);
   return response.data;
 };
 
 export const updateUser = async (id: number, data: UpdateUserPayload): Promise<User> => {
-  const response = await api.put<User>(`/users/${id}`, data);
+  const response = await api.put<User>(`/iam/users/${id}/`, data);
   return response.data;
 };
 
@@ -211,21 +209,21 @@ export interface CreateRolePayload {
 export interface UpdateRolePayload extends Partial<CreateRolePayload> { }
 
 export const createRole = async (data: CreateRolePayload): Promise<Role> => {
-  const response = await api.post<Role>('/roles', data);
+  const response = await api.post<Role>('/iam/roles/', data);
   return response.data;
 };
 
 export const updateRole = async (id: number, data: UpdateRolePayload): Promise<Role> => {
-  const response = await api.put<Role>(`/roles/${id}`, data);
+  const response = await api.put<Role>(`/iam/roles/${id}/`, data);
   return response.data;
 };
 
 export const deleteUser = async (id: number): Promise<void> => {
-  await api.delete(`/users/${id}`);
+  await api.delete(`/iam/users/${id}/`);
 };
 
 export const deleteRole = async (id: number): Promise<void> => {
-  await api.delete(`/roles/${id}`);
+  await api.delete(`/iam/roles/${id}/`);
 };
 
 // --- Checklist API ---
@@ -271,29 +269,26 @@ export const getChecklists = async (params?: FilterParams): Promise<ChecklistRec
   const queryParams: any = { ...params };
   if (params?.itrId) queryParams.itr_id = params.itrId;
   if (params?.noiNumber) queryParams.noi_number = params.noiNumber;
-  const response = await api.get<ChecklistRecordApi[]>('/checklist', { params: queryParams });
+  const response = await api.get<ChecklistRecordApi[]>('/checklist/', { params: queryParams });
   return response.data;
 };
 
 export const createChecklist = async (data: CreateChecklistPayload): Promise<ChecklistRecordApi> => {
-  const response = await api.post<ChecklistRecordApi>('/checklist', data);
+  const response = await api.post<ChecklistRecordApi>('/checklist/', data);
   return response.data;
 };
 
 export const updateChecklist = async (id: string, data: Partial<CreateChecklistPayload>): Promise<ChecklistRecordApi> => {
-  const response = await api.put<ChecklistRecordApi>(`/checklist/${id}`, data);
+  const response = await api.put<ChecklistRecordApi>(`/checklist/${id}/`, data);
   return response.data;
 };
 
 export const deleteChecklist = async (id: string): Promise<void> => {
-  await api.delete(`/checklist/${id}`);
+  await api.delete(`/checklist/${id}/`);
 };
 
 // --- File Management API ---
 
-/**
- * 附件資訊介面 — 對應後端 AttachmentResponse
- */
 export interface AttachmentInfo {
   id: string;
   entity_type: string;
@@ -307,13 +302,6 @@ export interface AttachmentInfo {
   uploaded_at: string;
 }
 
-/**
- * 上傳檔案至指定實體
- * @param entityType 模組類型 (itp / ncr / noi / itr / pqp / obs)
- * @param entityId 關聯記錄 ID
- * @param files 檔案清單
- * @param category 分類 (attachment / defectPhoto / improvementPhoto)
- */
 export const uploadFiles = async (
   entityType: string,
   entityId: string,
@@ -326,18 +314,12 @@ export const uploadFiles = async (
   formData.append('category', category);
   files.forEach((file) => formData.append('files', file));
 
-  const response = await api.post<AttachmentInfo[]>('/files/upload', formData, {
+  const response = await api.post<AttachmentInfo[]>('/files/upload/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;
 };
 
-/**
- * 查詢指定實體的所有附件
- * @param entityType 模組類型
- * @param entityId 關聯記錄 ID
- * @param category 可選的分類篩選
- */
 export const getEntityFiles = async (
   entityType: string,
   entityId: string,
@@ -345,16 +327,12 @@ export const getEntityFiles = async (
 ): Promise<AttachmentInfo[]> => {
   const params: Record<string, string> = { entity_type: entityType, entity_id: entityId };
   if (category) params.category = category;
-  const response = await api.get<AttachmentInfo[]>('/files/by-entity', { params });
+  const response = await api.get<AttachmentInfo[]>('/files/by-entity/', { params });
   return response.data;
 };
 
-/**
- * 刪除單一附件（軟刪除）
- * @param fileId 附件 ID
- */
 export const deleteFile = async (fileId: string): Promise<void> => {
-  await api.delete(`/files/${fileId}`);
+  await api.delete(`/files/${fileId}/`);
 };
 
 export default api;

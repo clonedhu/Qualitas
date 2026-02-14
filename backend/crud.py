@@ -65,9 +65,10 @@ class WorkflowEngine:
             "Void": []
         },
         "NOI": {
-            "Open": ["In Progress", "Void"],
-            "In Progress": ["Resolved", "Void"],
+            "Open": ["In Progress", "Reject", "Void"],
+            "In Progress": ["Resolved", "Reject", "Void"],
             "Resolved": ["Closed", "Void"],
+            "Reject": ["Open", "Void"],
             "Closed": [],
             "Void": []
         },
@@ -126,7 +127,7 @@ class WorkflowEngine:
 
 def log_audit(db: Session, action: str, entity_type: str, entity_id: str, 
               entity_name: str = None, old_value: dict = None, new_value: dict = None,
-              user_id: int = None, username: str = None):
+              user_id: int = None, username: str = None, reason: str = None):
     """
     記錄審計日誌
     NOTE: 建議在業務操作同一個 db 事務中調用，並在外部統一 commit
@@ -141,7 +142,8 @@ def log_audit(db: Session, action: str, entity_type: str, entity_id: str,
             old_value=json.dumps(old_value) if old_value and isinstance(old_value, dict) else (old_value if isinstance(old_value, str) else None),
             new_value=json.dumps(new_value) if new_value and isinstance(new_value, dict) else (new_value if isinstance(new_value, str) else None),
             user_id=user_id,
-            username=username
+            username=username,
+            reason=reason
         )
         db.add(audit_log)
     except Exception as e:
@@ -228,9 +230,7 @@ def get_itps(db: Session, skip: int = 0, limit: int = 100,
     if search:
         query = query.filter(
             (ITP.referenceNo.ilike(f"%{search}%")) |
-            (ITP.description.ilike(f"%{search}%")) 
-            # (ITP.activity.ilike(f"%{search}%")) # Removed: activity does not exist
-            # projectTitle also removed
+            (ITP.description.ilike(f"%{search}%"))
         )
     if status:
         query = query.filter(ITP.status == status)
@@ -242,80 +242,96 @@ def get_itps(db: Session, skip: int = 0, limit: int = 100,
     return query.offset(skip).limit(limit).all()
 
 def create_itp(db: Session, itp: schemas.ITPCreate, user_id: int = None, username: str = None):
-    data = _json_serialize(itp.dict(), ['attachments', 'detail_data'])
-    
-    # Handle Vendor Name -> ID mapping
-    vendor_name = data.pop('vendor', None)
-    if vendor_name:
-        data['vendor_id'] = _resolve_vendor_id(db, vendor_name)
-
-    # 自動產生 Reference No（若未提供或為空）
-    # Note: generate_reference_no still needs the Name
-    if not data.get('referenceNo'):
-        data['referenceNo'] = generate_reference_no(db, vendor_name or '', 'ITP')
-        
-    db_itp = ITP(**data)
-    if not db_itp.id:
-        db_itp.id = str(uuid.uuid4())
-    db.add(db_itp)
-    
-    log_audit(db, "CREATE", "ITP", db_itp.id, db_itp.referenceNo, 
-              new_value=itp.dict(), user_id=user_id, username=username)
-    
-    db.commit()
-    db.refresh(db_itp)
-    return db_itp
-
-def update_itp(db: Session, itp_id: str, itp: schemas.ITPUpdate, user_id: int = None, username: str = None):
-    db_itp = db.query(ITP).filter(ITP.id == itp_id).first()
-    if db_itp:
-        # 狀態轉換檢查
-        if itp.status and not WorkflowEngine.validate_transition("ITP", db_itp.status, itp.status):
-            raise ValueError(f"Invalid status transition from {db_itp.status} to {itp.status}")
-
-        old_val = {c.name: getattr(db_itp, c.name) for c in db_itp.__table__.columns}
-        d = itp.dict(exclude_unset=True)
-        d = _json_serialize(d, ['attachments', 'detail_data'])
+    try:
+        data = _json_serialize(itp.dict(), ['attachments', 'detail_data'])
         
         # Handle Vendor Name -> ID mapping
-        if 'vendor' in d:
-            vendor_name = d.pop('vendor')
-            d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+        vendor_name = data.pop('vendor', None)
+        if vendor_name:
+            data['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
+        # 自動產生 Reference No（若未提供或為空）
+        # Note: generate_reference_no still needs the Name
+        if not data.get('referenceNo'):
+            data['referenceNo'] = generate_reference_no(db, vendor_name or '', 'ITP')
             
-        for key, value in d.items():
-            setattr(db_itp, key, value)
+        db_itp = ITP(**data)
+        if not db_itp.id:
+            db_itp.id = str(uuid.uuid4())
+        db.add(db_itp)
         
-        log_audit(db, "UPDATE", "ITP", itp_id, db_itp.referenceNo, 
-                  old_value=old_val, new_value=itp.dict(exclude_unset=True), 
-                  user_id=user_id, username=username)
-            
+        log_audit(db, "CREATE", "ITP", db_itp.id, db_itp.referenceNo, 
+                  new_value=itp.dict(), user_id=user_id, username=username)
+        
         db.commit()
         db.refresh(db_itp)
-    return db_itp
+        return db_itp
+    except Exception as e:
+        logger.error(f"Error creating ITP: {e}", exc_info=True)
+        raise e
+
+def update_itp(db: Session, itp_id: str, itp: schemas.ITPUpdate, user_id: int = None, username: str = None):
+    try:
+        db_itp = db.query(ITP).filter(ITP.id == itp_id).first()
+        if db_itp:
+            # 狀態轉換檢查
+            if itp.status and not WorkflowEngine.validate_transition("ITP", db_itp.status, itp.status):
+                raise ValueError(f"Invalid status transition from {db_itp.status} to {itp.status}")
+
+            old_val = {c.name: getattr(db_itp, c.name) for c in db_itp.__table__.columns}
+            d = itp.dict(exclude_unset=True)
+            d = _json_serialize(d, ['attachments', 'detail_data'])
+            
+            # Handle Vendor Name -> ID mapping
+            if 'vendor' in d:
+                vendor_name = d.pop('vendor')
+                d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+                
+            for key, value in d.items():
+                setattr(db_itp, key, value)
+            
+            log_audit(db, "UPDATE", "ITP", itp_id, db_itp.referenceNo, 
+                      old_value=old_val, new_value=itp.dict(exclude_unset=True), 
+                      user_id=user_id, username=username)
+                
+            db.commit()
+            db.refresh(db_itp)
+        return db_itp
+    except Exception as e:
+        logger.error(f"Error updating ITP {itp_id}: {e}", exc_info=True)
+        raise e
 
 def delete_itp(db: Session, itp_id: str, user_id: int = None, username: str = None):
-    db_itp = db.query(ITP).filter(ITP.id == itp_id).first()
-    if db_itp:
-        old_val = {c.name: getattr(db_itp, c.name) for c in db_itp.__table__.columns}
-        log_audit(db, "DELETE", "ITP", itp_id, db_itp.referenceNo, 
-                  old_value=old_val, user_id=user_id, username=username)
-        db.delete(db_itp)
-        db.commit()
-    return db_itp
+    try:
+        db_itp = db.query(ITP).filter(ITP.id == itp_id).first()
+        if db_itp:
+            old_val = {c.name: getattr(db_itp, c.name) for c in db_itp.__table__.columns}
+            log_audit(db, "DELETE", "ITP", itp_id, db_itp.referenceNo, 
+                      old_value=old_val, user_id=user_id, username=username)
+            db.delete(db_itp)
+            db.commit()
+        return db_itp
+    except Exception as e:
+        logger.error(f"Error deleting ITP {itp_id}: {e}", exc_info=True)
+        raise e
 
 def update_itp_detail(db: Session, itp_id: str, detail_body: dict, user_id: int = None, username: str = None):
-    db_itp = db.query(ITP).filter(ITP.id == itp_id).first()
-    if db_itp:
-        old_val = db_itp.detail_data
-        db_itp.detail_data = json.dumps(detail_body) if detail_body else None
-        
-        log_audit(db, "UPDATE_DETAIL", "ITP", itp_id, db_itp.referenceNo, 
-                  old_value=old_val, new_value=detail_body, 
-                  user_id=user_id, username=username)
-        
-        db.commit()
-        db.refresh(db_itp)
-    return db_itp
+    try:
+        db_itp = db.query(ITP).filter(ITP.id == itp_id).first()
+        if db_itp:
+            old_val = db_itp.detail_data
+            db_itp.detail_data = json.dumps(detail_body) if detail_body else None
+            
+            log_audit(db, "UPDATE_DETAIL", "ITP", itp_id, db_itp.referenceNo, 
+                      old_value=old_val, new_value=detail_body, 
+                      user_id=user_id, username=username)
+            
+            db.commit()
+            db.refresh(db_itp)
+        return db_itp
+    except Exception as e:
+        logger.error(f"Error updating ITP detail {itp_id}: {e}", exc_info=True)
+        raise e
 
 # ---- NCR ----
 def get_ncr(db: Session, ncr_id: str):
@@ -334,73 +350,86 @@ def get_ncrs(db: Session, skip: int = 0, limit: int = 500,
     if status:
         query = query.filter(NCR.status == status)
     if start_date:
-        query = query.filter(NCR.issuedDate >= start_date)
+        query = query.filter(NCR.raiseDate >= start_date)
     if end_date:
-        query = query.filter(NCR.issuedDate <= end_date)
+        query = query.filter(NCR.raiseDate <= end_date)
         
     return query.offset(skip).limit(limit).all()
 
 def create_ncr(db: Session, ncr: schemas.NCRCreate, user_id: int = None, username: str = None):
-    d = _json_serialize(ncr.dict(), ['defectPhotos', 'improvementPhotos', 'attachments'])
-    
-    # Handle Vendor Name -> ID mapping
-    vendor_name = d.pop('vendor', None)
-    if vendor_name:
-        d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
-
-    # 自動產生 Reference No（若未提供或為空）
-    if not d.get('documentNumber'):
-        d['documentNumber'] = generate_reference_no(db, vendor_name or '', 'NCR')
-        
-    db_ncr = NCR(**d)
-    if not db_ncr.id:
-        db_ncr.id = str(uuid.uuid4())
-    db.add(db_ncr)
-    
-    log_audit(db, "CREATE", "NCR", db_ncr.id, db_ncr.documentNumber, 
-              new_value=ncr.dict(), user_id=user_id, username=username)
-    
-    db.commit()
-    db.refresh(db_ncr)
-    return db_ncr
-
-def update_ncr(db: Session, ncr_id: str, ncr: schemas.NCRUpdate, user_id: int = None, username: str = None):
-    db_ncr = db.query(NCR).filter(NCR.id == ncr_id).first()
-    if db_ncr:
-        # 狀態轉換檢查
-        if ncr.status and not WorkflowEngine.validate_transition("NCR", db_ncr.status, ncr.status):
-            raise ValueError(f"Invalid status transition from {db_ncr.status} to {ncr.status}")
-
-        old_val = {c.name: getattr(db_ncr, c.name) for c in db_ncr.__table__.columns}
-        d = ncr.dict(exclude_unset=True)
-        d = _json_serialize(d, ['defectPhotos', 'improvementPhotos', 'attachments'])
+    try:
+        d = _json_serialize(ncr.dict(), ['defectPhotos', 'improvementPhotos', 'attachments'])
         
         # Handle Vendor Name -> ID mapping
-        if 'vendor' in d:
-            vendor_name = d.pop('vendor')
+        vendor_name = d.pop('vendor', None)
+        if vendor_name:
             d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
 
-        for key, value in d.items():
-            setattr(db_ncr, key, value)
+        # 自動產生 Reference No（若未提供或為空）
+        if not d.get('documentNumber'):
+            d['documentNumber'] = generate_reference_no(db, vendor_name or '', 'NCR')
             
-        log_audit(db, "UPDATE", "NCR", ncr_id, db_ncr.documentNumber, 
-                  old_value=old_val, new_value=ncr.dict(exclude_unset=True), 
-                  user_id=user_id, username=username)
+        db_ncr = NCR(**d)
+        if not db_ncr.id:
+            db_ncr.id = str(uuid.uuid4())
+        db.add(db_ncr)
+        
+        log_audit(db, "CREATE", "NCR", db_ncr.id, db_ncr.documentNumber, 
+                  new_value=ncr.dict(), user_id=user_id, username=username)
         
         db.commit()
         db.refresh(db_ncr)
-    return db_ncr
+        return db_ncr
+    except Exception as e:
+        logger.error(f"Error creating NCR: {e}", exc_info=True)
+        raise e
+
+def update_ncr(db: Session, ncr_id: str, ncr: schemas.NCRUpdate, user_id: int = None, username: str = None):
+    try:
+        db_ncr = db.query(NCR).filter(NCR.id == ncr_id).first()
+        if db_ncr:
+            # 狀態轉換檢查
+            if ncr.status and not WorkflowEngine.validate_transition("NCR", db_ncr.status, ncr.status):
+                raise ValueError(f"Invalid status transition from {db_ncr.status} to {ncr.status}")
+
+            old_val = {c.name: getattr(db_ncr, c.name) for c in db_ncr.__table__.columns}
+            d = ncr.dict(exclude_unset=True)
+            d = _json_serialize(d, ['defectPhotos', 'improvementPhotos', 'attachments'])
+            
+            # Handle Vendor Name -> ID mapping
+            if 'vendor' in d:
+                vendor_name = d.pop('vendor')
+                d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
+            for key, value in d.items():
+                setattr(db_ncr, key, value)
+                
+            log_audit(db, "UPDATE", "NCR", ncr_id, db_ncr.documentNumber, 
+                      old_value=old_val, new_value=ncr.dict(exclude_unset=True), 
+                      user_id=user_id, username=username)
+            
+            db.commit()
+            db.refresh(db_ncr)
+        return db_ncr
+    except Exception as e:
+        logger.error(f"Error updating NCR {ncr_id}: {e}", exc_info=True)
+        raise e
 
 def delete_ncr(db: Session, ncr_id: str, user_id: int = None, username: str = None):
-    db_ncr = db.query(NCR).filter(NCR.id == ncr_id).first()
-    if db_ncr:
-        old_val = {c.name: getattr(db_ncr, c.name) for c in db_ncr.__table__.columns}
-        log_audit(db, "DELETE", "NCR", ncr_id, db_ncr.documentNumber, 
-                  old_value=old_val, user_id=user_id, username=username)
-        db.delete(db_ncr)
-        db.commit()
-        return db_ncr
-    return None
+    try:
+        db_ncr = db.query(NCR).filter(NCR.id == ncr_id).first()
+        if db_ncr:
+            old_val = {c.name: getattr(db_ncr, c.name) for c in db_ncr.__table__.columns}
+            log_audit(db, "DELETE", "NCR", ncr_id, db_ncr.documentNumber, 
+                      old_value=old_val, user_id=user_id, username=username)
+            db.delete(db_ncr)
+            db.commit()
+            return db_ncr
+        return None
+    except Exception as e:
+        logger.error(f"Error deleting NCR {ncr_id}: {e}", exc_info=True)
+        raise e
+
 
 # ---- NOI ----
 def get_noi(db: Session, noi_id: str):
@@ -414,8 +443,8 @@ def get_nois(db: Session, skip: int = 0, limit: int = 500,
     if search:
         query = query.filter(
             (NOI.referenceNo.ilike(f"%{search}%")) |
-            (NOI.activity.ilike(f"%{search}%")) |
-            (NOI.location.ilike(f"%{search}%"))
+            (NOI.package.ilike(f"%{search}%")) |
+            (NOI.checkpoint.ilike(f"%{search}%"))
         )
     if status:
         query = query.filter(NOI.status == status)
@@ -427,28 +456,36 @@ def get_nois(db: Session, skip: int = 0, limit: int = 500,
     return query.offset(skip).limit(limit).all()
 
 def create_noi(db: Session, noi: schemas.NOICreate, user_id: int = None, username: str = None):
-    data = _json_serialize(noi.dict(), ['attachments'])
+    try:
+        data = _json_serialize(noi.dict(), ['attachments'])
 
-    # Handle Vendor Name -> ID mapping (NOI uses 'contractor' in schema)
-    vendor_name = data.pop('contractor', None)
-    if vendor_name:
-        data['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+        # Handle Vendor Name -> ID mapping (NOI uses 'contractor' in schema)
+        vendor_name = data.pop('contractor', None)
+        if vendor_name:
+            data['vendor_id'] = _resolve_vendor_id(db, vendor_name)
 
-    # 自動產生 Reference No（若未提供或為空）
-    if not data.get('referenceNo'):
-        data['referenceNo'] = generate_reference_no(db, vendor_name or '', 'NOI')
+        # 自動產生 Reference No（若未提供或為空）
+        if not data.get('referenceNo'):
+            data['referenceNo'] = generate_reference_no(db, vendor_name or '', 'NOI')
         
-    db_noi = NOI(**data)
-    if not db_noi.id:
-        db_noi.id = str(uuid.uuid4())
-    db.add(db_noi)
-    
-    log_audit(db, "CREATE", "NOI", db_noi.id, db_noi.referenceNo, 
-              new_value=noi.dict(), user_id=user_id, username=username)
-    
-    db.commit()
-    db.refresh(db_noi)
-    return db_noi
+        # Default status
+        if not data.get('status'):
+            data['status'] = "Draft"
+            
+        db_noi = NOI(**data)
+        if not db_noi.id:
+            db_noi.id = str(uuid.uuid4())
+        db.add(db_noi)
+        
+        log_audit(db, "CREATE", "NOI", db_noi.id, db_noi.referenceNo, 
+                  new_value=noi.dict(), user_id=user_id, username=username)
+        
+        db.commit()
+        db.refresh(db_noi)
+        return db_noi
+    except Exception as e:
+        logger.error(f"Error creating NOI: {e}", exc_info=True)
+        raise e
 
 def update_noi(db: Session, noi_id: str, noi: schemas.NOIUpdate, user_id: int = None, username: str = None):
     db_noi = db.query(NOI).filter(NOI.id == noi_id).first()
@@ -504,9 +541,9 @@ def get_itrs(db: Session, skip: int = 0, limit: int = 500,
     if status:
         query = query.filter(ITR.status == status)
     if start_date:
-        query = query.filter(ITR.issuedDate >= start_date)
+        query = query.filter(ITR.raiseDate >= start_date)
     if end_date:
-        query = query.filter(ITR.issuedDate <= end_date)
+        query = query.filter(ITR.raiseDate <= end_date)
         
     return query.offset(skip).limit(limit).all()
 
@@ -584,7 +621,7 @@ def get_pqps(db: Session, skip: int = 0, limit: int = 500,
     if search:
         query = query.filter(
             (PQP.pqpNo.ilike(f"%{search}%")) |
-            (PQP.projectTitle.ilike(f"%{search}%"))
+            (PQP.title.ilike(f"%{search}%"))
         )
     if status:
         query = query.filter(PQP.status == status)
@@ -675,9 +712,9 @@ def get_obss(db: Session, skip: int = 0, limit: int = 500,
     if status:
         query = query.filter(OBS.status == status)
     if start_date:
-        query = query.filter(OBS.issuedDate >= start_date)
+        query = query.filter(OBS.raiseDate >= start_date)
     if end_date:
-        query = query.filter(OBS.issuedDate <= end_date)
+        query = query.filter(OBS.raiseDate <= end_date)
         
     return query.offset(skip).limit(limit).all()
 
@@ -857,6 +894,8 @@ def delete_followup(db: Session, followup_id: str, user_id: int = None, username
 
 # ---- IAM (Users & Roles) ----
 
+from sqlalchemy.orm import joinedload
+
 def get_user(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()
 
@@ -864,19 +903,18 @@ def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
 
 def get_user_by_username(db: Session, username: str):
-    return db.query(models.User).filter(models.User.username == username).first()
+    # Eagerly load role and permissions to avoid N+1 and detached session errors
+    return db.query(models.User).options(
+        joinedload(models.User.role).joinedload(models.Role.permissions_rel)
+    ).filter(models.User.username == username).first()
 
 def get_users(db: Session, skip: int = 0, limit: int = 100):
-    users = db.query(models.User).offset(skip).limit(limit).all()
-    # Populate role_name for UI convenience
-    for user in users:
-        if user.role_id:
-            role = get_role(db, user.role_id)
-            if role:
-                user.role_name = role.name
-    return users
+    # Use joinedload to prevent N+1 queries when accessing role_name property
+    return db.query(models.User).options(
+        joinedload(models.User.role)
+    ).offset(skip).limit(limit).all()
 
-def create_user(db: Session, user: schemas.UserCreate, hashed_password: str):
+def create_user(db: Session, user: schemas.UserCreate, hashed_password: str, current_user_id: int = None, current_username: str = None):
     db_user = models.User(
         username=user.username,
         email=user.email,
@@ -884,16 +922,36 @@ def create_user(db: Session, user: schemas.UserCreate, hashed_password: str):
         full_name=user.full_name,
         is_active=user.is_active,
         role_id=user.role_id,
-        created_at=datetime.now().strftime("%Y-%m-%d")  # 記錄建立日期
+        created_at=datetime.now().strftime("%Y-%m-%d")
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+    
+    log_audit(db, "CREATE", "User", str(db_user.id), db_user.username, 
+              new_value=user.dict(exclude={"password"}), 
+              user_id=current_user_id, username=current_username, reason=user.reason)
+    db.commit()
     return db_user
 
-def update_user(db: Session, user_id: int, user: schemas.UserUpdate, hashed_password: str = None):
+def update_user(db: Session, user_id: int, user: schemas.UserUpdate, hashed_password: str = None, current_user_id: int = None, current_username: str = None):
     db_user = get_user(db, user_id)
     if db_user:
+        # Last Admin Protection: Prevent deactivating the last active Admin
+        if user.is_active is False and db_user.role_name == "Admin":
+            admin_count = db.query(models.User).join(models.Role).filter(models.Role.name == "Admin", models.User.is_active == True).count()
+            if admin_count <= 1:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=400, detail="Cannot deactivate the last active Admin user")
+
+        old_data = {
+            "username": db_user.username,
+            "email": db_user.email,
+            "full_name": db_user.full_name,
+            "is_active": db_user.is_active,
+            "role_id": db_user.role_id
+        }
+        
         if user.username is not None: db_user.username = user.username
         if user.email is not None: db_user.email = user.email
         if user.full_name is not None: db_user.full_name = user.full_name
@@ -904,16 +962,31 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate, hashed_pass
         db.commit()
         db.refresh(db_user)
         
-        # Populate role_name
-        if db_user.role_id:
-            role = get_role(db, db_user.role_id)
-            if role:
-                db_user.role_name = role.name
+        log_audit(db, "UPDATE", "User", str(db_user.id), db_user.username, 
+                  old_value=old_data, new_value=user.dict(exclude={"password", "reason"}),
+                  user_id=current_user_id, username=current_username, reason=user.reason)
+        db.commit()
     return db_user
 
-def delete_user(db: Session, user_id: int):
+def delete_user(db: Session, user_id: int, current_user_id: int = None, current_username: str = None, reason: str = None):
     db_user = get_user(db, user_id)
     if db_user:
+        # Last Admin Protection
+        if db_user.role_name == "Admin":
+            admin_count = db.query(models.User).join(models.Role).filter(models.Role.name == "Admin", models.User.is_active == True).count()
+            if admin_count <= 1:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=400, detail="Cannot delete the last active Admin user")
+
+        old_data = {
+            "username": db_user.username,
+            "email": db_user.email,
+            "is_active": db_user.is_active,
+            "role_id": db_user.role_id
+        }
+        log_audit(db, "DELETE", "User", str(db_user.id), db_user.username, 
+                  old_value=old_data, user_id=current_user_id, username=current_username, reason=reason)
+        
         db.delete(db_user)
         db.commit()
     return db_user
@@ -927,29 +1000,72 @@ def get_role_by_name(db: Session, name: str):
 def get_roles(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Role).offset(skip).limit(limit).all()
 
-def create_role(db: Session, role: schemas.RoleCreate):
+def create_role(db: Session, role: schemas.RoleCreate, current_user_id: int = None, current_username: str = None):
     db_role = models.Role(
         name=role.name,
-        description=role.description,
-        permissions=json.dumps(role.permissions) if role.permissions else "[]"
+        description=role.description
     )
+    if role.permissions:
+        perms = db.query(models.Permission).filter(models.Permission.code.in_(role.permissions)).all()
+        db_role.permissions_rel = perms
+
     db.add(db_role)
     db.commit()
     db.refresh(db_role)
+    
+    log_audit(db, "CREATE", "Role", str(db_role.id), db_role.name, 
+              new_value=role.dict(exclude={"reason"}), 
+              user_id=current_user_id, username=current_username, reason=role.reason)
+    db.commit()
     return db_role
 
-def update_role(db: Session, role_id: int, role: schemas.RoleUpdate):
+def update_role(db: Session, role_id: int, role: schemas.RoleUpdate, current_user_id: int = None, current_username: str = None):
     db_role = get_role(db, role_id)
     if db_role:
+        old_data = {
+            "name": db_role.name,
+            "description": db_role.description,
+            "permissions": db_role.permissions
+        }
+        
         if role.name is not None: db_role.name = role.name
         if role.description is not None: db_role.description = role.description
-        if role.permissions is not None: db_role.permissions = json.dumps(role.permissions)
+        if role.permissions is not None:
+            perms = db.query(models.Permission).filter(models.Permission.code.in_(role.permissions)).all()
+            db_role.permissions_rel = perms
         
         db.commit()
         db.refresh(db_role)
+        
+        log_audit(db, "UPDATE", "Role", str(db_role.id), db_role.name, 
+                  old_value=old_data, new_value=role.dict(exclude={"reason"}),
+                  user_id=current_user_id, username=current_username, reason=role.reason)
+        db.commit()
     return db_role
 
-def delete_role(db: Session, role_id: int):
+def get_permissions(db: Session, skip: int = 0, limit: int = 100):
+    """取得系統中所有定義的權限"""
+    return db.query(models.Permission).offset(skip).limit(limit).all()
+
+def delete_role(db: Session, role_id: int, current_user_id: int = None, current_username: str = None, reason: str = None):
+    db_role = get_role(db, role_id)
+    if db_role:
+        # Last Admin protection
+        if db_role.name == "Admin":
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail="Cannot delete the core Admin role")
+        
+        old_data = {
+            "name": db_role.name,
+            "description": db_role.description,
+            "permissions": db_role.permissions
+        }
+        log_audit(db, "DELETE", "Role", str(db_role.id), db_role.name, 
+                  old_value=old_data, user_id=current_user_id, username=current_username, reason=reason)
+        
+        db.delete(db_role)
+        db.commit()
+    return db_role
     db_role = get_role(db, role_id)
     if db_role:
         db.delete(db_role)
@@ -1034,58 +1150,94 @@ def get_checklists(db: Session, skip: int = 0, limit: int = 500,
         
     return query.offset(skip).limit(limit).all()
 
+import logging
+logger = logging.getLogger(__name__)
+
 def create_checklist(db: Session, chk: schemas.ChecklistCreate, user_id: int = None, username: str = None):
-    data = chk.dict()
-    data = _json_serialize(data, ['detail_data']) # Added _json_serialize for detail_data
-    
-    # 自動產生 Records No（若未提供或由前端傳來的佔位符）
-    if not data.get('recordsNo') or data.get('recordsNo') == "[AUTO-GENERATE]":
-        # 注意這裡傳給 generate_reference_no 的 doc_type 建議統一為 CHECKLIST 或 CHK
-        data['recordsNo'] = generate_reference_no(db, data.get('packageName', ''), 'CHECKLIST')
-    
-    db_chk = Checklist(**data)
-    if not db_chk.id:
-        db_chk.id = str(uuid.uuid4())
-    db.add(db_chk)
-    
-    log_audit(db, "CREATE", "Checklist", db_chk.id, db_chk.recordsNo, 
-              new_value=chk.dict(), user_id=user_id, username=username)
-              
-    db.commit()
-    db.refresh(db_chk)
-    return db_chk
-
-def update_checklist(db: Session, checklist_id: str, chk: schemas.ChecklistUpdate, user_id: int = None, username: str = None):
-    db_chk = db.query(Checklist).filter(Checklist.id == checklist_id).first()
-    if db_chk:
-        # 狀態轉換檢查
-        if chk.status and not WorkflowEngine.validate_transition("Checklist", db_chk.status, chk.status):
-            raise ValueError(f"Invalid status transition from {db_chk.status} to {chk.status}")
-
-        old_val = {c.name: getattr(db_chk, c.name) for c in db_chk.__table__.columns}
-        d = chk.dict(exclude_unset=True) # Renamed 'checklist' to 'chk' for consistency
-        d = _json_serialize(d, ['detail_data']) # Added _json_serialize for detail_data
+    try:
+        data = chk.dict()
+        data = _json_serialize(data, ['detail_data']) # Added _json_serialize for detail_data
         
-        for key, value in d.items(): # Iterate over 'd' after serialization
-            setattr(db_chk, key, value)
-            
-        log_audit(db, "UPDATE", "Checklist", checklist_id, db_chk.recordsNo, 
-                  old_value=old_val, new_value=chk.dict(exclude_unset=True), 
-                  user_id=user_id, username=username)
+        # 自動產生 Records No（若未提供或由前端傳來的佔位符）
+        if not data.get('recordsNo') or data.get('recordsNo') == "[AUTO-GENERATE]":
+            # 注意這裡傳給 generate_reference_no 的 doc_type 建議統一為 CHECKLIST 或 CHK
+            data['recordsNo'] = generate_reference_no(db, data.get('packageName', ''), 'CHECKLIST')
+
+        # Handle contractor -> contractor_id mapping
+        if 'contractor' in data:
+            contractor_name = data.pop('contractor')
+            if contractor_name:
+                data['contractor_id'] = _resolve_vendor_id(db, contractor_name)
+        
+        db_chk = Checklist(**data)
+        if not db_chk.id:
+            db_chk.id = str(uuid.uuid4())
+        db.add(db_chk)
+        
+        log_audit(db, "CREATE", "Checklist", db_chk.id, db_chk.recordsNo, 
+                  new_value=chk.dict(), user_id=user_id, username=username)
                   
         db.commit()
         db.refresh(db_chk)
-    return db_chk
+        return db_chk
+    except Exception as e:
+        logger.error(f"Error creating checklist: {e}", exc_info=True)
+        raise e
+
+from sqlalchemy import inspect
+
+def update_checklist(db: Session, checklist_id: str, chk: schemas.ChecklistUpdate, user_id: int = None, username: str = None):
+    try:
+        db_chk = db.query(Checklist).filter(Checklist.id == checklist_id).first()
+        if db_chk:
+            # 狀態轉換檢查
+            if chk.status and not WorkflowEngine.validate_transition("Checklist", db_chk.status, chk.status):
+                raise ValueError(f"Invalid status transition from {db_chk.status} to {chk.status}")
+
+            # Use inspect to get mapped attribute names
+            mapper = inspect(Checklist)
+            old_val = {prop.key: getattr(db_chk, prop.key) for prop in mapper.column_attrs}
+            
+            d = chk.dict(exclude_unset=True) # Renamed 'checklist' to 'chk' for consistency
+            d = _json_serialize(d, ['detail_data']) # Added _json_serialize for detail_data
+            
+            # Handle contractor -> contractor_id mapping
+            if 'contractor' in d:
+                contractor_name = d.pop('contractor')
+                if contractor_name:
+                    d['contractor_id'] = _resolve_vendor_id(db, contractor_name)
+
+            for key, value in d.items(): # Iterate over 'd' after serialization
+                setattr(db_chk, key, value)
+                
+            log_audit(db, "UPDATE", "Checklist", checklist_id, db_chk.recordsNo, 
+                      old_value=old_val, new_value=chk.dict(exclude_unset=True), 
+                      user_id=user_id, username=username)
+                      
+            db.commit()
+            db.refresh(db_chk)
+        return db_chk
+    except Exception as e:
+        logger.error(f"Error updating checklist: {e}", exc_info=True)
+        raise e
 
 def delete_checklist(db: Session, checklist_id: str, user_id: int = None, username: str = None):
-    db_chk = db.query(Checklist).filter(Checklist.id == checklist_id).first()
-    if db_chk:
-        old_val = {c.name: getattr(db_chk, c.name) for c in db_chk.__table__.columns}
-        log_audit(db, "DELETE", "Checklist", checklist_id, db_chk.recordsNo, 
-                  old_value=old_val, user_id=user_id, username=username)
-        db.delete(db_chk)
-        db.commit()
-        return db_chk
+    try:
+        db_chk = db.query(Checklist).filter(Checklist.id == checklist_id).first()
+        if db_chk:
+            # Fix AttributeError using inspect
+            mapper = inspect(Checklist)
+            old_val = {prop.key: getattr(db_chk, prop.key) for prop in mapper.column_attrs}
+            
+            log_audit(db, "DELETE", "Checklist", checklist_id, db_chk.recordsNo, 
+                      old_value=old_val, user_id=user_id, username=username)
+            db.delete(db_chk)
+            db.commit()
+            return db_chk
+        return None
+    except Exception as e:
+        logger.error(f"Error deleting checklist {checklist_id}: {e}", exc_info=True)
+        raise e
     return None
 
 

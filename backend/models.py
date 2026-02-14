@@ -293,13 +293,45 @@ class User(Base):
     role_id = Column(Integer, ForeignKey("roles.id"), index=True, nullable=True)  # 加入外鍵約束
     created_at = Column(String, nullable=True)
 
+    # Relationships
+    role = relationship("Role", backref="users")
+
+    @property
+    def role_name(self):
+        return self.role.name if self.role else None
+
+class Permission(Base):
+    __tablename__ = "permissions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, index=True)  # e.g. "ITP_CREATE"
+    description = Column(String, nullable=True)
+
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
+
+    role_id = Column(Integer, ForeignKey("roles.id"), primary_key=True)
+    permission_id = Column(Integer, ForeignKey("permissions.id"), primary_key=True)
+
 class Role(Base):
     __tablename__ = "roles"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     description = Column(String, nullable=True)
-    permissions = Column(Text, nullable=True)  # JSON list of permission codes
+    # permissions column is deprecated in favor of relationship
+    # permissions = Column(Text, nullable=True) 
+    
+    # Relationships
+    permissions_rel = relationship("Permission", secondary="role_permissions", backref="roles")
+
+    @property
+    def permissions(self):
+        """
+        Return list of permission codes (strings) for compatibility with schemas
+        and legacy code that expects a list of strings
+        """
+        return [p.code for p in self.permissions_rel]
 
 class Audit(Base):
     __tablename__ = "audits"
@@ -316,7 +348,9 @@ class Audit(Base):
 
 
 class Checklist(Base):
+    # Table name for checklist
     __tablename__ = "checklist"
+
 
     id = Column(String, primary_key=True, index=True)
     recordsNo = Column(String, index=True, unique=True)
@@ -342,6 +376,10 @@ class Checklist(Base):
     vendor_ref = relationship("Contractor")
 
     @property
+    def vendor_id(self):
+        return self.contractor_id
+
+    @property
     def contractor(self):
         return self.vendor_ref.name if self.vendor_ref else None
 
@@ -360,6 +398,7 @@ class AuditLog(Base):
     old_value = Column(Text, nullable=True)  # 修改前的 JSON（UPDATE/DELETE 時記錄）
     new_value = Column(Text, nullable=True)  # 修改後的 JSON（CREATE/UPDATE 時記錄）
     ip_address = Column(String, nullable=True)  # 操作者 IP
+    reason = Column(Text, nullable=True)  # 操作原因 (Audit Reason)
     details = Column(Text, nullable=True)  # 額外資訊
 
 

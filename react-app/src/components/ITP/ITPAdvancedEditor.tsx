@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { PenTool, Trash2, Plus, FileText, CheckCircle2, Calendar, Filter, AlertCircle, FileCheck, Tag, X, Save, ShieldCheck, HardHat, Building2, User, ArrowDown, LayoutTemplate } from 'lucide-react';
-import { ITPData, InspectionItem } from '../../types/itp'; // Ensure these types exist or define them
+import { InspectionItem } from '../../types/itp';
 import { PHASES, EMPTY_ITEM } from '../../constants/itp';
 import { useITR } from '../../context/ITRContext';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import VPBadge from './VPBadge';
 
 // Define Props
 interface ITPAdvancedEditorProps {
@@ -20,25 +21,6 @@ interface ITPAdvancedEditorProps {
         submissionDate: string;
     };
 }
-
-
-// VP Badge Component (Internal)
-const VPBadge = ({ type }: { type: string }) => {
-    const styles: { [key: string]: string } = {
-        H: "bg-rose-100 text-rose-700 border-rose-200 font-bold ring-1 ring-rose-200 shadow-sm",
-        W: "bg-amber-100 text-amber-700 border-amber-200 font-bold ring-1 ring-amber-200 shadow-sm",
-        R: "bg-sky-100 text-sky-700 border-sky-200 font-bold ring-1 ring-sky-200 shadow-sm",
-        "※": "bg-slate-100 text-slate-600 border-slate-200 font-medium ring-1 ring-slate-200"
-    };
-
-    if (!type) return <span className="text-slate-200 font-light">-</span>;
-
-    return (
-        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm transition-all ${styles[type] || ""}`}>
-            {type}
-        </span>
-    );
-};
 
 
 export interface ITPAdvancedEditorRef {

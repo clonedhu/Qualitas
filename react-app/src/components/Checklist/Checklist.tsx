@@ -78,10 +78,6 @@ const Checklist: React.FC = () => {
             } else {
                 alert(t('checklist.recordNotFound') || 'Record not found');
             }
-        } else if (fromSource === 'itr' && !editingRecord) {
-            // 如果是從 ITR 來的，且沒有 recordNo (表示要新增)，直接進入編輯模式
-            // 這裡不需要設定 editingRecord，因為 ChecklistEditor 會處理新增邏輯
-            setView('editor');
         }
     }, [recordNoParam, records, t, fromSource, editingRecord]);
 
@@ -332,6 +328,8 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, d
     const paramItrNumber = searchParams.get('itrNumber');
     const paramNoiNumber = searchParams.get('noiNumber');
 
+    const [activeTab, setActiveTab] = useState<'general' | 'checklist'>('general');
+
     const [formData, setFormData] = useState<any>(() => {
         if (record) {
             // Include ITP/Analysis fields
@@ -345,8 +343,8 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, d
                 itpVersion: record.itpVersion,
                 passCount: record.passCount,
                 failCount: record.failCount,
-                itrId: record.itrId,
-                itrNumber: record.itrNumber
+                itrId: record.itrId || paramItrId,
+                itrNumber: record.itrNumber || paramItrNumber
             };
         } else {
             const initialItp = dynamicItpDatabase[selectedItpIndex] || dynamicItpDatabase[0];
@@ -435,13 +433,10 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, d
 
     // 補足空行邏輯 (A4 列印優化)
     const paddingRows = useMemo(() => {
-        const minRows = 8;
-        const currentRows = formData.items.length;
-        if (currentRows < minRows) {
-            return new Array(minRows - currentRows).fill(null);
-        }
-        return [];
-    }, [formData.items]);
+        // 使用者要求：Checklist List 列印時 空白欄只要1蘭就好
+        // Change logic to just 1 blank row instead of filling up to 8
+        return [null];
+    }, []);
 
     return (
         <div className={styles.editorWrapper}>
@@ -512,315 +507,339 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, d
                     </div>
                 </div>
 
-                {/* --- Project Information --- */}
-                <div className={styles.card}>
-                    <div className={styles.cardHeader}>
-                        <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md">
-                            <Info size={18} />
-                        </div>
-                        <h2>Project Information</h2>
-                    </div>
-                    <div className={styles.cardContent}>
-                        <div className={styles.grid3}>
-                            <div className={styles.formGroup}>
-                                <label>Project Title *</label>
-                                <select
-                                    className={styles.modernSelect}
-                                    value={formData.projectTitle || ''}
-                                    onChange={e => setFormData({ ...formData, projectTitle: e.target.value })}
-                                >
-                                    <option value="Hai Long">Hai Long</option>
-                                    <option value="Yunlin">Yunlin</option>
-                                    <option value="Greater Changhua">Greater Changhua</option>
-                                </select>
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>ITR No.</label>
-                                <input
-                                    className={styles.modernInput}
-                                    value={formData.referenceNo}
-                                    onChange={e => setFormData({ ...formData, referenceNo: e.target.value })}
-                                    placeholder="Manual Entry"
-                                />
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>NOI Number</label>
-                                <select
-                                    className={styles.modernSelect}
-                                    value={formData.noiNumber || ''}
-                                    onChange={e => {
-                                        const selectedNoi = noiList.find(n => n.referenceNo === e.target.value);
-                                        const linkedItp = selectedNoi ? itpList.find(i => i.referenceNo === selectedNoi.itpNo) : undefined;
-                                        setFormData({
-                                            ...formData,
-                                            noiNumber: e.target.value,
-                                            packageName: selectedNoi?.package || formData.packageName,
-                                            contractor: selectedNoi?.contractor || formData.contractor,
-                                            location: selectedNoi?.checkpoint || formData.location,
-                                            activity: linkedItp?.description || formData.activity
-                                        });
-                                    }}
-                                >
-                                    <option value="">Select NOI</option>
-                                    {noiList.map(n => <option key={n.id} value={n.referenceNo}>{n.referenceNo}</option>)}
-                                </select>
-                            </div>
-
-                            <div className={styles.formGroup}>
-                                <label>Contractor</label>
-                                <select
-                                    className={styles.modernSelect}
-                                    value={formData.contractor}
-                                    onChange={e => setFormData({ ...formData, contractor: e.target.value })}
-                                >
-                                    <option value="">-- Select --</option>
-                                    {getActiveContractors().map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-                                </select>
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>Inspection Date *</label>
-                                <div className="relative">
-                                    <input
-                                        type="date"
-                                        className={styles.modernInput}
-                                        value={formData.inspectionDate}
-                                        onChange={e => setFormData({ ...formData, inspectionDate: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                            <div className={styles.formGroup}>
-                                <label>Inspection Location</label>
-                                <div className="relative">
-                                    <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                    <input
-                                        className={`${styles.modernInput} pl-10`}
-                                        value={formData.location}
-                                        onChange={e => setFormData({ ...formData, location: e.target.value })}
-                                        placeholder="e.g. Foundation Area"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div className={styles.tabsContainer}>
+                    <button
+                        className={`${styles.tabButton} ${activeTab === 'general' ? styles.activeTab : ''}`}
+                        onClick={() => setActiveTab('general')}
+                    >
+                        {t('common.baseInfo') || 'General Info'}
+                    </button>
+                    <button
+                        className={`${styles.tabButton} ${activeTab === 'checklist' ? styles.activeTab : ''}`}
+                        onClick={() => setActiveTab('checklist')}
+                    >
+                        {t('checklist.listTitle') || 'Checklist'}
+                        {` (${formData.items.length})`}
+                    </button>
                 </div>
 
-                {/* --- Inspection Checklist --- */}
-                <div className={styles.card}>
-                    <div className={styles.cardHeader}>
-                        <div className="flex items-center gap-10 flex-1">
+                {/* --- Project Information --- */}
+                {activeTab === 'general' && (
+                    <div className={styles.card}>
+                        <div className={styles.cardHeader}>
                             <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md">
-                                <CheckCircle size={18} />
+                                <Info size={18} />
                             </div>
-                            <h2>Inspection Checklist</h2>
+                            <h2>Project Information</h2>
                         </div>
-                        <button
-                            onClick={() => {
-                                const newId = formData.items.length > 0 ? Math.max(...formData.items.map((i: any) => i.id)) + 1 : 1;
-                                setFormData({
-                                    ...formData,
-                                    items: [
-                                        ...formData.items,
-                                        { id: newId, item: "", criteria: "", situation: "", result: "O" }
-                                    ]
-                                });
-                            }}
-                            className="flex items-center gap-1 px-3 py-1 text-blue-600 hover:bg-blue-50 rounded-md transition-colors text-sm font-bold"
-                        >
-                            <Plus size={16} /> Add Row
-                        </button>
+                        <div className={styles.cardContent}>
+                            <div className={styles.grid3}>
+                                <div className={styles.formGroup}>
+                                    <label>Project Title *</label>
+                                    <select
+                                        className={styles.modernSelect}
+                                        value={formData.projectTitle || ''}
+                                        onChange={e => setFormData({ ...formData, projectTitle: e.target.value })}
+                                    >
+                                        <option value="Hai Long">Hai Long</option>
+                                        <option value="Yunlin">Yunlin</option>
+                                        <option value="Greater Changhua">Greater Changhua</option>
+                                    </select>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>ITR No.</label>
+                                    <input
+                                        className={styles.modernInput}
+                                        value={formData.referenceNo}
+                                        onChange={e => setFormData({ ...formData, referenceNo: e.target.value })}
+                                        placeholder="Manual Entry"
+                                    />
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>NOI Number</label>
+                                    <select
+                                        className={styles.modernSelect}
+                                        value={formData.noiNumber || ''}
+                                        onChange={e => {
+                                            const selectedNoi = noiList.find(n => n.referenceNo === e.target.value);
+                                            const linkedItp = selectedNoi ? itpList.find(i => i.referenceNo === selectedNoi.itpNo) : undefined;
+                                            setFormData({
+                                                ...formData,
+                                                noiNumber: e.target.value,
+                                                packageName: selectedNoi?.package || formData.packageName,
+                                                contractor: selectedNoi?.contractor || formData.contractor,
+                                                location: selectedNoi?.checkpoint || formData.location,
+                                                activity: linkedItp?.description || formData.activity
+                                            });
+                                        }}
+                                    >
+                                        <option value="">Select NOI</option>
+                                        {noiList.map(n => <option key={n.id} value={n.referenceNo}>{n.referenceNo}</option>)}
+                                    </select>
+                                </div>
+
+                                <div className={styles.formGroup}>
+                                    <label>Contractor</label>
+                                    <select
+                                        className={styles.modernSelect}
+                                        value={formData.contractor}
+                                        onChange={e => setFormData({ ...formData, contractor: e.target.value })}
+                                    >
+                                        <option value="">-- Select --</option>
+                                        {getActiveContractors().map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Inspection Date *</label>
+                                    <div className="relative">
+                                        <input
+                                            type="date"
+                                            className={styles.modernInput}
+                                            value={formData.inspectionDate}
+                                            onChange={e => setFormData({ ...formData, inspectionDate: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Inspection Location</label>
+                                    <div className="relative">
+                                        <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            className={`${styles.modernInput} pl-10`}
+                                            value={formData.location}
+                                            onChange={e => setFormData({ ...formData, location: e.target.value })}
+                                            placeholder="e.g. Foundation Area"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div className={styles.cardContent} style={{ padding: 0 }}>
-                        <table className={styles.webTable}>
-                            <thead>
-                                <tr>
-                                    <th style={{ width: '60px' }}>#</th>
-                                    <th>Inspection Item</th>
-                                    <th style={{ width: '200px' }}>Criteria</th>
-                                    <th style={{ width: '200px' }}>Actual Situation</th>
-                                    <th style={{ width: '120px', textAlign: 'center' }}>Result</th>
-                                    <th style={{ width: '50px' }}></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {formData.items.map((item: any, idx: number) => (
-                                    <tr key={idx}>
-                                        <td className={styles.webItemNo}>{item.id}</td>
-                                        <td>
-                                            <input
-                                                className={styles.underlineInput}
-                                                style={{ fontWeight: 600 }}
-                                                value={item.item}
-                                                placeholder="Enter inspection item..."
-                                                onChange={e => {
-                                                    const newItems = [...formData.items];
-                                                    newItems[idx].item = e.target.value;
-                                                    setFormData({ ...formData, items: newItems });
-                                                }}
-                                            />
-                                        </td>
-                                        <td>
-                                            <div className={styles.criteriaBox}>
+                )}
+
+                {/* --- Inspection Checklist --- */}
+                {activeTab === 'checklist' && (
+                    <div className={styles.card}>
+                        <div className={styles.cardHeader}>
+                            <div className="flex items-center gap-10 flex-1">
+                                <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md">
+                                    <CheckCircle size={18} />
+                                </div>
+                                <h2>Inspection Checklist</h2>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    const newId = formData.items.length > 0 ? Math.max(...formData.items.map((i: any) => i.id)) + 1 : 1;
+                                    setFormData({
+                                        ...formData,
+                                        items: [
+                                            ...formData.items,
+                                            { id: newId, item: "", criteria: "", situation: "", result: "O" }
+                                        ]
+                                    });
+                                }}
+                                className="flex items-center gap-1 px-3 py-1 text-blue-600 hover:bg-blue-50 rounded-md transition-colors text-sm font-bold"
+                            >
+                                <Plus size={16} /> Add Row
+                            </button>
+                        </div>
+                        <div className={styles.cardContent} style={{ padding: 0 }}>
+                            <table className={styles.webTable}>
+                                <thead>
+                                    <tr>
+                                        <th style={{ width: '60px' }}>#</th>
+                                        <th>Inspection Item</th>
+                                        <th style={{ width: '200px' }}>Criteria</th>
+                                        <th style={{ width: '200px' }}>Actual Situation</th>
+                                        <th style={{ width: '120px', textAlign: 'center' }}>Result</th>
+                                        <th style={{ width: '50px' }}></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {formData.items.map((item: any, idx: number) => (
+                                        <tr key={idx}>
+                                            <td className={styles.webItemNo}>{item.id}</td>
+                                            <td>
                                                 <input
-                                                    className="w-full bg-transparent border-none outline-none"
-                                                    value={item.criteria}
-                                                    placeholder="Enter criteria..."
+                                                    className={styles.underlineInput}
+                                                    style={{ fontWeight: 600 }}
+                                                    value={item.item}
+                                                    placeholder="Enter inspection item..."
                                                     onChange={e => {
                                                         const newItems = [...formData.items];
-                                                        newItems[idx].criteria = e.target.value;
+                                                        newItems[idx].item = e.target.value;
                                                         setFormData({ ...formData, items: newItems });
                                                     }}
                                                 />
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <input
-                                                className={styles.underlineInput}
-                                                value={item.situation}
-                                                placeholder="Enter observation..."
-                                                onChange={e => {
-                                                    const newItems = [...formData.items];
-                                                    newItems[idx].situation = e.target.value;
-                                                    setFormData({ ...formData, items: newItems });
-                                                }}
-                                            />
-                                        </td>
-                                        <td>
-                                            <div className="flex justify-center">
-                                                <div
-                                                    className={`${styles.statusChip} ${item.result === 'O' ? styles.chipPass : (item.result === 'X' ? styles.chipFail : styles.chipNA)}`}
-                                                    onClick={() => {
+                                            </td>
+                                            <td>
+                                                <div className={styles.criteriaBox}>
+                                                    <input
+                                                        className="w-full bg-transparent border-none outline-none"
+                                                        value={item.criteria}
+                                                        placeholder="Enter criteria..."
+                                                        onChange={e => {
+                                                            const newItems = [...formData.items];
+                                                            newItems[idx].criteria = e.target.value;
+                                                            setFormData({ ...formData, items: newItems });
+                                                        }}
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <input
+                                                    className={styles.underlineInput}
+                                                    value={item.situation}
+                                                    placeholder="Enter observation..."
+                                                    onChange={e => {
                                                         const newItems = [...formData.items];
-                                                        newItems[idx].result = newItems[idx].result === 'O' ? 'X' : (newItems[idx].result === 'X' ? '/' : 'O');
+                                                        newItems[idx].situation = e.target.value;
                                                         setFormData({ ...formData, items: newItems });
                                                     }}
-                                                >
-                                                    {item.result === 'O' ? <CheckCircle size={14} /> : (item.result === 'X' ? <XCircle size={14} /> : <HelpCircle size={14} />)}
-                                                    <span>{item.result === 'O' ? '合格' : (item.result === 'X' ? '不合格' : 'N/A')}</span>
+                                                />
+                                            </td>
+                                            <td>
+                                                <div className="flex justify-center">
+                                                    <div
+                                                        className={`${styles.statusChip} ${item.result === 'O' ? styles.chipPass : (item.result === 'X' ? styles.chipFail : styles.chipNA)}`}
+                                                        onClick={() => {
+                                                            const newItems = [...formData.items];
+                                                            newItems[idx].result = newItems[idx].result === 'O' ? 'X' : (newItems[idx].result === 'X' ? '/' : 'O');
+                                                            setFormData({ ...formData, items: newItems });
+                                                        }}
+                                                    >
+                                                        {item.result === 'O' ? <CheckCircle size={14} /> : (item.result === 'X' ? <XCircle size={14} /> : <HelpCircle size={14} />)}
+                                                        <span>{item.result === 'O' ? '合格' : (item.result === 'X' ? '不合格' : 'N/A')}</span>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <button
-                                                onClick={() => {
-                                                    const newItems = formData.items.filter((_: any, i: number) => i !== idx);
-                                                    setFormData({ ...formData, items: newItems });
-                                                }}
-                                                className="p-1 text-slate-300 hover:text-red-500 transition-colors"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                            </td>
+                                            <td>
+                                                <button
+                                                    onClick={() => {
+                                                        const newItems = formData.items.filter((_: any, i: number) => i !== idx);
+                                                        setFormData({ ...formData, items: newItems });
+                                                    }}
+                                                    className="p-1 text-slate-300 hover:text-red-500 transition-colors"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* --- Inspection Status Section --- */}
-                <div className={styles.card}>
-                    <div className={styles.cardHeader}>
-                        <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md">
-                            <CheckCircle size={18} />
-                        </div>
-                        <h2>Inspection Status</h2>
-                    </div>
-                    <div className={styles.cardContent} style={{ display: 'flex', gap: '32px', padding: '20px 24px' }}>
-                        <label className={styles.checkOption} style={{ margin: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500, color: '#475569' }}>
-                            <input
-                                type="checkbox"
-                                className="w-4 h-4 rounded border-slate-300 text-blue-600"
-                                checked={formData.agreementChecked}
-                                onChange={e => setFormData({ ...formData, agreementChecked: e.target.checked })}
-                            />
-                            All inspection done & meet standards
-                        </label>
-                        <label className={styles.checkOption} style={{ margin: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500, color: '#475569' }}>
-                            <input
-                                type="checkbox"
-                                className="w-4 h-4 rounded border-slate-300 text-blue-600"
-                                checked={!formData.agreementChecked}
-                                onChange={e => setFormData({ ...formData, agreementChecked: !e.target.checked })}
-                            />
-                            Unfinished improvement (NCR required)
-                        </label>
-                    </div>
-                </div>
-
-                {/* --- Bottom Section (NCR & Signatures) --- */}
-                <div className={styles.grid2}>
-                    <div className={styles.card}>
-                        <div className={styles.cardHeader}>
-                            <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md">
-                                <AlertCircle size={18} />
+                {activeTab === 'general' && (
+                    <>
+                        <div className={styles.card}>
+                            <div className={styles.cardHeader}>
+                                <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md">
+                                    <CheckCircle size={18} />
+                                </div>
+                                <h2>Inspection Status</h2>
                             </div>
-                            <h2>NCR & Remarks</h2>
-                        </div>
-                        <div className={styles.cardContent}>
-                            <div className="flex flex-col gap-4">
-                                <div className={styles.formGroup}>
-                                    <label>NCR No.</label>
+                            <div className={styles.cardContent} style={{ display: 'flex', gap: '32px', padding: '20px 24px' }}>
+                                <label className={styles.checkOption} style={{ margin: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500, color: '#475569' }}>
                                     <input
-                                        className={styles.modernInput}
-                                        disabled={formData.agreementChecked}
-                                        value={formData.agreementChecked ? "N/A" : formData.ncrNo}
-                                        placeholder="e.g. NCR-001"
-                                        onChange={e => setFormData({ ...formData, ncrNo: e.target.value })}
+                                        type="checkbox"
+                                        className="w-4 h-4 rounded border-slate-300 text-blue-600"
+                                        checked={formData.agreementChecked}
+                                        onChange={e => setFormData({ ...formData, agreementChecked: e.target.checked })}
                                     />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label>Re-inspection Date</label>
+                                    All inspection done & meet standards
+                                </label>
+                                <label className={styles.checkOption} style={{ margin: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500, color: '#475569' }}>
                                     <input
-                                        type={formData.agreementChecked ? "text" : "date"}
-                                        className={styles.modernInput}
-                                        disabled={formData.agreementChecked}
-                                        value={formData.agreementChecked ? "N/A" : formData.reInspectionDate}
-                                        onChange={e => setFormData({ ...formData, reInspectionDate: e.target.value })}
+                                        type="checkbox"
+                                        className="w-4 h-4 rounded border-slate-300 text-blue-600"
+                                        checked={!formData.agreementChecked}
+                                        onChange={e => setFormData({ ...formData, agreementChecked: !e.target.checked })}
                                     />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label>Remarks</label>
-                                    <textarea
-                                        className={styles.modernInput}
-                                        style={{ minHeight: '100px' }}
-                                        value={formData.remarks}
-                                        onChange={e => setFormData({ ...formData, remarks: e.target.value })}
-                                    />
-                                </div>
+                                    Unfinished improvement (NCR required)
+                                </label>
                             </div>
                         </div>
-                    </div>
 
-                    <div className={styles.card}>
-                        <div className={styles.cardHeader}>
-                            <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md">
-                                <User size={18} />
-                            </div>
-                            <h2>Signatures</h2>
-                        </div>
-                        <div className={styles.cardContent}>
-                            <div className="flex flex-col gap-4">
-                                <div className={styles.grid2}>
-                                    <div className={styles.signatureCard}>
-                                        <div className={styles.signatureIcon}><Signature size={20} /></div>
-                                        <div className={styles.signatureTitle}>Site Engineer</div>
-                                        <div className={styles.signatureHelper}>Click to sign</div>
+                        {/* --- Bottom Section (NCR & Signatures) --- */}
+                        <div className={styles.grid2}>
+                            <div className={styles.card}>
+                                <div className={styles.cardHeader}>
+                                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md">
+                                        <AlertCircle size={18} />
                                     </div>
-                                    <div className={styles.signatureCard}>
-                                        <div className={styles.signatureIcon}><Signature size={20} /></div>
-                                        <div className={styles.signatureTitle}>Construction Leader</div>
-                                        <div className={styles.signatureHelper}>Click to sign</div>
+                                    <h2>NCR & Remarks</h2>
+                                </div>
+                                <div className={styles.cardContent}>
+                                    <div className="flex flex-col gap-4">
+                                        <div className={styles.formGroup}>
+                                            <label>NCR No.</label>
+                                            <input
+                                                className={styles.modernInput}
+                                                disabled={formData.agreementChecked}
+                                                value={formData.agreementChecked ? "N/A" : formData.ncrNo}
+                                                placeholder="e.g. NCR-001"
+                                                onChange={e => setFormData({ ...formData, ncrNo: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Re-inspection Date</label>
+                                            <input
+                                                type={formData.agreementChecked ? "text" : "date"}
+                                                className={styles.modernInput}
+                                                disabled={formData.agreementChecked}
+                                                value={formData.agreementChecked ? "N/A" : formData.reInspectionDate}
+                                                onChange={e => setFormData({ ...formData, reInspectionDate: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className={styles.formGroup}>
+                                            <label>Remarks</label>
+                                            <textarea
+                                                className={styles.modernInput}
+                                                style={{ minHeight: '100px' }}
+                                                value={formData.remarks}
+                                                onChange={e => setFormData({ ...formData, remarks: e.target.value })}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
-                                <div className={styles.signatureCard} style={{ width: '100%' }}>
-                                    <div className={styles.signatureIcon}><Signature size={20} /></div>
-                                    <div className={styles.signatureTitle}>Subcontractor Representative</div>
-                                    <div className={styles.signatureHelper}>Click to sign</div>
+                            </div>
+
+                            <div className={styles.card}>
+                                <div className={styles.cardHeader}>
+                                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded-md">
+                                        <User size={18} />
+                                    </div>
+                                    <h2>Signatures</h2>
+                                </div>
+                                <div className={styles.cardContent}>
+                                    <div className="flex flex-col gap-4">
+                                        <div className={styles.grid2}>
+                                            <div className={styles.signatureCard}>
+                                                <div className={styles.signatureIcon}><Signature size={20} /></div>
+                                                <div className={styles.signatureTitle}>Site Engineer</div>
+                                                <div className={styles.signatureHelper}>Click to sign</div>
+                                            </div>
+                                            <div className={styles.signatureCard}>
+                                                <div className={styles.signatureIcon}><Signature size={20} /></div>
+                                                <div className={styles.signatureTitle}>Construction Leader</div>
+                                                <div className={styles.signatureHelper}>Click to sign</div>
+                                            </div>
+                                        </div>
+                                        <div className={styles.signatureCard} style={{ width: '100%' }}>
+                                            <div className={styles.signatureIcon}><Signature size={20} /></div>
+                                            <div className={styles.signatureTitle}>Subcontractor Representative</div>
+                                            <div className={styles.signatureHelper}>Click to sign</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    </>
+                )}
             </div>
 
             {/* --- Print View (Portal) --- */}

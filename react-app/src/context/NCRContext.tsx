@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useEffect, useCall
 import api from '../services/api';
 import { parseJsonFields } from '../utils/normalizeApiItem';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useAuth } from './AuthContext';
 
 export interface NCRItem {
   id: string;
@@ -73,9 +74,14 @@ export const NCRProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [handleError]);
 
+  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
-    fetchNCRs();
-  }, [fetchNCRs]);
+    if (isAuthenticated) {
+      fetchNCRs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   const addNCR = useCallback(async (ncr: Omit<NCRItem, 'id'>): Promise<NCRItem> => {
     try {
@@ -91,7 +97,7 @@ export const NCRProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateNCR = useCallback(async (id: string, updates: Partial<NCRItem>) => {
     try {
-      const response = await api.put(`/ncr/${id}`, updates);
+      const response = await api.put(`/ncr/${id}/`, updates);
       const updated = normalizeItem(response.data);
       setNcrList(prev => prev.map(n => (n.id === id ? updated : n)));
     } catch (error) {
@@ -102,7 +108,7 @@ export const NCRProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const deleteNCR = useCallback(async (id: string) => {
     try {
-      await api.delete(`/ncr/${id}`);
+      await api.delete(`/ncr/${id}/`);
       setNcrList(prev => prev.filter(n => n.id !== id));
     } catch (error) {
       handleError(error, 'Failed to delete NCR');

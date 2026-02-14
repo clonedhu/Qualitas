@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useCallback, React
 import api from '../services/api';
 import { parseJsonFields } from '../utils/normalizeApiItem';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useAuth } from './AuthContext';
 
 export interface ITPInspectionItem {
   id: string;
@@ -84,9 +85,14 @@ export const ITPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [handleError]);
 
+  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
-    fetchITPs();
-  }, [fetchITPs]);
+    if (isAuthenticated) {
+      fetchITPs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   const addITP = useCallback(async (itp: Omit<ITPItem, 'id'>): Promise<ITPItem> => {
     try {
@@ -118,7 +124,7 @@ export const ITPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
       const mergedItem = { ...currentItem, ...updates };
 
-      const response = await api.put(`/itp/${id}`, mergedItem);
+      const response = await api.put(`/itp/${id}/`, mergedItem);
       setItpList(prev => prev.map(i => (i.id === id ? response.data : i)));
     } catch (error) {
       handleError(error, 'Failed to update ITP');
@@ -138,7 +144,7 @@ export const ITPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const deleteITP = useCallback(async (id: string) => {
     try {
-      await api.delete(`/itp/${id}`);
+      await api.delete(`/itp/${id}/`);
       setItpList(prev => prev.filter(i => i.id !== id));
     } catch (error) {
       handleError(error, 'Failed to delete ITP');

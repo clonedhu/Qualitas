@@ -4,13 +4,13 @@ const http = require('http');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
-const PORT = 3001;
-const PYTHON_API = 'http://127.0.0.1:8000';
+const PORT = 3002;
+const PYTHON_API = 'http://127.0.0.1:8016';
 
 // Security: Rate Limiting - 防止暴力破解和 DoS
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 分鐘
-    max: 10, // 每個 IP 最多 10 次登入嘗試
+    max: 100, // 放寬限制：每個 IP 最多 100 次登入嘗試
     message: { detail: 'Too many login attempts, please try again later' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -18,7 +18,7 @@ const authLimiter = rateLimit({
 
 const apiLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 分鐘
-    max: 500, // 每個 IP 每分鐘 500 次請求（放寬限制以適應前端同時載入多個模組）
+    max: 1000, // 放寬限制：每個 IP 每分鐘 1000 次請求
     message: { detail: 'Too many requests, please try again later' },
     standardHeaders: true,
     legacyHeaders: false,
@@ -170,32 +170,57 @@ app.get('/api/user/profile', (req, res) => {
 // Proxy CRUD paths to Python FastAPI backend (port 8000)
 function createCrudProxy(pathPrefix) {
     return (req, res) => {
-        const opts = {
-            hostname: '127.0.0.1',
-            port: 8000,
-            path: pathPrefix + (req.url || ''),
-            method: req.method,
-            headers: {
-                'Content-Type': req.headers['content-type'] || 'application/json',
-                'Authorization': req.headers['authorization'] || ''
-            }
-        };
-        const body = req.method !== 'GET' && req.method !== 'HEAD' && req.body !== undefined
-            ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body))
-            : null;
-        if (body) opts.headers['Content-Length'] = Buffer.byteLength(body);
-        const proxyReq = http.request(opts, (proxyRes) => {
-            res.status(proxyRes.statusCode);
-            Object.keys(proxyRes.headers).forEach(k => res.setHeader(k, proxyRes.headers[k]));
-            proxyRes.pipe(res);
-        });
-        proxyReq.on('error', (err) => {
-            console.error('[Backend] Proxy error for ' + pathPrefix + ':', err.message);
-            res.status(502).json({ detail: 'Service unavailable. Start Python backend: cd backend && python -m uvicorn main:app --reload --port 8000' });
-        });
-        if (body) proxyReq.write(body);
-        proxyReq.end();
+        const targetPath = pathPrefix + (req.url || '');
+        _proxyRequest(req, res, targetPath, req.method, req.headers, req.body, pathPrefix);
     };
+}
+
+function _proxyRequest(originalReq, res, path, method, headers, body, pathPrefix, redirectCount) {
+    redirectCount = redirectCount || 0;
+    if (redirectCount > 3) {
+        return res.status(502).json({ detail: 'Too many redirects from backend' });
+    }
+    const opts = {
+        hostname: '127.0.0.1',
+        port: 8000,
+        path: path,
+        method: method,
+        headers: {
+            'Content-Type': headers['content-type'] || 'application/json',
+            'Authorization': headers['authorization'] || ''
+        }
+    };
+    const bodyData = (method !== 'GET' && method !== 'HEAD' && body !== undefined)
+        ? (typeof body === 'string' ? body : JSON.stringify(body))
+        : null;
+    if (bodyData) opts.headers['Content-Length'] = Buffer.byteLength(bodyData);
+    const proxyReq = http.request(opts, (proxyRes) => {
+        // Follow 307/308 redirects internally instead of passing to browser
+        if ((proxyRes.statusCode === 307 || proxyRes.statusCode === 308) && proxyRes.headers.location) {
+            try {
+                const redirectUrl = new URL(proxyRes.headers.location);
+                const newPath = redirectUrl.pathname + (redirectUrl.search || '');
+                return _proxyRequest(originalReq, res, newPath, method, headers, body, pathPrefix, redirectCount + 1);
+            } catch (e) {
+                // If Location is a relative path
+                return _proxyRequest(originalReq, res, proxyRes.headers.location, method, headers, body, pathPrefix, redirectCount + 1);
+            }
+        }
+        res.status(proxyRes.statusCode);
+        // Forward headers but remove location pointing to internal URLs
+        Object.keys(proxyRes.headers).forEach(k => {
+            if (k.toLowerCase() !== 'location') {
+                res.setHeader(k, proxyRes.headers[k]);
+            }
+        });
+        proxyRes.pipe(res);
+    });
+    proxyReq.on('error', (err) => {
+        console.error('[Backend] Proxy error for ' + (pathPrefix || path) + ':', err.message);
+        res.status(502).json({ detail: 'Service unavailable. Start Python backend: cd backend && python -m uvicorn main:app --reload --port 8000' });
+    });
+    if (bodyData) proxyReq.write(bodyData);
+    proxyReq.end();
 }
 const cron = require('node-cron');
 const axios = require('axios');

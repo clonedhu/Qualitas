@@ -3,8 +3,9 @@ import { NOIItem } from "../../context/NOIContext";
 import { DataTableColumnHeader } from "@/components/Shared/DataTable/DataTableColumnHeader";
 import { Button } from "@/components/ui/button";
 import { Eye, Pencil, Trash2 } from "lucide-react";
-import { formatTime24h, getLocalizedStatus } from "../../utils/formatters";
 import { Checkbox } from "@/components/ui/checkbox";
+import { StatusBadge } from "@/components/Shared/StatusBadge";
+import { formatTime24h, getLocalizedStatus, formatDateLocale } from "../../utils/formatters";
 import styles from "./NOI.module.css";
 
 export const createColumns = (
@@ -68,8 +69,11 @@ export const createColumns = (
                 />
             ),
             cell: ({ row }) => (
-                <div className="text-center">
-                    {getLocalizedStatus(row.getValue("status"), t)}
+                <div className="flex justify-center">
+                    <StatusBadge
+                        status={row.getValue("status")}
+                        label={getLocalizedStatus(row.getValue("status"), t)}
+                    />
                 </div>
             ),
             filterFn: (row, id, value) => {
@@ -109,14 +113,14 @@ export const createColumns = (
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title={t('noi.issueDate')} />
             ),
-            cell: ({ row }) => <div className="text-center">{row.getValue("issueDate")}</div>,
+            cell: ({ row }) => <div className="text-center">{formatDateLocale(row.getValue("issueDate"))}</div>,
         },
         {
             accessorKey: "inspectionDate",
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title={t('noi.inspectionDate')} />
             ),
-            cell: ({ row }) => <div className="text-center">{row.getValue("inspectionDate")}</div>,
+            cell: ({ row }) => <div className="text-center">{formatDateLocale(row.getValue("inspectionDate"))}</div>,
         },
         {
             accessorKey: "inspectionTime",

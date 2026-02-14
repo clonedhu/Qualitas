@@ -62,30 +62,54 @@ def seed_default_pqp():
     finally:
         db.close()
 
+from core.perms import ALL_PERMISSIONS, USER_VIEW, USER_MANAGE, ROLE_VIEW, ROLE_MANAGE
+
 def seed_initial_data():
     db = SessionLocal()
     try:
-        # 1. Create Admin Role if not exists
-        admin_role = crud.get_role_by_name(db, "admin")
+        # 1. Seed Permissions table from core.perms
+        print("Seeding permissions...")
+        for p_data in ALL_PERMISSIONS:
+            existing_p = db.query(models.Permission).filter(models.Permission.code == p_data["code"]).first()
+            if not existing_p:
+                new_p = models.Permission(code=p_data["code"], description=p_data["description"])
+                db.add(new_p)
+        db.commit()
+
+        # 2. Create admin role if not exists (case-insensitive lookup)
+        admin_role = db.query(models.Role).filter(
+            models.Role.name.ilike("admin")
+        ).first()
         if not admin_role:
+            # Grant all permissions to admin
+            all_codes = [p["code"] for p in ALL_PERMISSIONS]
             admin_role = crud.create_role(db, schemas.RoleCreate(
                 name="admin",
                 description="Administrator with full access",
-                permissions=["read", "write", "delete", "manage_users", "manage_roles"]
+                permissions=all_codes
             ))
             print("Seeded admin role.")
+        else:
+            # Sync permissions for existing admin role
+            all_codes = [p["code"] for p in ALL_PERMISSIONS]
+            perms = db.query(models.Permission).filter(
+                models.Permission.code.in_(all_codes)
+            ).all()
+            admin_role.permissions_rel = perms
+            db.commit()
+            print(f"Synced admin role permissions ({len(perms)} perms).")
 
-        # 2. Create User Role if not exists
-        user_role = crud.get_role_by_name(db, "user")
+        # 3. Create User Role if not exists
+        user_role = crud.get_role_by_name(db, "USER")
         if not user_role:
             user_role = crud.create_role(db, schemas.RoleCreate(
-                name="user",
+                name="USER",
                 description="Standard user",
-                permissions=["read"]
+                permissions=[USER_VIEW] # Minimal permissions
             ))
             print("Seeded user role.")
         
-        # 3. Create Admin User if not exists
+        # 4. Create Admin User if not exists
         admin_user = crud.get_user_by_email(db, "admin@example.com")
         if not admin_user:
             crud.create_user(db, schemas.UserCreate(
@@ -96,6 +120,12 @@ def seed_initial_data():
                 role_id=admin_role.id
             ), hashed_password=get_password_hash("admin"))
             print("Seeded admin user.")
+        else:
+            # Always ensure admin user has the admin role
+            if admin_user.role_id != admin_role.id:
+                admin_user.role_id = admin_role.id
+                db.commit()
+                print(f"Updated admin user role_id to {admin_role.id}.")
 
         # 4. Create Seed Checklist Records if none exists
         if db.query(models.Checklist).count() == 0:

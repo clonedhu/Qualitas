@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useMemo, useEffect, useCallback, ReactNode } from 'react';
 import api from '../services/api';
 import { useErrorHandler } from '../hooks/useErrorHandler';
+import { useAuth } from './AuthContext';
 
 export interface PQPItem {
   id: string;
@@ -52,9 +53,14 @@ export const PQPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   }, [handleError]);
 
+  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
-    fetchPQPs();
-  }, [fetchPQPs]);
+    if (isAuthenticated) {
+      fetchPQPs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   const addPQP = async (pqp: Omit<PQPItem, 'id'>): Promise<PQPItem> => {
     try {
@@ -70,7 +76,7 @@ export const PQPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updatePQP = async (id: string, updates: Partial<PQPItem>) => {
     try {
-      const response = await api.put(`/pqp/${id}`, updates);
+      const response = await api.put(`/pqp/${id}/`, updates);
       setPqpList(prev => prev.map(p => (p.id === id ? response.data : p)));
     } catch (error) {
       handleError(error, 'Failed to update PQP');
@@ -80,7 +86,7 @@ export const PQPProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const deletePQP = async (id: string) => {
     try {
-      await api.delete(`/pqp/${id}`);
+      await api.delete(`/pqp/${id}/`);
       setPqpList(prev => prev.filter(p => p.id !== id));
     } catch (error) {
       handleError(error, 'Failed to delete PQP');

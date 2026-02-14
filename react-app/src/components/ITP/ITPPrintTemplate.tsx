@@ -1,6 +1,7 @@
 import React from 'react';
 import { InspectionItem, ITPHeaderData } from '../../types/itp';
 import { PHASES } from '../../constants/itp';
+import VPBadgeBase from './VPBadge';
 import styles from './ITP.module.css';
 
 interface ITPPrintTemplateProps {
@@ -8,14 +9,7 @@ interface ITPPrintTemplateProps {
     headerData?: ITPHeaderData;
 }
 
-const VPBadge = ({ type }: { type: string }) => {
-    if (!type) return <span className="text-slate-200">-</span>;
-    return (
-        <span className="inline-flex items-center justify-center w-6 h-6 border border-slate-300 rounded font-bold text-xs">
-            {type}
-        </span>
-    );
-};
+const VPBadge = ({ type }: { type: string }) => <VPBadgeBase type={type} print />;
 
 export const ITPPrintTemplate: React.FC<ITPPrintTemplateProps> = ({ items, headerData }) => {
     return (

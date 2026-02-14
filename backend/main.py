@@ -15,7 +15,14 @@ from middleware.rate_limiter import RateLimitMiddleware
 from routers import itp, ncr, noi, itr, pqp, obs, contractors, followup, iam, audit, checklist, kpi, file_router, fat, auth, settings as settings_router
 
 # Setup Logger
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("backend_error.log", mode='a', encoding='utf-8')
+    ]
+)
 logger = logging.getLogger(__name__)
 
 # Create tables
