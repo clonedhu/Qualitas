@@ -578,17 +578,17 @@ export const OBSDetailModal: React.FC<OBSDetailModalProps> = ({ obsId, existingD
                     </div>
                 </div>
                 <div className={styles.modalActions}>
-                    <button type="button" className={styles.saveButton} onClick={handleSave}>
-                        {t('common.save')}
-                    </button>
                     <button
                         type="button"
                         className={styles.saveButton}
                         onClick={handlePublish}
-                        style={{ backgroundColor: '#4f46e5', marginLeft: '12px' }}
+                        style={{ backgroundColor: '#4f46e5' }}
                         title="Publish as next revision"
                     >
                         Publish
+                    </button>
+                    <button type="button" className={styles.saveButton} onClick={handleSave} style={{ marginLeft: '12px' }}>
+                        {t('common.save')}
                     </button>
                     <button type="button" className={styles.printButton} onClick={handlePrint}>
                         {t('common.print')}

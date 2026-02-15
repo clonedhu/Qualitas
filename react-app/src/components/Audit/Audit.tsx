@@ -366,6 +366,7 @@ const Audit: React.FC = () => {
                     searchKey=""
                     getRowClassName={() => styles.normalRow}
                     getRowId={(row) => row.id}
+                    onRowClick={(row) => handleEdit(row.id)}
                 />
             </div>
 

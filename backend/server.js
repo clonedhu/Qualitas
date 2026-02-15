@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = 3002;
-const PYTHON_API = 'http://127.0.0.1:8016';
+const PYTHON_API = 'http://127.0.0.1:8000';
 
 // Security: Rate Limiting - 防止暴力破解和 DoS
 const authLimiter = rateLimit({

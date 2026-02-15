@@ -265,10 +265,7 @@ const FollowUpIssue: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleViewDetails = (id: string) => {
-    setViewingIssueId(id);
-    setIsDetailsModalOpen(true);
-  };
+
 
   const handleAddNew = () => {
     setCurrentIssueId(null);
@@ -462,7 +459,7 @@ const FollowUpIssue: React.FC = () => {
               {t('followup.addNew')}
             </button>
           }
-          columns={createColumns(handleEdit, handleViewDetails, handleDeleteClick, navigate, t)}
+          columns={createColumns(handleEdit, handleDeleteClick, navigate, t)}
           data={filteredList}
           searchKey=""
           searchPlaceholder={t('common.search')}
@@ -471,6 +468,7 @@ const FollowUpIssue: React.FC = () => {
               ? 'bg-emerald-100/50 text-gray-500 hover:bg-emerald-200/50'
               : ''
           }
+          onRowClick={(row) => handleEdit(row.id)}
         />
       </div>
 

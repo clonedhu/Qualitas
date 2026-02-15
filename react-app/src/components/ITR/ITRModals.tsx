@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useChecklist } from '../../context/ChecklistContext';
+import { ChecklistSnapshotModal } from './ChecklistSnapshotModal';
+import { ChecklistRecord, useChecklist } from '../../context/ChecklistContext';
 import { Printer, ShieldCheck, Save, LayoutTemplate, Plus, ClipboardCheck, ArrowRight, AlertCircle, Info } from 'lucide-react';
 import { getNextRevision } from '../../utils/revision';
 import { useLanguage } from '../../context/LanguageContext';
@@ -48,6 +49,7 @@ export interface ITRDetailData {
     itpNo: string;
     drawings: string[];
     certificates: string[];
+    linkedChecklists: any[]; // Snapshot
 }
 
 export interface ITRDetailModalProps {
@@ -60,6 +62,7 @@ export interface ITRDetailModalProps {
 }
 
 export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingData, existingItem, itrList: propItrList, onSave, onClose }) => {
+    console.log("ITRDetailModal mounted", { itrId, existingItem, linkedChecklists: existingItem?.linkedChecklists });
     const { t } = useLanguage();
     const { getActiveContractors, contractors } = useContractors();
     const navigate = useNavigate();
@@ -117,6 +120,7 @@ export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingD
                 itpNo: existingItem.itpNo || '',
                 drawings: existingItem.drawings || [],
                 certificates: existingItem.certificates || [],
+                linkedChecklists: existingItem.linkedChecklists || [],
             };
         }
         // 新項目：itrNumber 留空，由後端自動產生
@@ -154,6 +158,7 @@ export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingD
             itpNo: '',
             drawings: [],
             certificates: [],
+            linkedChecklists: [],
 
         };
     };
@@ -161,11 +166,12 @@ export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingD
     const [formData, setFormData] = useState<ITRDetailData>(getInitialData());
     const [showPrintPreview, setShowPrintPreview] = useState(false);
 
-    const { records: allChecklists, updateRecord } = useChecklist();
+    const { records: allChecklists } = useChecklist();
+    const [editingSnapshotIndex, setEditingSnapshotIndex] = useState<number | null>(null);
 
     const linkedChecklists = useMemo(() => {
-        return allChecklists.filter(r => r.itrId === itrId);
-    }, [allChecklists, itrId]);
+        return formData.linkedChecklists || [];
+    }, [formData.linkedChecklists]);
 
     const VERSION_OPTIONS = ['Rev1.0', 'Rev2.0', 'Rev3.0', 'Rev4.0'];
     const [versionMode, setVersionMode] = useState<'select' | 'custom'>(() => {
@@ -321,6 +327,7 @@ export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingD
     };
 
     const handleSave = async () => {
+        console.log("handleSave formData.linkedChecklists", formData.linkedChecklists);
         if (!formData.noiNumber) {
             alert(t('itr.validation.noiRequired') || 'Please select an NOI Number.');
             return;
@@ -541,6 +548,174 @@ export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingD
                             </div>
                         </div>
 
+                        {/* Linked Checklists Section */}
+                        <div className={styles.formSection}>
+                            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-2">
+                                <h3 className={styles.sectionTitle} style={{ margin: 0 }}>
+                                    <ClipboardCheck size={18} className="inline-block mr-2" />
+                                    {t('itr.sectionLinkedChecklists') || 'Linked Checklists'}
+                                </h3>
+                                <div className="flex flex-col items-end">
+                                    <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200 mb-2">
+                                        ⚠ {t('itr.checklistSnapshotWarning') || 'Editing this list does not affect standard templates.'}
+                                    </span>
+                                    <select
+                                        className="h-8 pl-2 pr-8 rounded-md border border-slate-200 bg-white text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-400 transition-colors cursor-pointer"
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            if (!value) return;
+
+                                            if (value === 'new') {
+                                                // Create new is ambiguous in snapshot mode. 
+                                                // It implies creating a standard record first? 
+                                                // Or just a blank snapshot?
+                                                // For now, let's keep it but maybe it should redirect to create a standard checklist, 
+                                                // then user comes back and selects it.
+                                                // Or just disable 'new' for snapshot mode if it relies on standardizing first.
+                                                // User said "Checklist module ... standard data".
+                                                // So 'new' probably means creating a new Standard Template.
+                                                navigate(`/checklist?from=itr`);
+                                            } else {
+                                                const selectedOriginal = allChecklists.find(c => c.id === value);
+                                                if (selectedOriginal) {
+                                                    // Deep copy
+                                                    const snapshot = JSON.parse(JSON.stringify(selectedOriginal));
+                                                    // Remove ID or keep it as reference? 
+                                                    // Ideally generate a new ID for the snapshot to avoid key collisions if we render list,
+                                                    // but we might want to know origin.
+                                                    // Let's keep a reference to originId if needed, but for react keys we might need unique.
+                                                    // If we allow multiple of same template, we need unique keys.
+                                                    snapshot._snapshotId = Date.now().toString() + Math.random().toString().slice(2);
+                                                    // Clear itrId/itrNumber from snapshot just in case
+                                                    snapshot.itrId = itrId;
+                                                    snapshot.itrNumber = formData.itrNumber;
+
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        linkedChecklists: [...(prev.linkedChecklists || []), snapshot]
+                                                    }));
+                                                }
+                                            }
+                                            // Reset selection
+                                            e.target.value = "";
+                                        }}
+                                        value=""
+                                    >
+                                        <option value="" disabled hidden>+ {t('checklist.addOrLink') || 'Checklist'}</option>
+                                        <option value="new" className="font-bold text-blue-600 bg-blue-50">
+                                            + {t('checklist.createNew') || 'Create New Template...'}
+                                        </option>
+                                        <optgroup label={t('checklist.available') || 'Available Templates'}>
+                                            {allChecklists.map(c => (
+                                                <option key={c.id} value={c.id}>
+                                                    {c.recordsNo} - {c.activity} {c.status ? `(${c.status})` : ''}
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Unlink Handler & Snapshot Editor */}
+                            {(() => {
+                                const handleUnlinkChecklist = (index: number, e: React.MouseEvent) => {
+                                    e.stopPropagation(); // Prevent navigation
+                                    if (window.confirm(t('itr.confirmUnlinkChecklist') || 'Remove this checklist snapshot?')) {
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            linkedChecklists: prev.linkedChecklists.filter((_, i) => i !== index)
+                                        }));
+                                    }
+                                };
+
+                                const handleSaveSnapshot = (updatedSnapshot: any) => {
+                                    if (editingSnapshotIndex === null) return;
+                                    setFormData(prev => {
+                                        const newList = [...(prev.linkedChecklists || [])];
+                                        newList[editingSnapshotIndex] = updatedSnapshot;
+                                        return { ...prev, linkedChecklists: newList };
+                                    });
+                                    setEditingSnapshotIndex(null);
+                                };
+
+                                return (
+                                    <>
+                                        {linkedChecklists.length > 0 ? (
+                                            <div className="space-y-3">
+                                                {linkedChecklists.map((record, index) => (
+                                                    <div
+                                                        key={record._snapshotId || record.id || index}
+                                                        className="group flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setEditingSnapshotIndex(index);
+                                                        }}
+                                                    >
+                                                        <div className="flex flex-col gap-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-mono text-xs font-bold text-slate-500 uppercase tracking-wider">{record.recordsNo}</span>
+                                                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${record.status === 'Pass' ? 'bg-green-100 text-green-700' :
+                                                                    record.status === 'Fail' ? 'bg-red-100 text-red-700' :
+                                                                        'bg-blue-100 text-blue-700'
+                                                                    }`}>
+                                                                    {record.status}
+                                                                </span>
+                                                                <span className="text-[10px] bg-sky-100 text-sky-800 px-1 rounded border border-sky-200">Snapshot</span>
+                                                            </div>
+                                                            <span className="text-sm font-bold text-slate-800">{record.activity}</span>
+                                                            {record.location && (
+                                                                <span className="text-xs text-slate-500 flex items-center gap-1">
+                                                                    <ArrowRight size={10} /> {record.location}
+                                                                </span>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="flex flex-col items-end">
+                                                                <span className="text-[10px] text-slate-400 font-bold uppercase">{t('itr.inspectionDate')}</span>
+                                                                <span className="text-xs font-medium text-slate-600">{record.date}</span>
+                                                            </div>
+
+                                                            {/* Unlink Button */}
+                                                            <button
+                                                                type="button"
+                                                                onClick={(e) => handleUnlinkChecklist(index, e)}
+                                                                className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10"
+                                                                title={t('common.delete') || 'Remove'}
+                                                            >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                    <path d="M3 6h18"></path>
+                                                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                                                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                                                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                                                                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                                <p className="text-sm text-slate-400 font-medium">
+                                                    {t('itr.noLinkedChecklists') || 'No checklists linked to this ITR yet.'}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {editingSnapshotIndex !== null && (
+                                            <ChecklistSnapshotModal
+                                                isOpen={true}
+                                                initialData={linkedChecklists[editingSnapshotIndex]}
+                                                onClose={() => setEditingSnapshotIndex(null)}
+                                                onSave={handleSaveSnapshot}
+                                            />
+                                        )}
+                                    </>
+                                );
+                            })()}
+                        </div>
+
 
 
 
@@ -723,133 +898,6 @@ export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingD
                             </div>
                         </div>
 
-                        {/* Linked Checklists Section */}
-                        <div className={styles.formSection}>
-                            <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-2">
-                                <h3 className={styles.sectionTitle} style={{ margin: 0 }}>
-                                    <ClipboardCheck size={18} className="inline-block mr-2" />
-                                    {t('itr.sectionLinkedChecklists') || 'Linked Checklists'}
-                                </h3>
-                                <select
-                                    className="h-8 pl-2 pr-8 rounded-md border border-slate-200 bg-white text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 hover:border-blue-400 transition-colors cursor-pointer"
-                                    onChange={async (e) => {
-                                        const value = e.target.value;
-                                        if (!value) return;
-
-                                        if (value === 'new') {
-                                            navigate(`/checklist?itrId=${itrId}&itrNumber=${formData.itrNumber}&noiNumber=${formData.noiNumber}&from=itr`);
-                                        } else {
-                                            if (window.confirm(t('itr.confirmLinkChecklist') || 'Link this checklist to current ITR?')) {
-                                                console.log('[LinkChecklist] Payload:', { id: value, itrId, itrNumber: formData.itrNumber });
-                                                try {
-                                                    await updateRecord(value, {
-                                                        itrId: itrId,
-                                                        itrNumber: formData.itrNumber || undefined
-                                                    });
-                                                } catch (error: any) {
-                                                    console.error('[LinkChecklist] Error:', error);
-                                                    const errorMsg = error?.response?.data?.detail || error.message || 'Failed to link checklist';
-                                                    alert(`${t('common.error') || 'Error'}: ${errorMsg}`);
-                                                }
-                                            }
-                                        }
-                                        // Reset selection
-                                        e.target.value = "";
-                                    }}
-                                    value=""
-                                >
-                                    <option value="" disabled hidden>+ {t('checklist.addOrLink') || 'Checklist'}</option>
-                                    <option value="new" className="font-bold text-blue-600 bg-blue-50">
-                                        + {t('checklist.createNew') || 'Create New...'}
-                                    </option>
-                                    <optgroup label={t('checklist.available') || 'Available Checklists'}>
-                                        {allChecklists.filter(c => !c.itrId).map(c => (
-                                            <option key={c.id} value={c.id}>
-                                                {c.recordsNo} - {c.activity} {c.status ? `(${c.status})` : ''}
-                                            </option>
-                                        ))}
-                                    </optgroup>
-                                </select>
-                            </div>
-
-                            {/* Unlink Handler */}
-                            {(() => {
-                                const handleUnlinkChecklist = async (checklistId: string, e: React.MouseEvent) => {
-                                    e.stopPropagation(); // Prevent navigation
-                                    if (window.confirm(t('itr.confirmUnlinkChecklist') || 'Are you sure you want to unlink this checklist?')) {
-                                        try {
-                                            await updateRecord(checklistId, {
-                                                itrId: null,
-                                                itrNumber: null
-                                            });
-                                        } catch (error: any) {
-                                            console.error('[UnlinkChecklist] Error:', error);
-                                            const errorMsg = error?.response?.data?.detail || error.message || 'Failed to unlink checklist';
-                                            alert(`${t('common.error') || 'Error'}: ${errorMsg}`);
-                                        }
-                                    }
-                                };
-
-                                return linkedChecklists.length > 0 ? (
-                                    <div className="space-y-3">
-                                        {linkedChecklists.map((record) => (
-                                            <div
-                                                key={record.id}
-                                                className="group flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-white hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
-                                                onClick={() => navigate(`/checklist?recordNo=${record.recordsNo}&from=itr`)}
-                                            >
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-mono text-xs font-bold text-slate-500 uppercase tracking-wider">{record.recordsNo}</span>
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${record.status === 'Pass' ? 'bg-green-100 text-green-700' :
-                                                            record.status === 'Fail' ? 'bg-red-100 text-red-700' :
-                                                                'bg-blue-100 text-blue-700'
-                                                            }`}>
-                                                            {record.status}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-sm font-bold text-slate-800">{record.activity}</span>
-                                                    {record.location && (
-                                                        <span className="text-xs text-slate-500 flex items-center gap-1">
-                                                            <ArrowRight size={10} /> {record.location}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex flex-col items-end">
-                                                        <span className="text-[10px] text-slate-400 font-bold uppercase">{t('itr.inspectionDate')}</span>
-                                                        <span className="text-xs font-medium text-slate-600">{record.date}</span>
-                                                    </div>
-
-                                                    {/* Unlink Button */}
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => handleUnlinkChecklist(record.id, e)}
-                                                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10"
-                                                        title={t('common.delete') || 'Unlink'}
-                                                    >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <path d="M3 6h18"></path>
-                                                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
-                                                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
-                                                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                                                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                                                        </svg>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-8 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                        <p className="text-sm text-slate-400 font-medium">
-                                            {t('itr.noLinkedChecklists') || 'No checklists linked to this ITR yet.'}
-                                        </p>
-                                    </div>
-                                );
-                            })()}
-                        </div>
 
 
                         {/* 複檢資料 */}
@@ -941,15 +989,15 @@ export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingD
                     <button className={styles.printButton} onClick={handlePrint} style={{ marginRight: 'auto' }}>
                         {t('common.print')}
                     </button>
-                    <button className={styles.saveButton} onClick={handleSave}>
-                        {t('common.save')}
-                    </button>
                     <button
                         className={styles.publishButton}
                         onClick={handlePublish}
                         title="Publish as next revision"
                     >
                         Publish
+                    </button>
+                    <button className={styles.saveButton} onClick={handleSave} style={{ marginLeft: '12px' }}>
+                        {t('common.save')}
                     </button>
                     <button className={styles.cancelButton} onClick={onClose}>
                         {t('common.cancel')}

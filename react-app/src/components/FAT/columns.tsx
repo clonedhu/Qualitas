@@ -6,13 +6,12 @@ import { DataTableColumnHeader } from "../Shared/DataTable/DataTableColumnHeader
 // I will define a matching interface here since I will eventually update FAT.tsx to use this.
 import { FATItem } from "../../context/FATContext";
 
-import { Edit, FileText, Trash2, PlusSquare } from "lucide-react";
+import { Edit, Trash2, PlusSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const createColumns = (
     handleEdit: (id: string) => void,
-    handleViewDetails: (id: string) => void,
     handleAddDetails: (id: string) => void,
     handleDelete: (id: string) => void,
     t: (key: string) => string,
@@ -119,15 +118,7 @@ export const createColumns = (
                         >
                             <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 text-purple-500 hover:text-white hover:bg-purple-500"
-                            onClick={() => handleViewDetails(fat.id)}
-                            title={t('fat.tooltip.details')}
-                        >
-                            <FileText className="h-4 w-4" />
-                        </Button>
+
                         <Button
                             variant="ghost"
                             size="sm"

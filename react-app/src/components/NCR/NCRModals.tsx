@@ -855,16 +855,16 @@ export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingD
                         </div>
                     </div>
                     <div className={styles.modalActions}>
-                        <button className={styles.saveButton} onClick={handleSave}>
-                            {t('common.save')}
-                        </button>
                         <button
                             className={styles.saveButton}
                             onClick={handlePublish}
-                            style={{ backgroundColor: '#4f46e5', marginLeft: '12px' }}
+                            style={{ backgroundColor: '#4f46e5' }}
                             title="Publish as next revision"
                         >
                             Publish
+                        </button>
+                        <button className={styles.saveButton} onClick={handleSave} style={{ marginLeft: '12px' }}>
+                            {t('common.save')}
                         </button>
                         <button className={styles.cancelButton} onClick={onClose}>
                             {t('common.cancel')}

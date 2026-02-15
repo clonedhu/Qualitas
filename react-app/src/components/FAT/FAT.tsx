@@ -105,11 +105,6 @@ const FAT: React.FC = () => {
     setIsDetailsEditModalOpen(true);
   };
 
-  const handleViewDetails = (id: string) => {
-    setViewingFatId(id);
-    setIsDetailsModalOpen(true);
-  };
-
   const handleSaveDetails = async (details: FATDetailItem[]) => {
     if (currentFatId) {
       try {
@@ -219,11 +214,12 @@ const FAT: React.FC = () => {
               {t('fat.addNew')}
             </button>
           }
-          columns={createColumns(handleEdit, handleViewDetails, handleAddDetails, handleDeleteClick, t, getActiveContractors())}
+          columns={createColumns(handleEdit, handleAddDetails, handleDeleteClick, t, getActiveContractors())}
           data={filteredFatList}
           searchKey=""
           searchPlaceholder={t('fat.searchPlaceholder')}
           getRowId={(row) => row.id}
+          onRowClick={(row) => handleEdit(row.id)}
         />
       </div>
 

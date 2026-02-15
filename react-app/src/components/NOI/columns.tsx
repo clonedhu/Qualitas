@@ -2,7 +2,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { NOIItem } from "../../context/NOIContext";
 import { DataTableColumnHeader } from "@/components/Shared/DataTable/DataTableColumnHeader";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge } from "@/components/Shared/StatusBadge";
 import { formatTime24h, getLocalizedStatus, formatDateLocale } from "../../utils/formatters";
@@ -10,7 +10,6 @@ import styles from "./NOI.module.css";
 
 export const createColumns = (
     handleEdit: (id: string) => void,
-    handleViewDetails: (id: string) => void,
     handleDeleteClick: (id: string) => void,
     t: (key: string) => string
 ): ColumnDef<NOIItem>[] => [
@@ -159,15 +158,7 @@ export const createColumns = (
                         >
                             <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-100"
-                            onClick={() => handleViewDetails(noi.id)}
-                            title={t('noi.tooltip.details')}
-                        >
-                            <Eye className="h-4 w-4" />
-                        </Button>
+
                         <Button
                             variant="ghost"
                             size="icon"

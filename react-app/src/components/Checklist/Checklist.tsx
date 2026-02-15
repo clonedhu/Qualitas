@@ -269,6 +269,7 @@ const Checklist: React.FC = () => {
                             columns={checklistColumns}
                             data={filteredList}
                             getRowId={(row) => row.id}
+                            onRowClick={(row) => handleEdit(row)}
                         />
 
 

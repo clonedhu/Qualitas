@@ -3,5 +3,4 @@
 
 export * from './NOITypes';
 export { NOIDetailModal } from './modals/NOIDetailModal';
-export { NOIDetailsViewModal } from './modals/NOIDetailsViewModal';
 export { NOIBulkAddModal } from './modals/NOIBulkAddModal';

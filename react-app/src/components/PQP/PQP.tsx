@@ -73,11 +73,6 @@ const PQP: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleViewDetails = (id: string) => {
-    setViewingPqpId(id);
-    setIsDetailsModalOpen(true);
-  };
-
   const handleAddNew = () => {
     setCurrentPqpId('new');
     setIsEditModalOpen(true);
@@ -217,7 +212,7 @@ const PQP: React.FC = () => {
                 {t('pqp.addNew')}
               </button>
             }
-            columns={createColumns(handleEdit, handleViewDetails, confirmDelete, t, getActiveContractors)}
+            columns={createColumns(handleEdit, confirmDelete, t, getActiveContractors)}
             data={filteredList}
             searchKey=""
             searchPlaceholder={t('pqp.searchPlaceholder')}
@@ -226,6 +221,7 @@ const PQP: React.FC = () => {
                 ? 'bg-emerald-100/50 text-gray-500 hover:bg-emerald-200/50'
                 : ''
             }
+            onRowClick={(row) => handleEdit(row.id)}
           />
         )}
       </div>

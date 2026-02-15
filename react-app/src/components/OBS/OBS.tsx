@@ -85,11 +85,6 @@ const OBS: React.FC = () => {
     navigate(`/obs/${id}`);
   };
 
-  const handleViewDetails = (id: string) => {
-    setViewingObsId(id);
-    setIsDetailsModalOpen(true);
-  };
-
   const handleEdit = (id: string) => {
     setCurrentObsId(id);
     setIsEditModalOpen(true);
@@ -253,7 +248,7 @@ const OBS: React.FC = () => {
               {t('obs.addNew')}
             </button>
           }
-          columns={createColumns(handleEdit, handleViewDetails, confirmDelete, t, getActiveContractors)}
+          columns={createColumns(handleEdit, confirmDelete, t, getActiveContractors)}
           data={filteredList}
           searchKey=""
           searchPlaceholder={t('obs.searchPlaceholder')}
@@ -262,6 +257,7 @@ const OBS: React.FC = () => {
               ? 'bg-emerald-100/50 text-gray-500 hover:bg-emerald-200/50'
               : ''
           }
+          onRowClick={(row) => handleEdit(row.id)}
         />
       </div>
 

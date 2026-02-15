@@ -12,7 +12,14 @@
       "Bash(git log:*)",
       "Bash(powershell:*)",
       "Bash(timeout:*)",
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(Get-Process:*)",
+      "Bash(Where-Object { $_CommandLine -like \"*uvicorn*\" })",
+      "Bash(Stop-Process -Force)",
+      "Bash(Start-Sleep 1)",
+      "Bash(Write-Host \"Done\")",
+      "Bash(exit:*)",
+      "Bash(python3:*)"
     ]
   }
 }

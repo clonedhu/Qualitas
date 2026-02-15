@@ -337,6 +337,7 @@ const ITP: React.FC = () => {
                 row.status.toLowerCase() === 'void' ? styles.voidRow : ''
               }
               getRowId={(row) => row.id}
+              onRowClick={(row) => handleEdit(row.id)}
             />
           </>
         )}

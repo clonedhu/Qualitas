@@ -312,18 +312,18 @@ export const PQPDetailModal: React.FC<PQPDetailModalProps> = ({ pqpId, existingI
                 </div>
                 {saveError && <p className={styles.saveError}>{saveError}</p>}
                 <div className={styles.modalActions}>
-                    <button type="button" className={styles.saveButton} onClick={handleSave} disabled={saving}>
-                        {saving ? t('pqp.saving') : t('common.save')}
-                    </button>
                     <button
                         type="button"
                         className={styles.saveButton}
                         onClick={handlePublish}
                         disabled={saving}
-                        style={{ backgroundColor: '#4f46e5', marginLeft: '12px' }}
+                        style={{ backgroundColor: '#4f46e5' }}
                         title="Publish as next revision"
                     >
                         Publish
+                    </button>
+                    <button type="button" className={styles.saveButton} onClick={handleSave} disabled={saving} style={{ marginLeft: '12px' }}>
+                        {saving ? t('pqp.saving') : t('common.save')}
                     </button>
                     <button type="button" className={styles.cancelButton} onClick={onClose} disabled={saving}>
                         {t('common.cancel')}

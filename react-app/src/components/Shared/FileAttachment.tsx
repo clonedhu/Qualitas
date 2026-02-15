@@ -23,6 +23,7 @@ interface FileAttachmentProps {
     buttonText?: string;
     readOnly?: boolean;
     accept?: string;
+    onPreview?: (src: string, name?: string) => void;
 }
 
 /**
@@ -42,7 +43,8 @@ const FileAttachment: React.FC<FileAttachmentProps> = ({
     title,
     buttonText,
     readOnly = false,
-    accept = "image/*"
+    accept = "image/*",
+    onPreview
 }) => {
     const { t } = useLanguage();
     const [apiAttachments, setApiAttachments] = useState<AttachmentInfo[]>([]);
@@ -224,7 +226,8 @@ const FileAttachment: React.FC<FileAttachmentProps> = ({
                                             <img
                                                 src={a.file_url}
                                                 alt={a.file_name}
-                                                style={styles.photoPreview}
+                                                style={{ ...styles.photoPreview, cursor: onPreview ? 'pointer' : 'default' }}
+                                                onClick={() => onPreview && onPreview(a.file_url, a.file_name)}
                                             />
                                         ) : (
                                             <div style={styles.filePlaceholder}>
@@ -255,7 +258,8 @@ const FileAttachment: React.FC<FileAttachmentProps> = ({
                                         <img
                                             src={item.src}
                                             alt={`Attachment ${item.index + 1}`}
-                                            style={styles.photoPreview}
+                                            style={{ ...styles.photoPreview, cursor: onPreview ? 'pointer' : 'default' }}
+                                            onClick={() => onPreview && onPreview(item.src, `Attachment ${item.index + 1}`)}
                                         />
                                         {!readOnly && onRemove && (
                                             <button

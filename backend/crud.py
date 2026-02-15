@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text
 from datetime import datetime
 import uuid
@@ -220,13 +220,13 @@ def generate_reference_no(db: Session, vendor_name: str, doc_type: str) -> str:
 
 # ---- ITP ----
 def get_itp(db: Session, itp_id: str):
-    return db.query(ITP).filter(ITP.id == itp_id).first()
+    return db.query(ITP).options(joinedload(ITP.vendor_ref)).filter(ITP.id == itp_id).first()
 
 def get_itps(db: Session, skip: int = 0, limit: int = 100, 
                search: str = None, status: str = None, 
                start_date: str = None, end_date: str = None):
-    query = db.query(ITP)
-    
+    query = db.query(ITP).options(joinedload(ITP.vendor_ref))
+
     if search:
         query = query.filter(
             (ITP.referenceNo.ilike(f"%{search}%")) |
@@ -335,13 +335,13 @@ def update_itp_detail(db: Session, itp_id: str, detail_body: dict, user_id: int 
 
 # ---- NCR ----
 def get_ncr(db: Session, ncr_id: str):
-    return db.query(NCR).filter(NCR.id == ncr_id).first()
+    return db.query(NCR).options(joinedload(NCR.vendor_ref)).filter(NCR.id == ncr_id).first()
 
 def get_ncrs(db: Session, skip: int = 0, limit: int = 500,
                search: str = None, status: str = None, 
                start_date: str = None, end_date: str = None):
-    query = db.query(NCR)
-    
+    query = db.query(NCR).options(joinedload(NCR.vendor_ref))
+
     if search:
         query = query.filter(
             (NCR.documentNumber.ilike(f"%{search}%")) |
@@ -433,13 +433,13 @@ def delete_ncr(db: Session, ncr_id: str, user_id: int = None, username: str = No
 
 # ---- NOI ----
 def get_noi(db: Session, noi_id: str):
-    return db.query(NOI).filter(NOI.id == noi_id).first()
+    return db.query(NOI).options(joinedload(NOI.vendor_ref)).filter(NOI.id == noi_id).first()
 
 def get_nois(db: Session, skip: int = 0, limit: int = 500,
                search: str = None, status: str = None, 
                start_date: str = None, end_date: str = None):
-    query = db.query(NOI)
-    
+    query = db.query(NOI).options(joinedload(NOI.vendor_ref))
+
     if search:
         query = query.filter(
             (NOI.referenceNo.ilike(f"%{search}%")) |
@@ -526,13 +526,13 @@ def delete_noi(db: Session, noi_id: str, user_id: int = None, username: str = No
 
 # ---- ITR ----
 def get_itr(db: Session, itr_id: str):
-    return db.query(ITR).filter(ITR.id == itr_id).first()
+    return db.query(ITR).options(joinedload(ITR.vendor_ref)).filter(ITR.id == itr_id).first()
 
 def get_itrs(db: Session, skip: int = 0, limit: int = 500,
                search: str = None, status: str = None, 
                start_date: str = None, end_date: str = None):
-    query = db.query(ITR)
-    
+    query = db.query(ITR).options(joinedload(ITR.vendor_ref))
+
     if search:
         query = query.filter(
             (ITR.documentNumber.ilike(f"%{search}%")) |
@@ -611,13 +611,13 @@ def delete_itr(db: Session, itr_id: str, user_id: int = None, username: str = No
 
 # ---- PQP ----
 def get_pqp(db: Session, pqp_id: str):
-    return db.query(PQP).filter(PQP.id == pqp_id).first()
+    return db.query(PQP).options(joinedload(PQP.vendor_ref)).filter(PQP.id == pqp_id).first()
 
 def get_pqps(db: Session, skip: int = 0, limit: int = 500,
                search: str = None, status: str = None, 
                start_date: str = None, end_date: str = None):
-    query = db.query(PQP)
-    
+    query = db.query(PQP).options(joinedload(PQP.vendor_ref))
+
     if search:
         query = query.filter(
             (PQP.pqpNo.ilike(f"%{search}%")) |
@@ -697,13 +697,13 @@ def delete_pqp(db: Session, pqp_id: str, user_id: int = None, username: str = No
 
 # ---- OBS ----
 def get_obs(db: Session, obs_id: str):
-    return db.query(OBS).filter(OBS.id == obs_id).first()
+    return db.query(OBS).options(joinedload(OBS.vendor_ref)).filter(OBS.id == obs_id).first()
 
 def get_obss(db: Session, skip: int = 0, limit: int = 500,
                search: str = None, status: str = None, 
                start_date: str = None, end_date: str = None):
-    query = db.query(OBS)
-    
+    query = db.query(OBS).options(joinedload(OBS.vendor_ref))
+
     if search:
         query = query.filter(
             (OBS.documentNumber.ilike(f"%{search}%")) |
@@ -829,10 +829,10 @@ def delete_contractor(db: Session, contractor_id: str, user_id: int = None, user
 
 # ---- FollowUp ----
 def get_followup(db: Session, followup_id: str):
-    return db.query(FollowUp).filter(FollowUp.id == followup_id).first()
+    return db.query(FollowUp).options(joinedload(FollowUp.vendor_ref)).filter(FollowUp.id == followup_id).first()
 
 def get_followups(db: Session, skip: int = 0, limit: int = 500):
-    return db.query(FollowUp).offset(skip).limit(limit).all()
+    return db.query(FollowUp).options(joinedload(FollowUp.vendor_ref)).offset(skip).limit(limit).all()
 
 def create_followup(db: Session, followup: schemas.FollowUpCreate, user_id: int = None, username: str = None):
     data = followup.dict()
@@ -893,8 +893,6 @@ def delete_followup(db: Session, followup_id: str, user_id: int = None, username
     return None
 
 # ---- IAM (Users & Roles) ----
-
-from sqlalchemy.orm import joinedload
 
 def get_user(db: Session, user_id: int):
     return db.query(models.User).filter(models.User.id == user_id).first()
@@ -1118,13 +1116,13 @@ def delete_audit(db: Session, audit_id: str):
 
 # ---- Checklist ----
 def get_checklist(db: Session, checklist_id: str):
-    return db.query(Checklist).filter(Checklist.id == checklist_id).first()
+    return db.query(Checklist).options(joinedload(Checklist.vendor_ref)).filter(Checklist.id == checklist_id).first()
 
 def get_checklists(db: Session, skip: int = 0, limit: int = 500,
                      search: str = None, status: str = None, 
                      start_date: str = None, end_date: str = None, **kwargs):
-    query = db.query(Checklist)
-    
+    query = db.query(Checklist).options(joinedload(Checklist.vendor_ref))
+
     if search:
         query = query.filter(
             (Checklist.recordsNo.ilike(f"%{search}%")) |
@@ -1299,13 +1297,13 @@ def create_owner_performance(db: Session, perf: schemas.OwnerPerformanceCreate, 
 
 # ---- FAT ----
 def get_fat(db: Session, fat_id: str):
-    return db.query(FAT).filter(FAT.id == fat_id).first()
+    return db.query(FAT).options(joinedload(FAT.vendor_ref)).filter(FAT.id == fat_id).first()
 
 def get_fats(db: Session, skip: int = 0, limit: int = 500,
              search: str = None, status: str = None, 
              start_date: str = None, end_date: str = None):
-    query = db.query(FAT)
-    
+    query = db.query(FAT).options(joinedload(FAT.vendor_ref))
+
     if search:
         query = query.filter(
             (FAT.equipment.ilike(f"%{search}%")) |

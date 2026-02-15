@@ -16,9 +16,10 @@ export interface NOIDetailModalProps {
     noiList: NOIItem[];
     onSave: (details: NOIDetailData) => void;
     onClose: () => void;
+    onPrint?: (data: NOIDetailData) => void;
 }
 
-export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingData, existingItem, noiList, onSave, onClose }) => {
+export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingData, existingItem, noiList, onSave, onClose, onPrint }) => {
     const { t } = useLanguage();
     const { getActiveContractors } = useContractors();
     const { getITPByVendor } = useITP();
@@ -127,6 +128,14 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
 
     const handleRemoveAttachment = (index: number) => {
         setFormData(prev => ({ ...prev, attachments: prev.attachments.filter((_, i) => i !== index) }));
+    };
+
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [previewName, setPreviewName] = useState<string>('');
+
+    const handlePreview = (url: string, name?: string) => {
+        setPreviewUrl(url);
+        setPreviewName(name || '');
     };
 
     const handleSave = () => {
@@ -282,6 +291,7 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
                                 onUpload={handleAttachmentUpload}
                                 onRemove={handleRemoveAttachment}
                                 id="noi"
+                                onPreview={handlePreview}
                             />
                         </div>
                         <div className={styles.formSection}>
@@ -323,10 +333,32 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
                     </div>
                 </div>
                 <div className={styles.modalActions}>
+                    {onPrint && (
+                        <button
+                            className={styles.printButton}
+                            onClick={() => onPrint(formData)}
+                            style={{ marginRight: 'auto' }} // Push to left
+                        >
+                            {t('common.print')}
+                        </button>
+                    )}
                     <button className={styles.saveButton} onClick={handleSave}>{t('common.save')}</button>
                     <button className={styles.cancelButton} onClick={onClose}>{t('common.cancel')}</button>
                 </div>
             </div>
+            {previewUrl && (
+                <div className={styles.previewOverlay} onClick={() => setPreviewUrl(null)}>
+                    <div className={styles.previewContent} onClick={(e) => e.stopPropagation()}>
+                        <button className={styles.previewCloseButton} onClick={() => setPreviewUrl(null)}>×</button>
+                        {previewUrl.startsWith('data:application/pdf') || previewUrl.toLowerCase().endsWith('.pdf') ? (
+                            <iframe src={previewUrl} className={styles.previewIframe} title="PDF Preview" />
+                        ) : (
+                            <img src={previewUrl} alt="Preview" className={styles.previewImage} />
+                        )}
+                        <div className={styles.previewLabel}>{previewName || t('common.preview')}</div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

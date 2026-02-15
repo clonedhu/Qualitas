@@ -1,0 +1,31 @@
+INFO:     Started server process [21024]
+INFO:     Waiting for application startup.
+2026-02-15 21:52:52,106 - main - INFO - Background scheduler started.
+2026-02-15 21:52:52,107 - scheduler - INFO - [Scheduler] Starting scheduler loop...
+2026-02-15 21:52:52,107 - scheduler - INFO - [Scheduler] Next run at 2026-02-16 08:00:00 (waiting 36428 seconds)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+Running database migrations...
+Migrations completed.
+Running database seeding...
+Seeding permissions...
+Synced admin role permissions (25 perms).
+DEBUG: Found 0 items in existing record.
+Items already empty.
+Updating existing Rebar ITP: QTS-RKS-HL-ITP-000001
+Rebar ITP seeded successfully.
+Seeding completed.
+INFO:     127.0.0.1:56083 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56087 - "GET /api/itp/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56090 - "GET /api/ncr/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56093 - "GET /api/noi/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56098 - "GET /api/itr/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56101 - "GET /api/obs/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56104 - "GET /api/pqp/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56108 - "GET /api/contractors/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56111 - "GET /api/fat/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56115 - "GET /api/checklist/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56123 - "GET /api/audit/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56127 - "GET /api/followup/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56132 - "GET /api/settings/naming-rules HTTP/1.1" 200 OK
+INFO:     127.0.0.1:64659 - "POST /api/auth/login HTTP/1.1" 200 OK

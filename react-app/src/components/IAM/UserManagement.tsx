@@ -145,6 +145,7 @@ const UserManagement: React.FC = () => {
                 columns={createUserColumns(handleEdit, handleDeleteClick, roles, t)}
                 data={filteredUsers}
                 getRowId={(row) => row.id}
+                onRowClick={(row) => handleEdit(row)}
             />
 
             {isModalOpen && (

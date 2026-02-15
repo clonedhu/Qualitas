@@ -159,6 +159,7 @@ class ITR(Base):
     defectPhotos = Column(Text, nullable=True)
     improvementPhotos = Column(Text, nullable=True)
     attachments = Column(Text, nullable=True)
+    detail_data = Column(Text, nullable=True)  # Store extended JSON data (e.g. linked checklists)
     last_reminded_at = Column(String, nullable=True)
     dueDate = Column(String, nullable=True)
 

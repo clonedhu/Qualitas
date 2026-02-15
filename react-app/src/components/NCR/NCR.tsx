@@ -78,11 +78,6 @@ const NCR: React.FC = () => {
     navigate(`/ncr/${id}`);
   };
 
-  const handleViewDetails = (id: string) => {
-    setViewingNcrId(id);
-    setIsDetailsModalOpen(true);
-  };
-
   const handleEdit = (id: string) => {
     setCurrentNcrId(id);
     setIsEditModalOpen(true);
@@ -259,7 +254,7 @@ const NCR: React.FC = () => {
                   {t('ncr.addNew')}
                 </button>
               }
-              columns={createColumns(handleEdit, handleViewDetails, confirmDelete, t)}
+              columns={createColumns(handleEdit, confirmDelete, t)}
               data={filteredList}
               searchKey=""
               searchPlaceholder={t('ncr.searchPlaceholder')}
@@ -268,6 +263,7 @@ const NCR: React.FC = () => {
                   ? 'bg-emerald-100/50 text-gray-500 hover:bg-emerald-200/50'
                   : ''
               }
+              onRowClick={(row) => handleEdit(row.id)}
             />
           </>
         )}

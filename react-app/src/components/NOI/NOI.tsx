@@ -19,7 +19,6 @@ import { useDebounce } from '../../hooks/useDebounce';
 
 import {
   NOIDetailModal,
-  NOIDetailsViewModal,
   NOIBulkAddModal,
   NOIDetailData
 } from './NOIModals';
@@ -53,10 +52,8 @@ const NOI: React.FC = () => {
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [currentNoiId, setCurrentNoiId] = useState<string | null>(null);
-  const [viewingNoiId, setViewingNoiId] = useState<string | null>(null);
   const [noiDetails, setNoiDetails] = useState<{ [key: string]: NOIDetailData }>({});
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: string | null; message: string }>({
     isOpen: false,
@@ -155,11 +152,6 @@ const NOI: React.FC = () => {
   const handleEdit = (id: string) => {
     setCurrentNoiId(id);
     setIsModalOpen(true);
-  };
-
-  const handleViewDetails = (id: string) => {
-    setViewingNoiId(id);
-    setIsDetailsModalOpen(true);
   };
 
   const handleAddNew = () => {
@@ -359,7 +351,7 @@ const NOI: React.FC = () => {
                   </button>
                 </div>
               }
-              columns={createColumns(handleEdit, handleViewDetails, handleDeleteClick, t)}
+              columns={createColumns(handleEdit, handleDeleteClick, t)}
               data={filteredData}
               searchKey=""
               searchPlaceholder={t('noi.searchPlaceholder')}
@@ -371,6 +363,7 @@ const NOI: React.FC = () => {
               rowSelection={rowSelection}
               onRowSelectionChange={setRowSelection}
               getRowId={(row) => row.id}
+              onRowClick={(row) => handleEdit(row.id)}
             />
           </>
         )}
@@ -387,25 +380,16 @@ const NOI: React.FC = () => {
             setIsModalOpen(false);
             setCurrentNoiId(null);
           }}
-        />
-      )}
-
-      {isDetailsModalOpen && viewingNoiId && (
-        <NOIDetailsViewModal
-          noiId={viewingNoiId}
-          noiItem={noiList.find(item => item.id === viewingNoiId)}
-          noiDetailData={noiDetails[viewingNoiId]}
-          onClose={() => {
-            setIsDetailsModalOpen(false);
-            setViewingNoiId(null);
-          }}
           onPrint={(data) => {
-            // Convert NOIDetailData back to NOIItem for the print logic
-            const printItem: NOIItem = {
-              ...data,
-              id: viewingNoiId,
-            } as NOIItem;
-            handleSinglePrint(printItem);
+            if (currentNoiId) {
+              const item = noiList.find(i => i.id === currentNoiId);
+              const printItem: NOIItem = {
+                ...item,
+                ...data,
+                id: currentNoiId,
+              } as NOIItem;
+              handleSinglePrint(printItem);
+            }
           }}
         />
       )}

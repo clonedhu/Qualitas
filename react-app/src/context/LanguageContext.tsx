@@ -734,10 +734,37 @@ const translations: Record<Language, Record<string, string>> = {
     'common.total': 'Total',
     'itp.tab.generalInfo': 'General Information',
     'itp.tab.inspectionPlan': 'Inspection Plan',
+    // Checklist Snapshot
+    'itr.checklistSnapshotWarning': 'Editing this list does not affect standard templates.',
+    'checklist.editSnapshot': 'Edit Checklist Snapshot',
+    'checklist.snapshotEditNote': 'You are editing a snapshot of the checklist attached to this ITR. Changes here do not affect the original checklist template.',
+    'checklist.tabGeneral': 'General Information',
+    'checklist.tabItems': 'Checklist Items',
+    'checklist.noItems': 'No items found in this checklist.',
+    'checklist.item': 'Item',
+    'checklist.criteria': 'Criteria',
+    'checklist.situation': 'Situation',
+    'checklist.result': 'Result',
+    'checklist.activityPlaceholder': 'Enter Activity Name...',
+
 
   },
 
   zh: {
+    // ... (existing keys) ...
+    // Checklist Snapshot
+    'checklist.editSnapshot': '編輯檢查表快照',
+    'checklist.snapshotEditNote': '您正在編輯此 ITR 附帶的檢查表快照。此處的更改不會影響原始檢查表範本。',
+    'checklist.tabGeneral': '基本資訊',
+    'checklist.tabItems': '檢查項目',
+    'checklist.noItems': '此檢查表中沒有項目。',
+    'checklist.item': '檢查項目',
+    'checklist.criteria': '驗收標準',
+    'checklist.situation': '實際狀況',
+    'checklist.result': '結果',
+    'checklist.activityPlaceholder': '輸入活動名稱...',
+
+
     // Login
     'login.welcome': '歡迎回來',
     'login.subtitle': '輸入您的憑證以登入 Qualitas',
@@ -1422,6 +1449,7 @@ const translations: Record<Language, Record<string, string>> = {
     'iam.saveRoleError': '儲存角色失敗',
     'iam.saveUserError': '儲存用戶失敗',
     'iam.auditReason': '變更原因 (稽核)',
+
   }, // Close zh
 }; // Close translations
 

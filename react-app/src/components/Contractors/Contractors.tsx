@@ -130,6 +130,7 @@ const Contractors: React.FC = () => {
           data={filteredContractors}
           searchKey=""
           getRowId={(row) => row.id.toString()} // Convert number to string for DataTable row ID if needed
+          onRowClick={(row) => handleEdit(row)}
         />
       </div>
 

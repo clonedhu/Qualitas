@@ -124,6 +124,7 @@ const RoleManagement: React.FC = () => {
                 columns={createRoleColumns(handleEdit, handleDeleteClick, permissions, t)}
                 data={filteredRoles}
                 getRowId={(row) => row.id}
+                onRowClick={(row) => handleEdit(row)}
             />
 
             {isModalOpen && (

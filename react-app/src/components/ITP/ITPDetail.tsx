@@ -273,6 +273,13 @@ const ITPDetail: React.FC = () => {
 
         <div className="flex gap-3">
           <button
+            onClick={handlePublish}
+            disabled={saving}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-indigo-700 shadow-sm hover:shadow active:scale-95 transition-all disabled:opacity-50"
+          >
+            <ShieldCheck size={14} strokeWidth={3} /> Publish
+          </button>
+          <button
             onClick={saveToBackend}
             disabled={saving}
             className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-emerald-700 shadow-sm hover:shadow active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -282,13 +289,6 @@ const ITPDetail: React.FC = () => {
           </button>
           <button onClick={handleAddNew} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-blue-700 shadow-sm hover:shadow active:scale-95 transition-all">
             <Plus size={14} strokeWidth={3} /> Add New Item
-          </button>
-          <button
-            onClick={handlePublish}
-            disabled={saving}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wide hover:bg-indigo-700 shadow-sm hover:shadow active:scale-95 transition-all disabled:opacity-50"
-          >
-            <ShieldCheck size={14} strokeWidth={3} /> Publish
           </button>
           <button
             onClick={() => setIsPrinting(true)}

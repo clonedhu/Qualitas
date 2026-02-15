@@ -249,6 +249,7 @@ class ITRBase(BaseModel):
     checkpoint: Optional[str] = None
     defectPhotos: Optional[Any] = None
     improvementPhotos: Optional[Any] = None
+    detail_data: Optional[str] = None  # JSON string for extended data
     attachments: Optional[List[str]] = []
 
     @field_validator('raiseDate', 'closeoutDate', mode='before')
@@ -292,6 +293,7 @@ class ITRUpdate(BaseModel):
     defectPhotos: Optional[Any] = None
     defectPhotos: Optional[Any] = None
     improvementPhotos: Optional[Any] = None
+    detail_data: Optional[str] = None
     attachments: Optional[List[str]] = None
 
 class ITR(ITRBase):
