@@ -1,0 +1,5 @@
+Connecting to Chrome on port 9222 (127.0.0.1)...
+Connected!
+Found 2 pages:
+  [0] Title: 'ChatGPT' | URL: https://chatgpt.com/?utm_source=google&utm_medium=paid_search&utm_campaign=GOOG_C_SEM_GBR_Core_CHT_BAU_ACQ_PER_MIX_ALL_APAC_TW_EN_042225&c_id=22472172890&c_agid=178063358363&c_crid=747827310888&c_kwid={keywordid}&c_ims=&c_pms=9040289&c_nw=g&c_dvc=c&gad_source=1&gad_campaignid=22472172890&gbraid=0AAAAA-I0E5dju4wbTKMls9lXEo4MQ2Kyp&gclid=EAIaIQobChMI6IDwovnJkgMVr1UPAh3p4hi4EAAYASAAEgLtifD_BwE
+  [1] Title: 'Google Gemini' | URL: https://gemini.google.com/app/8fd105fccbcefb8c?hl=zh-TW

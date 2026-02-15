@@ -1,0 +1,4 @@
+playwright
+colorama
+customtkinter
+Pillow
