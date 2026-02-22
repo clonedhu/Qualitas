@@ -1,5 +1,6 @@
-from sqlalchemy import create_engine, text
 import logging
+
+from sqlalchemy import create_engine, text
 
 # Setup Logger
 logging.basicConfig(level=logging.INFO)
@@ -29,27 +30,27 @@ def run_migration():
         # NCR
         add_column_if_not_exists(conn, "ncr", "dueDate")
         add_column_if_not_exists(conn, "ncr", "last_reminded_at")
-        
+
         # NOI
         for col in ["attachments", "remark", "closeoutDate", "ncrNumber", "dueDate", "last_reminded_at"]:
             add_column_if_not_exists(conn, "noi", col)
-            
+
         # ITP
         add_column_if_not_exists(conn, "itp", "detail_data")
         add_column_if_not_exists(conn, "itp", "dueDate")
         add_column_if_not_exists(conn, "itp", "last_reminded_at")
-        
+
         # OBS
         add_column_if_not_exists(conn, "obs", "dueDate")
         add_column_if_not_exists(conn, "obs", "last_reminded_at")
-        
+
         # ITR
         add_column_if_not_exists(conn, "itr", "dueDate")
         add_column_if_not_exists(conn, "itr", "last_reminded_at")
-        
+
         # FollowUp
         add_column_if_not_exists(conn, "followup", "last_reminded_at")
-        
+
         conn.commit()
     print("Migration completed.")
 

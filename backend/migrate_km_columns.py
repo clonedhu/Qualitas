@@ -6,7 +6,7 @@ def migrate():
     try:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
-        
+
         # Add parent_id
         try:
             cursor.execute("ALTER TABLE km_articles ADD COLUMN parent_id VARCHAR NULL")
@@ -16,7 +16,7 @@ def migrate():
                 print("Column parent_id already exists.")
             else:
                 print(f"Error adding parent_id: {e}")
-                
+
         # Add chapter_no
         try:
             cursor.execute("ALTER TABLE km_articles ADD COLUMN chapter_no VARCHAR NULL")
@@ -26,7 +26,7 @@ def migrate():
                 print("Column chapter_no already exists.")
             else:
                 print(f"Error adding chapter_no: {e}")
-                
+
         conn.commit()
         print("Migration complete.")
     except Exception as e:

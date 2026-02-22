@@ -1,14 +1,15 @@
 import time
 from collections import defaultdict
-from fastapi import Request, HTTPException, status
+
+from fastapi import HTTPException, Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
-from typing import Dict, List, Tuple
+
 
 class RateLimiter:
     def __init__(self, requests_limit: int, window_seconds: int):
         self.requests_limit = requests_limit
         self.window_seconds = window_seconds
-        self.requests: Dict[str, List[float]] = defaultdict(list)
+        self.requests: dict[str, list[float]] = defaultdict(list)
 
     def is_allowed(self, ip: str) -> bool:
         now = time.time()
@@ -18,7 +19,7 @@ class RateLimiter:
             # 如果該 IP 已無請求，則移除該 key (防止 memory leak)
             if not self.requests[ip]:
                 del self.requests[ip]
-        
+
         # 簡單的清理機制：每 1000 次請求清理一次所有過期 key
         # (生產環境可改為背景排程或 lazy cleanup)
         if len(self.requests) > 1000:
@@ -39,7 +40,7 @@ class RateLimiter:
                 keys_to_delete.append(ip)
             else:
                 self.requests[ip] = valid_timestamps
-        
+
         for ip in keys_to_delete:
             del self.requests[ip]
 
@@ -60,7 +61,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     detail="Too many login attempts, please try again later"
                 )
-        
+
         # 針對所有 /api 路徑使用通用限制
         if path.startswith("/api"):
             if not api_limiter.is_allowed(client_ip):

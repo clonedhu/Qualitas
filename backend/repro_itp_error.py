@@ -1,12 +1,7 @@
 
-import sys
-import os
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from database import Base, SessionLocal
-import models
 import crud
-import json
+from database import SessionLocal
+
 
 def test_fetch_itps():
     db = SessionLocal()
@@ -18,16 +13,16 @@ def test_fetch_itps():
             print(f"ITP ID: {itp.id}, Ref: {itp.referenceNo}")
             print(f"  SubmissionDate: {itp.submissionDate!r}")
             print(f"  DueDate: {itp.dueDate!r}")
-            
+
             # Try to validate with schema to see if Pydantic fails
             try:
                 import schemas
                 # Convert to Pydantic model
-                schema_itp = schemas.ITP.model_validate(itp)
-                print(f"  Validated OK")
+                schemas.ITP.model_validate(itp)
+                print("  Validated OK")
             except Exception as e:
                 print(f"  Validation FAILED for {itp.id}: {e}")
-                
+
     except Exception as e:
         print(f"Error fetching ITPs: {e}")
         import traceback

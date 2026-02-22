@@ -1,10 +1,12 @@
-import uuid
 import json
-from sqlalchemy.orm import Session
+import uuid
 from datetime import datetime
-from typing import List, Optional
+
+from sqlalchemy.orm import Session
+
 import models
 import schemas
+
 
 class KMRepository:
     def __init__(self, db: Session):
@@ -31,13 +33,13 @@ class KMRepository:
             self.db.add(seq_record)
             self.db.commit()
             self.db.refresh(seq_record)
-        
+
         seq_record.last_seq += 1
         self.db.commit()
-        
+
         return f"{prefix}{str(seq_record.last_seq).zfill(digits)}"
 
-    def get_all(self, skip: int = 0, limit: int = 100, category: Optional[str] = None, search: Optional[str] = None) -> List[models.KMArticle]:
+    def get_all(self, skip: int = 0, limit: int = 100, category: str | None = None, search: str | None = None) -> list[models.KMArticle]:
         query = self.db.query(models.KMArticle)
         if category:
             query = query.filter(models.KMArticle.category == category)
@@ -45,25 +47,25 @@ class KMRepository:
             query = query.filter(models.KMArticle.title.ilike(f"%{search}%"))
         return query.offset(skip).limit(limit).all()
 
-    def get_by_id(self, id: str) -> Optional[models.KMArticle]:
+    def get_by_id(self, id: str) -> models.KMArticle | None:
         return self.db.query(models.KMArticle).filter(models.KMArticle.id == id).first()
 
-    def get_children(self, parent_id: str) -> List[models.KMArticle]:
+    def get_children(self, parent_id: str) -> list[models.KMArticle]:
         return self.db.query(models.KMArticle).filter(models.KMArticle.parent_id == parent_id).all()
 
     def create(self, article: schemas.KMArticleCreate, author_id: int) -> models.KMArticle:
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         new_id = article.id or str(uuid.uuid4())
-        
+
         attachments_val = "[]"
         if article.attachments is not None:
             if isinstance(article.attachments, str):
                 attachments_val = article.attachments
             else:
                 attachments_val = json.dumps(article.attachments)
-        
+
         article_no = article.articleNo or self.get_next_km_no()
-        
+
         db_article = models.KMArticle(
             id=new_id,
             articleNo=article_no,
@@ -81,7 +83,7 @@ class KMRepository:
             version_no=1
         )
         self.db.add(db_article)
-        
+
         # Create initial history record
         history_record = models.KMArticleHistory(
             id=str(uuid.uuid4()),
@@ -100,7 +102,7 @@ class KMRepository:
             created_at=now
         )
         self.db.add(history_record)
-        
+
         self.db.commit()
         self.db.refresh(db_article)
         return db_article
@@ -108,19 +110,19 @@ class KMRepository:
     def update(self, db_article: models.KMArticle, update_data: dict) -> models.KMArticle:
         if "attachments" in update_data and not isinstance(update_data["attachments"], str):
             update_data["attachments"] = json.dumps(update_data["attachments"])
-            
+
         # Track change summary before removing it from update_data (as it's not in KMArticle)
         change_summary = update_data.pop("change_summary", None) or "Auto-saved version"
-            
+
         update_data["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
+
         # Increment version_no
         new_version = (db_article.version_no or 1) + 1
         update_data["version_no"] = new_version
-        
+
         for key, value in update_data.items():
             setattr(db_article, key, value)
-            
+
         # Create history record
         history_record = models.KMArticleHistory(
             id=str(uuid.uuid4()),
@@ -139,7 +141,7 @@ class KMRepository:
             created_at=update_data["updated_at"]
         )
         self.db.add(history_record)
-            
+
         self.db.commit()
         self.db.refresh(db_article)
         return db_article
@@ -152,7 +154,7 @@ class KMRepository:
         self.db.delete(db_article)
         self.db.commit()
 
-    def get_history(self, article_id: str) -> List[models.KMArticleHistory]:
+    def get_history(self, article_id: str) -> list[models.KMArticleHistory]:
         return self.db.query(models.KMArticleHistory).filter(
             models.KMArticleHistory.article_id == article_id
         ).order_by(models.KMArticleHistory.version_no.desc()).all()

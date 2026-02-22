@@ -1,12 +1,13 @@
 from database import SessionLocal
-from models import User, Role
+from models import Role, User
+
 
 def assign_admin():
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.username == "admin").first()
         role = db.query(Role).filter(Role.name == "ADMIN").first()
-        
+
         if user and role:
             print(f"Assigning role {role.name} to user {user.username}")
             user.role_id = role.id

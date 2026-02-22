@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-import schemas
+
 import crud
-from database import get_db
+import schemas
 from core.dependencies import RoleChecker
-from core.perms import CONTRACTOR_VIEW, CONTRACTOR_MANAGE
+from core.perms import CONTRACTOR_MANAGE, CONTRACTOR_VIEW
+from database import get_db
 
 router = APIRouter(
     prefix="/contractors",
@@ -13,7 +14,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/", response_model=List[schemas.Contractor])
+@router.get("/", response_model=list[schemas.Contractor])
 def read_contractors(skip: int = 0, limit: int = 500, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(CONTRACTOR_VIEW))):
     return crud.get_contractors(db, skip=skip, limit=limit)
 
@@ -26,7 +27,7 @@ def read_contractor(contractor_id: str, db: Session = Depends(get_db), current_u
 
 @router.post("/", response_model=schemas.Contractor)
 def create_contractor(
-    contractor: schemas.ContractorCreate, 
+    contractor: schemas.ContractorCreate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(CONTRACTOR_MANAGE))
 ):
@@ -34,8 +35,8 @@ def create_contractor(
 
 @router.put("/{contractor_id}", response_model=schemas.Contractor)
 def update_contractor(
-    contractor_id: str, 
-    contractor: schemas.ContractorUpdate, 
+    contractor_id: str,
+    contractor: schemas.ContractorUpdate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(CONTRACTOR_MANAGE))
 ):
@@ -46,7 +47,7 @@ def update_contractor(
 
 @router.delete("/{contractor_id}")
 def delete_contractor(
-    contractor_id: str, 
+    contractor_id: str,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(CONTRACTOR_MANAGE))
 ):

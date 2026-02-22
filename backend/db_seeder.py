@@ -1,12 +1,13 @@
-from datetime import datetime
-import uuid
 import json
-import schemas
+import uuid
+from datetime import datetime
+
+from passlib.context import CryptContext
+
 import crud
 import models
+import schemas
 from database import SessionLocal
-from sqlalchemy.orm import Session
-from passlib.context import CryptContext
 
 # Import configuration if needed, but schemas/models usually suffice
 # from core.config import settings
@@ -22,7 +23,7 @@ def run_seeding():
     import database
     # Ensure tables exist
     models.Base.metadata.create_all(bind=database.engine)
-    
+
     seed_default_contractors()
     seed_default_pqp()
     seed_initial_data()
@@ -62,7 +63,8 @@ def seed_default_pqp():
     finally:
         db.close()
 
-from core.perms import ALL_PERMISSIONS, USER_VIEW, USER_MANAGE, ROLE_VIEW, ROLE_MANAGE
+from core.perms import ALL_PERMISSIONS, USER_VIEW
+
 
 def seed_initial_data():
     db = SessionLocal()
@@ -108,7 +110,7 @@ def seed_initial_data():
                 permissions=[USER_VIEW] # Minimal permissions
             ))
             print("Seeded user role.")
-        
+
         # 4. Create Admin User if not exists
         admin_user = crud.get_user_by_email(db, "admin@example.com")
         if not admin_user:
@@ -192,7 +194,7 @@ def seed_rebar_itp():
         # Check if exists
         ref_no = "QTS-RKS-HL-ITP-000001"
         existing = db.query(models.ITP).filter(models.ITP.referenceNo == ref_no).first()
-        
+
         detail_data = {
             "a": [
                 {"id": "A1", "phase": "A", "activity": {"en": "Rebar Sampling for physical test", "ch": "鋼筋物理試驗取樣"}, "standard": "CNS 560", "criteria": "Extension Test 拉拔試驗\nBending Test 彎曲試驗", "checkTime": {"en": "Before construction", "ch": "施工前"}, "method": {"en": "TAF laboratory", "ch": "TAF 實驗室"}, "frequency": "1pc/25tons or fraction per type/lot. 每 25 噸取 1 支，不足 25 噸取 1 支(每類)。", "vp": {"sub": "H", "teco": "W", "employer": "R", "hse": "-"}, "record": "TAF Testing Report"},
@@ -215,7 +217,7 @@ def seed_rebar_itp():
                 {"id": "C1", "phase": "C", "activity": {"en": "Rebar assembly integration", "ch": "鋼筋組立"}, "standard": "As per design drawing\n符合設計圖", "criteria": "No collapse or deform\n無坍塌或變形", "checkTime": {"en": "Before pouring", "ch": "灌漿前"}, "method": {"en": "Tap Measure", "ch": "捲尺"}, "frequency": "Before pouring 灌漿前", "vp": {"sub": "H", "teco": "H", "employer": "H", "hse": "-"}, "record": "-"}
             ]
         }
-        
+
         # Prepare data
         # Prepare data
         # Resolve vendor
@@ -242,7 +244,7 @@ def seed_rebar_itp():
             print(f"Creating new Rebar ITP: {ref_no}")
             new_itp = models.ITP(**itp_data, id=str(uuid.uuid4()))
             db.add(new_itp)
-        
+
         db.commit()
         print("Rebar ITP seeded successfully.")
 
@@ -258,7 +260,7 @@ def seed_piling_itp():
         # Check if exists
         ref_no = "ITP-PL-001"
         existing = db.query(models.ITP).filter(models.ITP.referenceNo == ref_no).first()
-        
+
         detail_data = {
              "a": [
                 {"id": "A1", "phase": "A", "activity": {"en": "Length", "ch": "長度"}, "standard": "CNS 2602", "criteria": "22m ±0.3% / 25m ±0.3%", "checkTime": {"en": "Deliver to site", "ch": "運抵工地"}, "method": {"en": "Tape measure", "ch": "捲尺"}, "frequency": "-", "vp": {"sub": "", "teco": "", "employer": "", "hse": ""}, "record": "-"},
@@ -279,7 +281,7 @@ def seed_piling_itp():
                 {"id": "C1", "phase": "C", "activity": {"en": "Pile Position", "ch": "樁位複測"}, "standard": "HL-ONS-TECO-STR-", "criteria": "Tolerance < 7.5cm", "checkTime": {"en": "After Piling", "ch": "打樁後"}, "method": {"en": "Total Station", "ch": "全站儀"}, "frequency": "Each Pile", "vp": {"sub": "H", "teco": "W", "employer": "W", "hse": ""}, "record": "ITP-PL-03"}
             ]
         }
-        
+
         # Prepare data
         # Prepare data
         # Resolve vendor
@@ -306,7 +308,7 @@ def seed_piling_itp():
             print(f"Creating new Piling ITP: {ref_no}")
             new_itp = models.ITP(**itp_data, id=str(uuid.uuid4()))
             db.add(new_itp)
-        
+
         db.commit()
         print("Piling ITP seeded successfully.")
 

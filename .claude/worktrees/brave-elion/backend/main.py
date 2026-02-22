@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 import logging
@@ -12,6 +13,7 @@ import db_migrations
 import db_seeder
 from scheduler import start_scheduler
 from middleware.rate_limiter import RateLimitMiddleware
+from middleware.error_handler import error_handler_middleware
 from routers import itp, ncr, noi, itr, pqp, obs, contractors, followup, iam, audit, checklist, kpi, file_router, auth, settings as settings_router
 
 # Setup Logger
@@ -27,8 +29,11 @@ db_seeder.run_seeding()
 
 app = FastAPI(title=settings.PROJECT_NAME, version=settings.VERSION)
 
-# Middleware
+# Middleware (order matters - error handler should be first to catch all errors)
+app.middleware("http")(error_handler_middleware)
 app.add_middleware(RateLimitMiddleware)
+# PERFORMANCE: Add GZip compression for responses > 1KB
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -50,10 +55,19 @@ async def startup_event():
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Global Exception: {exc}", exc_info=True)
+    # Log detailed error internally - NEVER expose to client
+    logger.error(
+        f"Global Exception: {type(exc).__name__}: {str(exc)}",
+        exc_info=True,
+        extra={
+            "path": request.url.path,
+            "method": request.method
+        }
+    )
+    # Return generic error message
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal Server Error"},
+        content={"detail": "An internal error occurred. Please try again later."},
     )
 
 # API Router

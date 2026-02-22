@@ -13,10 +13,10 @@ def test_login_node():
         response = requests.post(url, json=payload) # server.js expects body, uses express.json/urlencoded
         # server.js: const { username, password } = req.body;
         # server.js consumes JSON or URL-encoded. Frontend sends URL-encoded.
-        
+
         print(f"Status Code: {response.status_code}")
         print(f"Response: {response.text}")
-        
+
     except Exception as e:
         print(f"Error: {e}")
 

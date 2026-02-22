@@ -1,8 +1,7 @@
-import sqlite3
-import shutil
-import os
-import uuid
 import logging
+import os
+import shutil
+import sqlite3
 from datetime import datetime
 
 # Setup logging
@@ -46,11 +45,11 @@ def migrate():
 
         for table, old_col, new_col in tables_to_migrate:
             logger.info(f"Migrating table: {table}...")
-            
+
             # Check if new column exists
             cursor.execute(f"PRAGMA table_info({table})")
             columns = [info[1] for info in cursor.fetchall()]
-            
+
             if new_col not in columns:
                 logger.info(f"Adding column {new_col} to {table}...")
                 cursor.execute(f"ALTER TABLE {table} ADD COLUMN {new_col} TEXT")
@@ -61,12 +60,12 @@ def migrate():
             logger.info(f"Updating records in {table}...")
             cursor.execute(f"SELECT id, {old_col} FROM {table}")
             rows = cursor.fetchall()
-            
+
             updated_count = 0
             for row in rows:
                 record_id = row[0]
                 vendor_name = row[1]
-                
+
                 if vendor_name and vendor_name in contractors:
                     vendor_id = contractors[vendor_name]
                     cursor.execute(f"UPDATE {table} SET {new_col} = ? WHERE id = ?", (vendor_id, record_id))
@@ -82,7 +81,7 @@ def migrate():
     except Exception as e:
         conn.rollback()
         logger.error(f"Migration failed: {e}")
-        # Restore backup? 
+        # Restore backup?
         # For safety, we keep the backup file. User can restore manually if needed.
     finally:
         conn.close()

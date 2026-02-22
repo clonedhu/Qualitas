@@ -1,12 +1,12 @@
-import sys
 import os
-import json
+import sys
 
 # Add the current directory (backend) to sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from database import SessionLocal
 import models
+from database import SessionLocal
+
 
 def verify_survey_itp():
     db = SessionLocal()

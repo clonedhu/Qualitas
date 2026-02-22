@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-import schemas
+
 import crud
-from database import get_db
-from middleware.auth import get_current_user, PermissionChecker, Permission
+import schemas
 from core.dependencies import RoleChecker
-from core.perms import ITR_VIEW, ITR_CREATE, ITR_UPDATE, ITR_DELETE
+from core.perms import ITR_CREATE, ITR_DELETE, ITR_UPDATE, ITR_VIEW
+from database import get_db
 
 router = APIRouter(
     prefix="/itr",
@@ -15,10 +15,10 @@ router = APIRouter(
 )
 
 # 讀取操作 - 需要 ITR_VIEW
-@router.get("/", response_model=List[schemas.ITR])
+@router.get("/", response_model=list[schemas.ITR])
 def read_itrs(
-    skip: int = 0, 
-    limit: int = 500, 
+    skip: int = 0,
+    limit: int = 500,
     search: str = None,
     status: str = None,
     start_date: str = None,
@@ -28,12 +28,12 @@ def read_itrs(
     current_user: schemas.User = Depends(RoleChecker(ITR_VIEW))
 ):
     return crud.get_itrs(
-        db, 
-        skip=skip, 
-        limit=limit, 
-        search=search, 
-        status=status, 
-        start_date=start_date, 
+        db,
+        skip=skip,
+        limit=limit,
+        search=search,
+        status=status,
+        start_date=start_date,
         end_date=end_date
     )
 
@@ -47,7 +47,7 @@ def read_itr(itr_id: str, db: Session = Depends(get_db), current_user: schemas.U
 # 寫入操作 - 需要認證
 @router.post("/", response_model=schemas.ITR)
 def create_itr(
-    itr: schemas.ITRCreate, 
+    itr: schemas.ITRCreate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(ITR_CREATE))
 ):
@@ -55,8 +55,8 @@ def create_itr(
 
 @router.put("/{itr_id}", response_model=schemas.ITR)
 def update_itr(
-    itr_id: str, 
-    itr: schemas.ITRUpdate, 
+    itr_id: str,
+    itr: schemas.ITRUpdate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(ITR_UPDATE))
 ):
@@ -70,7 +70,7 @@ def update_itr(
 
 @router.delete("/{itr_id}")
 def delete_itr(
-    itr_id: str, 
+    itr_id: str,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(ITR_DELETE))
 ):

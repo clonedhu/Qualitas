@@ -33,24 +33,32 @@ async def check_and_send_reminders():
             models.FollowUp.status.notin_(["Closed", "結案"]),
             models.FollowUp.dueDate == target_date_str
         ).all()
-        
+
+        # PERFORMANCE: Pre-load all contractors once to avoid N+1 queries
+        # This reduces 100+ queries to just 3 queries total
+        contractors_map = {
+            contractor.name: contractor
+            for contractor in db.query(models.Contractor).all()
+        }
+        logger.info(f"[Scheduler] Loaded {len(contractors_map)} contractors for email lookup")
+
         # 3. 處理 NCR 提醒
         for ncr in ncrs:
-            # 查找廠商郵件
-            vendor = db.query(models.Contractor).filter(models.Contractor.name == ncr.vendor).first()
+            # 查找廠商郵件 (using pre-loaded map - no additional query)
+            vendor = contractors_map.get(ncr.vendor)
             email = vendor.email if vendor and vendor.email else "admin@example.com"
-            
+
             await send_email_notification(email, f"NCR: {ncr.documentNumber}", "NCR", ncr.dueDate)
-            
+
         # 4. 處理 FollowUp 提醒
         for f in followups:
-            # 優先檢查廠商郵件，否則發給管理員
+            # 優先檢查廠商郵件，否則發給管理員 (using pre-loaded map - no additional query)
             email = "admin@example.com"
             if f.vendor:
-                vendor = db.query(models.Contractor).filter(models.Contractor.name == f.vendor).first()
+                vendor = contractors_map.get(f.vendor)
                 if vendor and vendor.email:
                     email = vendor.email
-            
+
             await send_email_notification(email, f"Follow-up Issue: {f.issueNo} - {f.title}", "Follow-up Issue", f.dueDate)
             
         logger.info(f"[Scheduler] Reminders process finished. Found {len(ncrs)} NCRs and {len(followups)} FollowUps.")

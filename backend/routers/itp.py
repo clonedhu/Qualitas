@@ -1,14 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from typing import List
-import schemas
+
 import crud
+import schemas
+from core.dependencies import RoleChecker
+from core.perms import ITP_CREATE, ITP_DELETE, ITP_UPDATE, ITP_VIEW
 from database import get_db
 from middleware.auth import get_current_user
-from core.dependencies import RoleChecker
-from core.perms import ITP_VIEW, ITP_CREATE, ITP_UPDATE, ITP_DELETE
 
 router = APIRouter(
     prefix="/itp",
@@ -19,7 +19,7 @@ router = APIRouter(
 # NOTE: 寫入操作需要認證，讀取操作暫時開放
 @router.post("/", response_model=schemas.ITP)
 def create_itp(
-    itp: schemas.ITPCreate, 
+    itp: schemas.ITPCreate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(ITP_CREATE))
 ):
@@ -27,8 +27,8 @@ def create_itp(
 
 @router.get("/")
 def read_itps(
-    skip: int = 0, 
-    limit: int = 100, 
+    skip: int = 0,
+    limit: int = 100,
     search: str = None,
     status: str = None,
     start_date: str = None,
@@ -38,18 +38,18 @@ def read_itps(
 ):
     try:
         itps = crud.get_itps(
-            db, 
-            skip=skip, 
-            limit=limit, 
-            search=search, 
-            status=status, 
-            start_date=start_date, 
+            db,
+            skip=skip,
+            limit=limit,
+            search=search,
+            status=status,
+            start_date=start_date,
             end_date=end_date
         )
-        
+
         # Manually validate and serialize to catch errors
         validated_itps = []
-        for i, itp_obj in enumerate(itps):
+        for _i, itp_obj in enumerate(itps):
             try:
                 # Convert to Pydantic model
                 model = schemas.ITP.model_validate(itp_obj)
@@ -61,7 +61,7 @@ def read_itps(
                 # Removed file logging
                 print(error_msg) # Print to console
                 print(traceback.format_exc())
-                continue 
+                continue
 
         return JSONResponse(content=validated_itps)
     except Exception as e:
@@ -80,7 +80,7 @@ def read_itp(itp_id: str, db: Session = Depends(get_db), current_user: schemas.U
 
 @router.put("/{itp_id}/", response_model=schemas.ITP)
 def update_itp(
-    itp_id: str, 
+    itp_id: str,
     itp: schemas.ITPUpdate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(ITP_UPDATE))
@@ -103,7 +103,7 @@ def update_itp(
 
 @router.delete("/{itp_id}/", response_model=dict)
 def delete_itp(
-    itp_id: str, 
+    itp_id: str,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(ITP_DELETE))
 ):
@@ -114,8 +114,8 @@ def delete_itp(
 
 @router.put("/{itp_id}/detail", response_model=schemas.ITP)
 def update_itp_detail(
-    itp_id: str, 
-    body: schemas.ITPDetailBody, 
+    itp_id: str,
+    body: schemas.ITPDetailBody,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(get_current_user)
 ):

@@ -1,12 +1,12 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-import schemas
+
 import crud
-from database import get_db
-from middleware.auth import get_current_user
+import schemas
 from core.dependencies import RoleChecker
-from core.perms import NOI_VIEW, NOI_CREATE, NOI_UPDATE, NOI_DELETE, NOI_APPROVE
+from core.perms import NOI_CREATE, NOI_DELETE, NOI_UPDATE, NOI_VIEW
+from database import get_db
 
 router = APIRouter(
     prefix="/noi",
@@ -15,10 +15,10 @@ router = APIRouter(
 )
 
 # 讀取操作 - 無需認證
-@router.get("/", response_model=List[schemas.NOI])
+@router.get("/", response_model=list[schemas.NOI])
 def read_nois(
-    skip: int = 0, 
-    limit: int = 500, 
+    skip: int = 0,
+    limit: int = 500,
     search: str = None,
     status: str = None,
     start_date: str = None,
@@ -27,12 +27,12 @@ def read_nois(
     current_user: schemas.User = Depends(RoleChecker(NOI_VIEW))
 ):
     return crud.get_nois(
-        db, 
-        skip=skip, 
-        limit=limit, 
-        search=search, 
-        status=status, 
-        start_date=start_date, 
+        db,
+        skip=skip,
+        limit=limit,
+        search=search,
+        status=status,
+        start_date=start_date,
         end_date=end_date
     )
 
@@ -46,15 +46,15 @@ def read_noi(noi_id: str, db: Session = Depends(get_db), current_user: schemas.U
 # 寫入操作 - 需要認證
 @router.post("/", response_model=schemas.NOI)
 def create_noi(
-    noi: schemas.NOICreate, 
+    noi: schemas.NOICreate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(NOI_CREATE))
 ):
     return crud.create_noi(db=db, noi=noi, user_id=current_user.id, username=current_user.username)
 
-@router.post("/bulk/", response_model=List[schemas.NOI])
+@router.post("/bulk/", response_model=list[schemas.NOI])
 def create_nois_bulk(
-    nois: List[schemas.NOICreate], 
+    nois: list[schemas.NOICreate],
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(NOI_CREATE))
 ):
@@ -66,8 +66,8 @@ def create_nois_bulk(
 
 @router.put("/{noi_id}/", response_model=schemas.NOI)
 def update_noi(
-    noi_id: str, 
-    noi: schemas.NOIUpdate, 
+    noi_id: str,
+    noi: schemas.NOIUpdate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(NOI_UPDATE))
 ):
@@ -78,7 +78,7 @@ def update_noi(
 
 @router.delete("/{noi_id}/", response_model=dict)
 def delete_noi(
-    noi_id: str, 
+    noi_id: str,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(NOI_DELETE))
 ):

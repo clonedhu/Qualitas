@@ -1,7 +1,8 @@
 
-import urllib.request
-import urllib.error
 import json
+import urllib.error
+import urllib.request
+
 
 def test_api_fetch():
     url = "http://localhost:8001/api/itp/"

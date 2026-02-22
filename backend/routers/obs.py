@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-import schemas
+
 import crud
-from database import get_db
-from middleware.auth import get_current_user
+import schemas
 from core.dependencies import RoleChecker
-from core.perms import OBS_VIEW, OBS_CREATE, OBS_UPDATE, OBS_DELETE
+from core.perms import OBS_CREATE, OBS_DELETE, OBS_UPDATE, OBS_VIEW
+from database import get_db
 
 router = APIRouter(
     prefix="/obs",
@@ -15,10 +15,10 @@ router = APIRouter(
 )
 
 # 讀取操作 - 需要 OBS_VIEW
-@router.get("/", response_model=List[schemas.OBS])
+@router.get("/", response_model=list[schemas.OBS])
 def read_obss(
-    skip: int = 0, 
-    limit: int = 500, 
+    skip: int = 0,
+    limit: int = 500,
     search: str = None,
     status: str = None,
     start_date: str = None,
@@ -28,12 +28,12 @@ def read_obss(
     current_user: schemas.User = Depends(RoleChecker(OBS_VIEW))
 ):
     return crud.get_obss(
-        db, 
-        skip=skip, 
-        limit=limit, 
-        search=search, 
-        status=status, 
-        start_date=start_date, 
+        db,
+        skip=skip,
+        limit=limit,
+        search=search,
+        status=status,
+        start_date=start_date,
         end_date=end_date
     )
 
@@ -47,7 +47,7 @@ def read_obs(obs_id: str, db: Session = Depends(get_db), current_user: schemas.U
 # 寫入操作 - 需要認證
 @router.post("/", response_model=schemas.OBS)
 def create_obs(
-    obs: schemas.OBSCreate, 
+    obs: schemas.OBSCreate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(OBS_CREATE))
 ):
@@ -55,8 +55,8 @@ def create_obs(
 
 @router.put("/{obs_id}", response_model=schemas.OBS)
 def update_obs(
-    obs_id: str, 
-    obs: schemas.OBSUpdate, 
+    obs_id: str,
+    obs: schemas.OBSUpdate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(OBS_UPDATE))
 ):
@@ -70,7 +70,7 @@ def update_obs(
 
 @router.delete("/{obs_id}")
 def delete_obs(
-    obs_id: str, 
+    obs_id: str,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(OBS_DELETE))
 ):

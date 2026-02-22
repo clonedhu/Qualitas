@@ -1,9 +1,8 @@
-import os
 import logging
+import os
 import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from core.config import settings
+from email.mime.text import MIMEText
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ async def send_email_notification(to: str, title: str, doc_type: str, due_date: 
     smtp_from = os.getenv("SMTP_FROM", "noreply@qualitas-erp.com")
 
     subject = f"【提醒】案件即將到期：{title}"
-    
+
     # 郵件內容 (HTML)
     html_body = f"""
     <html>
@@ -44,7 +43,7 @@ async def send_email_notification(to: str, title: str, doc_type: str, due_date: 
       </body>
     </html>
     """
-    
+
     # Mock Mode
     if not smtp_host or not smtp_port or not smtp_user or not smtp_pass:
         logger.info(f"[MailService] Mock Mode: Would send email to {to} for {doc_type}: {title}")
@@ -63,7 +62,7 @@ async def send_email_notification(to: str, title: str, doc_type: str, due_date: 
         server.login(smtp_user, smtp_pass)
         server.send_message(msg)
         server.quit()
-        
+
         logger.info(f"[MailService] SUCCESS: Email sent to {to}")
         return True
     except Exception as e:

@@ -1,29 +1,30 @@
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import text
-from datetime import datetime
-import uuid
 import json
 import re
+import uuid
+from datetime import datetime
+
+from sqlalchemy.orm import Session, joinedload
 
 import models
 import schemas
 from models import (
+    FAT,
     ITP,
+    ITR,
     NCR,
     NOI,
-    ITR,
-    PQP,
     OBS,
+    PQP,
+    AuditLog,
+    Checklist,
     Contractor,
-    ReferenceSequence,
     DocumentNamingRule,
     FollowUp,
-    Checklist,
-    AuditLog,
     KPIWeight,
     OwnerPerformance,
-    FAT,
+    ReferenceSequence,
 )
+
 # NOTE: 移除重複的 import (uuid, json, re 已在上方匯入)
 
 # 固定專案代碼
@@ -105,27 +106,27 @@ class WorkflowEngine:
         # 若狀態未改變，視為合法
         if current_status == new_status:
             return True
-            
+
         # 取得規則 (忽略大小寫)
         rules = None
         for k, v in WorkflowEngine.TRANSITIONS.items():
             if k.lower() == entity_type.lower():
                 rules = v
                 break
-        
+
         if not rules:
             return True # 若無定義規則，預設允許
-            
+
         # 檢查當前狀態是否存在於規則中
         allowed_next_states = rules.get(current_status, [])
-        
+
         # 特殊規則：ADMIN 角色可能需要繞過此檢查 (在此層級暫不處理角色，僅處理邏輯)
         # TODO: 在 Router 層級結合 Role Check
-        
+
         return new_status in allowed_next_states
 
 
-def log_audit(db: Session, action: str, entity_type: str, entity_id: str, 
+def log_audit(db: Session, action: str, entity_type: str, entity_id: str,
               entity_name: str = None, old_value: dict = None, new_value: dict = None,
               user_id: int = None, username: str = None, reason: str = None):
     """
@@ -191,7 +192,7 @@ def generate_reference_no(db: Session, vendor_name: str, doc_type: str) -> str:
         ReferenceSequence.vendor == vendor_abbrev,
         ReferenceSequence.doc == doc_type
     ).with_for_update().first()  # 加鎖防止並發
-    
+
     if seq_record:
         seq_record.last_seq += 1
         next_seq = seq_record.last_seq
@@ -205,7 +206,7 @@ def generate_reference_no(db: Session, vendor_name: str, doc_type: str) -> str:
             last_seq=next_seq
         )
         db.add(seq_record)
-    
+
     db.flush()  # 確保序號已寫入
 
     # 依規則組合編號；若沒有規則則走 fallback
@@ -222,8 +223,8 @@ def generate_reference_no(db: Session, vendor_name: str, doc_type: str) -> str:
 def get_itp(db: Session, itp_id: str):
     return db.query(ITP).options(joinedload(ITP.vendor_ref)).filter(ITP.id == itp_id).first()
 
-def get_itps(db: Session, skip: int = 0, limit: int = 100, 
-               search: str = None, status: str = None, 
+def get_itps(db: Session, skip: int = 0, limit: int = 100,
+               search: str = None, status: str = None,
                start_date: str = None, end_date: str = None):
     query = db.query(ITP).options(joinedload(ITP.vendor_ref))
 
@@ -238,13 +239,13 @@ def get_itps(db: Session, skip: int = 0, limit: int = 100,
         query = query.filter(ITP.submissionDate >= start_date) # Changed from created_at to submissionDate
     if end_date:
         query = query.filter(ITP.submissionDate <= end_date) # Changed from created_at to submissionDate
-        
+
     return query.offset(skip).limit(limit).all()
 
 def create_itp(db: Session, itp: schemas.ITPCreate, user_id: int = None, username: str = None):
     try:
         data = _json_serialize(itp.dict(), ['attachments', 'detail_data'])
-        
+
         # Handle Vendor Name -> ID mapping
         vendor_name = data.pop('vendor', None)
         if vendor_name:
@@ -254,15 +255,15 @@ def create_itp(db: Session, itp: schemas.ITPCreate, user_id: int = None, usernam
         # Note: generate_reference_no still needs the Name
         if not data.get('referenceNo'):
             data['referenceNo'] = generate_reference_no(db, vendor_name or '', 'ITP')
-            
+
         db_itp = ITP(**data)
         if not db_itp.id:
             db_itp.id = str(uuid.uuid4())
         db.add(db_itp)
-        
-        log_audit(db, "CREATE", "ITP", db_itp.id, db_itp.referenceNo, 
+
+        log_audit(db, "CREATE", "ITP", db_itp.id, db_itp.referenceNo,
                   new_value=itp.dict(), user_id=user_id, username=username)
-        
+
         db.commit()
         db.refresh(db_itp)
         return db_itp
@@ -281,19 +282,19 @@ def update_itp(db: Session, itp_id: str, itp: schemas.ITPUpdate, user_id: int = 
             old_val = {c.name: getattr(db_itp, c.name) for c in db_itp.__table__.columns}
             d = itp.dict(exclude_unset=True)
             d = _json_serialize(d, ['attachments', 'detail_data'])
-            
+
             # Handle Vendor Name -> ID mapping
             if 'vendor' in d:
                 vendor_name = d.pop('vendor')
                 d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
-                
+
             for key, value in d.items():
                 setattr(db_itp, key, value)
-            
-            log_audit(db, "UPDATE", "ITP", itp_id, db_itp.referenceNo, 
-                      old_value=old_val, new_value=itp.dict(exclude_unset=True), 
+
+            log_audit(db, "UPDATE", "ITP", itp_id, db_itp.referenceNo,
+                      old_value=old_val, new_value=itp.dict(exclude_unset=True),
                       user_id=user_id, username=username)
-                
+
             db.commit()
             db.refresh(db_itp)
         return db_itp
@@ -306,7 +307,7 @@ def delete_itp(db: Session, itp_id: str, user_id: int = None, username: str = No
         db_itp = db.query(ITP).filter(ITP.id == itp_id).first()
         if db_itp:
             old_val = {c.name: getattr(db_itp, c.name) for c in db_itp.__table__.columns}
-            log_audit(db, "DELETE", "ITP", itp_id, db_itp.referenceNo, 
+            log_audit(db, "DELETE", "ITP", itp_id, db_itp.referenceNo,
                       old_value=old_val, user_id=user_id, username=username)
             db.delete(db_itp)
             db.commit()
@@ -321,11 +322,11 @@ def update_itp_detail(db: Session, itp_id: str, detail_body: dict, user_id: int 
         if db_itp:
             old_val = db_itp.detail_data
             db_itp.detail_data = json.dumps(detail_body) if detail_body else None
-            
-            log_audit(db, "UPDATE_DETAIL", "ITP", itp_id, db_itp.referenceNo, 
-                      old_value=old_val, new_value=detail_body, 
+
+            log_audit(db, "UPDATE_DETAIL", "ITP", itp_id, db_itp.referenceNo,
+                      old_value=old_val, new_value=detail_body,
                       user_id=user_id, username=username)
-            
+
             db.commit()
             db.refresh(db_itp)
         return db_itp
@@ -338,7 +339,7 @@ def get_ncr(db: Session, ncr_id: str):
     return db.query(NCR).options(joinedload(NCR.vendor_ref)).filter(NCR.id == ncr_id).first()
 
 def get_ncrs(db: Session, skip: int = 0, limit: int = 500,
-               search: str = None, status: str = None, 
+               search: str = None, status: str = None,
                start_date: str = None, end_date: str = None):
     query = db.query(NCR).options(joinedload(NCR.vendor_ref))
 
@@ -353,13 +354,13 @@ def get_ncrs(db: Session, skip: int = 0, limit: int = 500,
         query = query.filter(NCR.raiseDate >= start_date)
     if end_date:
         query = query.filter(NCR.raiseDate <= end_date)
-        
+
     return query.offset(skip).limit(limit).all()
 
 def create_ncr(db: Session, ncr: schemas.NCRCreate, user_id: int = None, username: str = None):
     try:
         d = _json_serialize(ncr.dict(), ['defectPhotos', 'improvementPhotos', 'attachments'])
-        
+
         # Handle Vendor Name -> ID mapping
         vendor_name = d.pop('vendor', None)
         if vendor_name:
@@ -368,15 +369,15 @@ def create_ncr(db: Session, ncr: schemas.NCRCreate, user_id: int = None, usernam
         # 自動產生 Reference No（若未提供或為空）
         if not d.get('documentNumber'):
             d['documentNumber'] = generate_reference_no(db, vendor_name or '', 'NCR')
-            
+
         db_ncr = NCR(**d)
         if not db_ncr.id:
             db_ncr.id = str(uuid.uuid4())
         db.add(db_ncr)
-        
-        log_audit(db, "CREATE", "NCR", db_ncr.id, db_ncr.documentNumber, 
+
+        log_audit(db, "CREATE", "NCR", db_ncr.id, db_ncr.documentNumber,
                   new_value=ncr.dict(), user_id=user_id, username=username)
-        
+
         db.commit()
         db.refresh(db_ncr)
         return db_ncr
@@ -395,7 +396,7 @@ def update_ncr(db: Session, ncr_id: str, ncr: schemas.NCRUpdate, user_id: int = 
             old_val = {c.name: getattr(db_ncr, c.name) for c in db_ncr.__table__.columns}
             d = ncr.dict(exclude_unset=True)
             d = _json_serialize(d, ['defectPhotos', 'improvementPhotos', 'attachments'])
-            
+
             # Handle Vendor Name -> ID mapping
             if 'vendor' in d:
                 vendor_name = d.pop('vendor')
@@ -403,11 +404,11 @@ def update_ncr(db: Session, ncr_id: str, ncr: schemas.NCRUpdate, user_id: int = 
 
             for key, value in d.items():
                 setattr(db_ncr, key, value)
-                
-            log_audit(db, "UPDATE", "NCR", ncr_id, db_ncr.documentNumber, 
-                      old_value=old_val, new_value=ncr.dict(exclude_unset=True), 
+
+            log_audit(db, "UPDATE", "NCR", ncr_id, db_ncr.documentNumber,
+                      old_value=old_val, new_value=ncr.dict(exclude_unset=True),
                       user_id=user_id, username=username)
-            
+
             db.commit()
             db.refresh(db_ncr)
         return db_ncr
@@ -420,7 +421,7 @@ def delete_ncr(db: Session, ncr_id: str, user_id: int = None, username: str = No
         db_ncr = db.query(NCR).filter(NCR.id == ncr_id).first()
         if db_ncr:
             old_val = {c.name: getattr(db_ncr, c.name) for c in db_ncr.__table__.columns}
-            log_audit(db, "DELETE", "NCR", ncr_id, db_ncr.documentNumber, 
+            log_audit(db, "DELETE", "NCR", ncr_id, db_ncr.documentNumber,
                       old_value=old_val, user_id=user_id, username=username)
             db.delete(db_ncr)
             db.commit()
@@ -436,7 +437,7 @@ def get_noi(db: Session, noi_id: str):
     return db.query(NOI).options(joinedload(NOI.vendor_ref)).filter(NOI.id == noi_id).first()
 
 def get_nois(db: Session, skip: int = 0, limit: int = 500,
-               search: str = None, status: str = None, 
+               search: str = None, status: str = None,
                start_date: str = None, end_date: str = None):
     query = db.query(NOI).options(joinedload(NOI.vendor_ref))
 
@@ -452,7 +453,7 @@ def get_nois(db: Session, skip: int = 0, limit: int = 500,
         query = query.filter(NOI.submissionDate >= start_date)
     if end_date:
         query = query.filter(NOI.submissionDate <= end_date)
-        
+
     return query.offset(skip).limit(limit).all()
 
 def create_noi(db: Session, noi: schemas.NOICreate, user_id: int = None, username: str = None):
@@ -467,19 +468,19 @@ def create_noi(db: Session, noi: schemas.NOICreate, user_id: int = None, usernam
         # 自動產生 Reference No（若未提供或為空）
         if not data.get('referenceNo'):
             data['referenceNo'] = generate_reference_no(db, vendor_name or '', 'NOI')
-        
+
         # Default status
         if not data.get('status'):
             data['status'] = "Draft"
-            
+
         db_noi = NOI(**data)
         if not db_noi.id:
             db_noi.id = str(uuid.uuid4())
         db.add(db_noi)
-        
-        log_audit(db, "CREATE", "NOI", db_noi.id, db_noi.referenceNo, 
+
+        log_audit(db, "CREATE", "NOI", db_noi.id, db_noi.referenceNo,
                   new_value=noi.dict(), user_id=user_id, username=username)
-        
+
         db.commit()
         db.refresh(db_noi)
         return db_noi
@@ -496,7 +497,7 @@ def update_noi(db: Session, noi_id: str, noi: schemas.NOIUpdate, user_id: int = 
 
         old_val = {c.name: getattr(db_noi, c.name) for c in db_noi.__table__.columns}
         d = _json_serialize(noi.dict(exclude_unset=True), ['attachments'])
-        
+
         # Handle Vendor Name -> ID mapping
         if 'contractor' in d:
             vendor_name = d.pop('contractor')
@@ -504,11 +505,11 @@ def update_noi(db: Session, noi_id: str, noi: schemas.NOIUpdate, user_id: int = 
 
         for key, value in d.items():
             setattr(db_noi, key, value)
-            
-        log_audit(db, "UPDATE", "NOI", noi_id, db_noi.referenceNo, 
-                  old_value=old_val, new_value=noi.dict(exclude_unset=True), 
+
+        log_audit(db, "UPDATE", "NOI", noi_id, db_noi.referenceNo,
+                  old_value=old_val, new_value=noi.dict(exclude_unset=True),
                   user_id=user_id, username=username)
-                  
+
         db.commit()
         db.refresh(db_noi)
     return db_noi
@@ -517,7 +518,7 @@ def delete_noi(db: Session, noi_id: str, user_id: int = None, username: str = No
     db_noi = db.query(NOI).filter(NOI.id == noi_id).first()
     if db_noi:
         old_val = {c.name: getattr(db_noi, c.name) for c in db_noi.__table__.columns}
-        log_audit(db, "DELETE", "NOI", noi_id, db_noi.referenceNo, 
+        log_audit(db, "DELETE", "NOI", noi_id, db_noi.referenceNo,
                   old_value=old_val, user_id=user_id, username=username)
         db.delete(db_noi)
         db.commit()
@@ -529,7 +530,7 @@ def get_itr(db: Session, itr_id: str):
     return db.query(ITR).options(joinedload(ITR.vendor_ref)).filter(ITR.id == itr_id).first()
 
 def get_itrs(db: Session, skip: int = 0, limit: int = 500,
-               search: str = None, status: str = None, 
+               search: str = None, status: str = None,
                start_date: str = None, end_date: str = None):
     query = db.query(ITR).options(joinedload(ITR.vendor_ref))
 
@@ -544,7 +545,7 @@ def get_itrs(db: Session, skip: int = 0, limit: int = 500,
         query = query.filter(ITR.raiseDate >= start_date)
     if end_date:
         query = query.filter(ITR.raiseDate <= end_date)
-        
+
     return query.offset(skip).limit(limit).all()
 
 def create_itr(db: Session, itr: schemas.ITRCreate, user_id: int = None, username: str = None):
@@ -558,15 +559,15 @@ def create_itr(db: Session, itr: schemas.ITRCreate, user_id: int = None, usernam
     # 自動產生 Reference No（若未提供或為空）
     if not d.get('documentNumber'):
         d['documentNumber'] = generate_reference_no(db, vendor_name or '', 'ITR')
-        
+
     db_itr = ITR(**d)
     if not db_itr.id:
         db_itr.id = str(uuid.uuid4())
     db.add(db_itr)
-    
-    log_audit(db, "CREATE", "ITR", db_itr.id, db_itr.documentNumber, 
+
+    log_audit(db, "CREATE", "ITR", db_itr.id, db_itr.documentNumber,
               new_value=itr.dict(), user_id=user_id, username=username)
-    
+
     db.commit()
     db.refresh(db_itr)
     return db_itr
@@ -581,7 +582,7 @@ def update_itr(db: Session, itr_id: str, itr: schemas.ITRUpdate, user_id: int = 
         old_val = {c.name: getattr(db_itr, c.name) for c in db_itr.__table__.columns}
         d = itr.dict(exclude_unset=True)
         d = _json_serialize(d, ['defectPhotos', 'improvementPhotos', 'attachments'])
-        
+
         # Handle Vendor Name -> ID mapping
         if 'vendor' in d:
             vendor_name = d.pop('vendor')
@@ -589,11 +590,11 @@ def update_itr(db: Session, itr_id: str, itr: schemas.ITRUpdate, user_id: int = 
 
         for key, value in d.items():
             setattr(db_itr, key, value)
-            
-        log_audit(db, "UPDATE", "ITR", itr_id, db_itr.documentNumber, 
-                  old_value=old_val, new_value=itr.dict(exclude_unset=True), 
+
+        log_audit(db, "UPDATE", "ITR", itr_id, db_itr.documentNumber,
+                  old_value=old_val, new_value=itr.dict(exclude_unset=True),
                   user_id=user_id, username=username)
-                  
+
         db.commit()
         db.refresh(db_itr)
     return db_itr
@@ -602,7 +603,7 @@ def delete_itr(db: Session, itr_id: str, user_id: int = None, username: str = No
     db_itr = db.query(ITR).filter(ITR.id == itr_id).first()
     if db_itr:
         old_val = {c.name: getattr(db_itr, c.name) for c in db_itr.__table__.columns}
-        log_audit(db, "DELETE", "ITR", itr_id, db_itr.documentNumber, 
+        log_audit(db, "DELETE", "ITR", itr_id, db_itr.documentNumber,
                   old_value=old_val, user_id=user_id, username=username)
         db.delete(db_itr)
         db.commit()
@@ -614,7 +615,7 @@ def get_pqp(db: Session, pqp_id: str):
     return db.query(PQP).options(joinedload(PQP.vendor_ref)).filter(PQP.id == pqp_id).first()
 
 def get_pqps(db: Session, skip: int = 0, limit: int = 500,
-               search: str = None, status: str = None, 
+               search: str = None, status: str = None,
                start_date: str = None, end_date: str = None):
     query = db.query(PQP).options(joinedload(PQP.vendor_ref))
 
@@ -629,12 +630,12 @@ def get_pqps(db: Session, skip: int = 0, limit: int = 500,
         query = query.filter(PQP.created_at >= start_date) # 假設 PQP 有 created_at
     if end_date:
         query = query.filter(PQP.created_at <= end_date)
-        
+
     return query.offset(skip).limit(limit).all()
 
 def create_pqp(db: Session, pqp: schemas.PQPCreate, user_id: int = None, username: str = None):
     d = _json_serialize(pqp.dict(), ['attachments'])
-    
+
     # Handle Vendor Name -> ID mapping
     vendor_name = d.pop('vendor', None)
     if vendor_name:
@@ -643,15 +644,15 @@ def create_pqp(db: Session, pqp: schemas.PQPCreate, user_id: int = None, usernam
     # 自動產生 Reference No（若未提供或為空）
     if not d.get('pqpNo'):
         d['pqpNo'] = generate_reference_no(db, vendor_name or '', 'PQP')
-        
+
     db_pqp = PQP(**d)
     if not db_pqp.id:
         db_pqp.id = str(uuid.uuid4())
     db.add(db_pqp)
-    
-    log_audit(db, "CREATE", "PQP", db_pqp.id, db_pqp.pqpNo, 
+
+    log_audit(db, "CREATE", "PQP", db_pqp.id, db_pqp.pqpNo,
               new_value=pqp.dict(), user_id=user_id, username=username)
-    
+
     db.commit()
     db.refresh(db_pqp)
     return db_pqp
@@ -666,7 +667,7 @@ def update_pqp(db: Session, pqp_id: str, pqp: schemas.PQPUpdate, user_id: int = 
         old_val = {c.name: getattr(db_pqp, c.name) for c in db_pqp.__table__.columns}
         d = pqp.dict(exclude_unset=True)
         d = _json_serialize(d, ['attachments'])
-        
+
         # Handle Vendor Name -> ID mapping
         if 'vendor' in d:
             vendor_name = d.pop('vendor')
@@ -674,11 +675,11 @@ def update_pqp(db: Session, pqp_id: str, pqp: schemas.PQPUpdate, user_id: int = 
 
         for key, value in d.items():
             setattr(db_pqp, key, value)
-            
-        log_audit(db, "UPDATE", "PQP", pqp_id, db_pqp.pqpNo, 
-                  old_value=old_val, new_value=pqp.dict(exclude_unset=True), 
+
+        log_audit(db, "UPDATE", "PQP", pqp_id, db_pqp.pqpNo,
+                  old_value=old_val, new_value=pqp.dict(exclude_unset=True),
                   user_id=user_id, username=username)
-                  
+
         db.commit()
         db.refresh(db_pqp)
     return db_pqp
@@ -687,7 +688,7 @@ def delete_pqp(db: Session, pqp_id: str, user_id: int = None, username: str = No
     db_pqp = db.query(PQP).filter(PQP.id == pqp_id).first()
     if db_pqp:
         old_val = {c.name: getattr(db_pqp, c.name) for c in db_pqp.__table__.columns}
-        log_audit(db, "DELETE", "PQP", pqp_id, db_pqp.pqpNo, 
+        log_audit(db, "DELETE", "PQP", pqp_id, db_pqp.pqpNo,
                   old_value=old_val, user_id=user_id, username=username)
         db.delete(db_pqp)
         db.commit()
@@ -699,7 +700,7 @@ def get_obs(db: Session, obs_id: str):
     return db.query(OBS).options(joinedload(OBS.vendor_ref)).filter(OBS.id == obs_id).first()
 
 def get_obss(db: Session, skip: int = 0, limit: int = 500,
-               search: str = None, status: str = None, 
+               search: str = None, status: str = None,
                start_date: str = None, end_date: str = None):
     query = db.query(OBS).options(joinedload(OBS.vendor_ref))
 
@@ -714,12 +715,12 @@ def get_obss(db: Session, skip: int = 0, limit: int = 500,
         query = query.filter(OBS.raiseDate >= start_date)
     if end_date:
         query = query.filter(OBS.raiseDate <= end_date)
-        
+
     return query.offset(skip).limit(limit).all()
 
 def create_obs(db: Session, obs: schemas.OBSCreate, user_id: int = None, username: str = None):
     d = _json_serialize(obs.dict(), ['defectPhotos', 'improvementPhotos', 'attachments'])
-    
+
     # Handle Vendor Name -> ID mapping
     vendor_name = d.pop('vendor', None)
     if vendor_name:
@@ -728,15 +729,15 @@ def create_obs(db: Session, obs: schemas.OBSCreate, user_id: int = None, usernam
     # 自動產生 Reference No（若未提供或為空）
     if not d.get('documentNumber'):
         d['documentNumber'] = generate_reference_no(db, vendor_name or '', 'OBS')
-        
+
     db_obs = OBS(**d)
     if not db_obs.id:
         db_obs.id = str(uuid.uuid4())
     db.add(db_obs)
-    
-    log_audit(db, "CREATE", "OBS", db_obs.id, db_obs.documentNumber, 
+
+    log_audit(db, "CREATE", "OBS", db_obs.id, db_obs.documentNumber,
               new_value=obs.dict(), user_id=user_id, username=username)
-    
+
     db.commit()
     db.refresh(db_obs)
     return db_obs
@@ -751,7 +752,7 @@ def update_obs(db: Session, obs_id: str, obs: schemas.OBSUpdate, user_id: int = 
         old_val = {c.name: getattr(db_obs, c.name) for c in db_obs.__table__.columns}
         d = obs.dict(exclude_unset=True)
         d = _json_serialize(d, ['defectPhotos', 'improvementPhotos', 'attachments'])
-        
+
         # Handle Vendor Name -> ID mapping
         if 'vendor' in d:
             vendor_name = d.pop('vendor')
@@ -759,11 +760,11 @@ def update_obs(db: Session, obs_id: str, obs: schemas.OBSUpdate, user_id: int = 
 
         for key, value in d.items():
             setattr(db_obs, key, value)
-            
-        log_audit(db, "UPDATE", "OBS", obs_id, db_obs.documentNumber, 
-                  old_value=old_val, new_value=obs.dict(exclude_unset=True), 
+
+        log_audit(db, "UPDATE", "OBS", obs_id, db_obs.documentNumber,
+                  old_value=old_val, new_value=obs.dict(exclude_unset=True),
                   user_id=user_id, username=username)
-                  
+
         db.commit()
         db.refresh(db_obs)
     return db_obs
@@ -772,7 +773,7 @@ def delete_obs(db: Session, obs_id: str, user_id: int = None, username: str = No
     db_obs = db.query(OBS).filter(OBS.id == obs_id).first()
     if db_obs:
         old_val = {c.name: getattr(db_obs, c.name) for c in db_obs.__table__.columns}
-        log_audit(db, "DELETE", "OBS", obs_id, db_obs.documentNumber, 
+        log_audit(db, "DELETE", "OBS", obs_id, db_obs.documentNumber,
                   old_value=old_val, user_id=user_id, username=username)
         db.delete(db_obs)
         db.commit()
@@ -791,10 +792,10 @@ def create_contractor(db: Session, contractor: schemas.ContractorCreate, user_id
     if not db_c.id:
         db_c.id = str(uuid.uuid4())
     db.add(db_c)
-    
-    log_audit(db, "CREATE", "Contractor", db_c.id, db_c.name, 
+
+    log_audit(db, "CREATE", "Contractor", db_c.id, db_c.name,
               new_value=contractor.dict(), user_id=user_id, username=username)
-              
+
     db.commit()
     db.refresh(db_c)
     return db_c
@@ -805,11 +806,11 @@ def update_contractor(db: Session, contractor_id: str, contractor: schemas.Contr
         old_val = {c.name: getattr(db_c, c.name) for c in db_c.__table__.columns}
         for key, value in contractor.dict(exclude_unset=True).items():
             setattr(db_c, key, value)
-            
-        log_audit(db, "UPDATE", "Contractor", contractor_id, db_c.name, 
-                  old_value=old_val, new_value=contractor.dict(exclude_unset=True), 
+
+        log_audit(db, "UPDATE", "Contractor", contractor_id, db_c.name,
+                  old_value=old_val, new_value=contractor.dict(exclude_unset=True),
                   user_id=user_id, username=username)
-                  
+
         db.commit()
         db.refresh(db_c)
     return db_c
@@ -818,7 +819,7 @@ def delete_contractor(db: Session, contractor_id: str, user_id: int = None, user
     db_c = db.query(Contractor).filter(Contractor.id == contractor_id).first()
     if db_c:
         old_val = {c.name: getattr(db_c, c.name) for c in db_c.__table__.columns}
-        log_audit(db, "DELETE", "Contractor", contractor_id, db_c.name, 
+        log_audit(db, "DELETE", "Contractor", contractor_id, db_c.name,
                   old_value=old_val, user_id=user_id, username=username)
         db.delete(db_c)
         db.commit()
@@ -835,7 +836,7 @@ def get_followups(db: Session, skip: int = 0, limit: int = 500):
 
 def create_followup(db: Session, followup: schemas.FollowUpCreate, user_id: int = None, username: str = None):
     data = followup.dict()
-    
+
     # Handle Vendor Name -> ID mapping
     vendor_name = data.pop('vendor', None)
     if vendor_name:
@@ -845,15 +846,15 @@ def create_followup(db: Session, followup: schemas.FollowUpCreate, user_id: int 
     if not data.get('issueNo'):
         # Pass vendor_name explicitly or assignedTo
         data['issueNo'] = generate_reference_no(db, vendor_name or data.get('assignedTo', ''), 'followup')
-        
+
     db_f = FollowUp(**data)
     if not db_f.id:
         db_f.id = str(uuid.uuid4())
     db.add(db_f)
-    
-    log_audit(db, "CREATE", "FollowUp", db_f.id, db_f.issueNo, 
+
+    log_audit(db, "CREATE", "FollowUp", db_f.id, db_f.issueNo,
               new_value=followup.dict(), user_id=user_id, username=username)
-              
+
     db.commit()
     db.refresh(db_f)
     return db_f
@@ -863,19 +864,19 @@ def update_followup(db: Session, followup_id: str, followup: schemas.FollowUpUpd
     if db_f:
         old_val = {c.name: getattr(db_f, c.name) for c in db_f.__table__.columns}
         data = followup.dict(exclude_unset=True)
-        
+
         # Handle Vendor Name -> ID mapping
         if 'vendor' in data:
             vendor_name = data.pop('vendor')
             data['vendor_id'] = _resolve_vendor_id(db, vendor_name)
-            
+
         for key, value in data.items():
             setattr(db_f, key, value)
-            
-        log_audit(db, "UPDATE", "FollowUp", followup_id, db_f.issueNo, 
-                  old_value=old_val, new_value=followup.dict(exclude_unset=True), 
+
+        log_audit(db, "UPDATE", "FollowUp", followup_id, db_f.issueNo,
+                  old_value=old_val, new_value=followup.dict(exclude_unset=True),
                   user_id=user_id, username=username)
-                  
+
         db.commit()
         db.refresh(db_f)
     return db_f
@@ -884,7 +885,7 @@ def delete_followup(db: Session, followup_id: str, user_id: int = None, username
     db_f = db.query(FollowUp).filter(FollowUp.id == followup_id).first()
     if db_f:
         old_val = {c.name: getattr(db_f, c.name) for c in db_f.__table__.columns}
-        log_audit(db, "DELETE", "FollowUp", followup_id, db_f.issueNo, 
+        log_audit(db, "DELETE", "FollowUp", followup_id, db_f.issueNo,
                   old_value=old_val, user_id=user_id, username=username)
         db.delete(db_f)
         db.commit()
@@ -924,9 +925,9 @@ def create_user(db: Session, user: schemas.UserCreate, hashed_password: str, cur
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    
-    log_audit(db, "CREATE", "User", str(db_user.id), db_user.username, 
-              new_value=user.dict(exclude={"password"}), 
+
+    log_audit(db, "CREATE", "User", str(db_user.id), db_user.username,
+              new_value=user.dict(exclude={"password"}),
               user_id=current_user_id, username=current_username, reason=user.reason)
     db.commit()
     return db_user
@@ -936,7 +937,7 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate, hashed_pass
     if db_user:
         # Last Admin Protection: Prevent deactivating the last active Admin
         if user.is_active is False and db_user.role_name == "Admin":
-            admin_count = db.query(models.User).join(models.Role).filter(models.Role.name == "Admin", models.User.is_active == True).count()
+            admin_count = db.query(models.User).join(models.Role).filter(models.Role.name == "Admin", models.User.is_active).count()
             if admin_count <= 1:
                 from fastapi import HTTPException
                 raise HTTPException(status_code=400, detail="Cannot deactivate the last active Admin user")
@@ -948,18 +949,18 @@ def update_user(db: Session, user_id: int, user: schemas.UserUpdate, hashed_pass
             "is_active": db_user.is_active,
             "role_id": db_user.role_id
         }
-        
+
         if user.username is not None: db_user.username = user.username
         if user.email is not None: db_user.email = user.email
         if user.full_name is not None: db_user.full_name = user.full_name
         if user.is_active is not None: db_user.is_active = user.is_active
         if user.role_id is not None: db_user.role_id = user.role_id
         if hashed_password: db_user.hashed_password = hashed_password
-        
+
         db.commit()
         db.refresh(db_user)
-        
-        log_audit(db, "UPDATE", "User", str(db_user.id), db_user.username, 
+
+        log_audit(db, "UPDATE", "User", str(db_user.id), db_user.username,
                   old_value=old_data, new_value=user.dict(exclude={"password", "reason"}),
                   user_id=current_user_id, username=current_username, reason=user.reason)
         db.commit()
@@ -970,7 +971,7 @@ def delete_user(db: Session, user_id: int, current_user_id: int = None, current_
     if db_user:
         # Last Admin Protection
         if db_user.role_name == "Admin":
-            admin_count = db.query(models.User).join(models.Role).filter(models.Role.name == "Admin", models.User.is_active == True).count()
+            admin_count = db.query(models.User).join(models.Role).filter(models.Role.name == "Admin", models.User.is_active).count()
             if admin_count <= 1:
                 from fastapi import HTTPException
                 raise HTTPException(status_code=400, detail="Cannot delete the last active Admin user")
@@ -981,9 +982,9 @@ def delete_user(db: Session, user_id: int, current_user_id: int = None, current_
             "is_active": db_user.is_active,
             "role_id": db_user.role_id
         }
-        log_audit(db, "DELETE", "User", str(db_user.id), db_user.username, 
+        log_audit(db, "DELETE", "User", str(db_user.id), db_user.username,
                   old_value=old_data, user_id=current_user_id, username=current_username, reason=reason)
-        
+
         db.delete(db_user)
         db.commit()
     return db_user
@@ -1009,9 +1010,9 @@ def create_role(db: Session, role: schemas.RoleCreate, current_user_id: int = No
     db.add(db_role)
     db.commit()
     db.refresh(db_role)
-    
-    log_audit(db, "CREATE", "Role", str(db_role.id), db_role.name, 
-              new_value=role.dict(exclude={"reason"}), 
+
+    log_audit(db, "CREATE", "Role", str(db_role.id), db_role.name,
+              new_value=role.dict(exclude={"reason"}),
               user_id=current_user_id, username=current_username, reason=role.reason)
     db.commit()
     return db_role
@@ -1024,17 +1025,17 @@ def update_role(db: Session, role_id: int, role: schemas.RoleUpdate, current_use
             "description": db_role.description,
             "permissions": db_role.permissions
         }
-        
+
         if role.name is not None: db_role.name = role.name
         if role.description is not None: db_role.description = role.description
         if role.permissions is not None:
             perms = db.query(models.Permission).filter(models.Permission.code.in_(role.permissions)).all()
             db_role.permissions_rel = perms
-        
+
         db.commit()
         db.refresh(db_role)
-        
-        log_audit(db, "UPDATE", "Role", str(db_role.id), db_role.name, 
+
+        log_audit(db, "UPDATE", "Role", str(db_role.id), db_role.name,
                   old_value=old_data, new_value=role.dict(exclude={"reason"}),
                   user_id=current_user_id, username=current_username, reason=role.reason)
         db.commit()
@@ -1051,15 +1052,15 @@ def delete_role(db: Session, role_id: int, current_user_id: int = None, current_
         if db_role.name == "Admin":
             from fastapi import HTTPException
             raise HTTPException(status_code=400, detail="Cannot delete the core Admin role")
-        
+
         old_data = {
             "name": db_role.name,
             "description": db_role.description,
             "permissions": db_role.permissions
         }
-        log_audit(db, "DELETE", "Role", str(db_role.id), db_role.name, 
+        log_audit(db, "DELETE", "Role", str(db_role.id), db_role.name,
                   old_value=old_data, user_id=current_user_id, username=current_username, reason=reason)
-        
+
         db.delete(db_role)
         db.commit()
     return db_role
@@ -1118,7 +1119,7 @@ def get_checklist(db: Session, checklist_id: str):
     return db.query(Checklist).options(joinedload(Checklist.vendor_ref)).filter(Checklist.id == checklist_id).first()
 
 def get_checklists(db: Session, skip: int = 0, limit: int = 500,
-                     search: str = None, status: str = None, 
+                     search: str = None, status: str = None,
                      start_date: str = None, end_date: str = None, **kwargs):
     query = db.query(Checklist).options(joinedload(Checklist.vendor_ref))
 
@@ -1130,12 +1131,12 @@ def get_checklists(db: Session, skip: int = 0, limit: int = 500,
         )
     if status:
         query = query.filter(Checklist.status == status)
-    
+
     # New filters for ITR integration
     itr_id = kwargs.get('itr_id')
     if itr_id:
         query = query.filter(Checklist.itrId == itr_id)
-        
+
     noi_number = kwargs.get('noi_number')
     if noi_number:
         query = query.filter(Checklist.noiNumber == noi_number)
@@ -1144,17 +1145,18 @@ def get_checklists(db: Session, skip: int = 0, limit: int = 500,
         query = query.filter(Checklist.date >= start_date)
     if end_date:
         query = query.filter(Checklist.date <= end_date)
-        
+
     return query.offset(skip).limit(limit).all()
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 def create_checklist(db: Session, chk: schemas.ChecklistCreate, user_id: int = None, username: str = None):
     try:
         data = chk.dict()
         data = _json_serialize(data, ['detail_data']) # Added _json_serialize for detail_data
-        
+
         # 自動產生 Records No（若未提供或由前端傳來的佔位符）
         if not data.get('recordsNo') or data.get('recordsNo') == "[AUTO-GENERATE]":
             # 注意這裡傳給 generate_reference_no 的 doc_type 建議統一為 CHECKLIST 或 CHK
@@ -1165,15 +1167,15 @@ def create_checklist(db: Session, chk: schemas.ChecklistCreate, user_id: int = N
             contractor_name = data.pop('contractor')
             if contractor_name:
                 data['contractor_id'] = _resolve_vendor_id(db, contractor_name)
-        
+
         db_chk = Checklist(**data)
         if not db_chk.id:
             db_chk.id = str(uuid.uuid4())
         db.add(db_chk)
-        
-        log_audit(db, "CREATE", "Checklist", db_chk.id, db_chk.recordsNo, 
+
+        log_audit(db, "CREATE", "Checklist", db_chk.id, db_chk.recordsNo,
                   new_value=chk.dict(), user_id=user_id, username=username)
-                  
+
         db.commit()
         db.refresh(db_chk)
         return db_chk
@@ -1182,6 +1184,7 @@ def create_checklist(db: Session, chk: schemas.ChecklistCreate, user_id: int = N
         raise e
 
 from sqlalchemy import inspect
+
 
 def update_checklist(db: Session, checklist_id: str, chk: schemas.ChecklistUpdate, user_id: int = None, username: str = None):
     try:
@@ -1194,10 +1197,10 @@ def update_checklist(db: Session, checklist_id: str, chk: schemas.ChecklistUpdat
             # Use inspect to get mapped attribute names
             mapper = inspect(Checklist)
             old_val = {prop.key: getattr(db_chk, prop.key) for prop in mapper.column_attrs}
-            
+
             d = chk.dict(exclude_unset=True) # Renamed 'checklist' to 'chk' for consistency
             d = _json_serialize(d, ['detail_data']) # Added _json_serialize for detail_data
-            
+
             # Handle contractor -> contractor_id mapping
             if 'contractor' in d:
                 contractor_name = d.pop('contractor')
@@ -1206,11 +1209,11 @@ def update_checklist(db: Session, checklist_id: str, chk: schemas.ChecklistUpdat
 
             for key, value in d.items(): # Iterate over 'd' after serialization
                 setattr(db_chk, key, value)
-                
-            log_audit(db, "UPDATE", "Checklist", checklist_id, db_chk.recordsNo, 
-                      old_value=old_val, new_value=chk.dict(exclude_unset=True), 
+
+            log_audit(db, "UPDATE", "Checklist", checklist_id, db_chk.recordsNo,
+                      old_value=old_val, new_value=chk.dict(exclude_unset=True),
                       user_id=user_id, username=username)
-                      
+
             db.commit()
             db.refresh(db_chk)
         return db_chk
@@ -1225,8 +1228,8 @@ def delete_checklist(db: Session, checklist_id: str, user_id: int = None, userna
             # Fix AttributeError using inspect
             mapper = inspect(Checklist)
             old_val = {prop.key: getattr(db_chk, prop.key) for prop in mapper.column_attrs}
-            
-            log_audit(db, "DELETE", "Checklist", checklist_id, db_chk.recordsNo, 
+
+            log_audit(db, "DELETE", "Checklist", checklist_id, db_chk.recordsNo,
                       old_value=old_val, user_id=user_id, username=username)
             db.delete(db_chk)
             db.commit()
@@ -1244,7 +1247,7 @@ def get_kpi_weight(db: Session):
     weight = db.query(KPIWeight).first()
     if not weight:
         # 建立預設权重
-        weight = KPIWeight(pqp_weight=25, itp_weight=25, obs_weight=25, ncr_weight=25, 
+        weight = KPIWeight(pqp_weight=25, itp_weight=25, obs_weight=25, ncr_weight=25,
                            updated_at=datetime.now().isoformat())
         db.add(weight)
         db.commit()
@@ -1259,16 +1262,16 @@ def update_kpi_weight(db: Session, weight_data: schemas.KPIWeightUpdate, user_id
         "obs": db_weight.obs_weight,
         "ncr": db_weight.ncr_weight
     }
-    
+
     db_weight.pqp_weight = weight_data.pqp_weight
     db_weight.itp_weight = weight_data.itp_weight
     db_weight.obs_weight = weight_data.obs_weight
     db_weight.ncr_weight = weight_data.ncr_weight
     db_weight.updated_at = datetime.now().isoformat()
-    
-    log_audit(db, "UPDATE", "KPIWeight", str(db_weight.id), "Global KPI Weights", 
+
+    log_audit(db, "UPDATE", "KPIWeight", str(db_weight.id), "Global KPI Weights",
               old_value=old_val, new_value=weight_data.dict(), user_id=user_id, username=username)
-    
+
     db.commit()
     db.refresh(db_weight)
     return db_weight
@@ -1285,9 +1288,9 @@ def create_owner_performance(db: Session, perf: schemas.OwnerPerformanceCreate, 
     if not db_perf.id:
         db_perf.id = str(uuid.uuid4())
     db_perf.updated_at = datetime.now().isoformat()
-    
+
     db.add(db_perf)
-    log_audit(db, "CREATE", "OwnerPerformance", db_perf.id, db_perf.owner_name, 
+    log_audit(db, "CREATE", "OwnerPerformance", db_perf.id, db_perf.owner_name,
               new_value=data, user_id=user_id, username=username)
     db.commit()
     db.refresh(db_perf)
@@ -1299,7 +1302,7 @@ def get_fat(db: Session, fat_id: str):
     return db.query(FAT).options(joinedload(FAT.vendor_ref)).filter(FAT.id == fat_id).first()
 
 def get_fats(db: Session, skip: int = 0, limit: int = 500,
-             search: str = None, status: str = None, 
+             search: str = None, status: str = None,
              start_date: str = None, end_date: str = None):
     query = db.query(FAT).options(joinedload(FAT.vendor_ref))
 
@@ -1315,13 +1318,13 @@ def get_fats(db: Session, skip: int = 0, limit: int = 500,
         query = query.filter(FAT.startDate >= start_date)
     if end_date:
         query = query.filter(FAT.endDate <= end_date)
-        
+
     return query.offset(skip).limit(limit).all()
 
 def create_fat(db: Session, fat: schemas.FATCreate, user_id: int = None, username: str = None):
     d = fat.dict() # Use 'd' for the dictionary
     d = _json_serialize(d, ['detail_data', 'attachments'])
-    
+
     # Handle Vendor Name -> ID mapping (FAT uses 'supplier' in schema)
     vendor_name = d.pop('supplier', None)
     if vendor_name:
@@ -1330,17 +1333,17 @@ def create_fat(db: Session, fat: schemas.FATCreate, user_id: int = None, usernam
     db_fat = FAT(**d)
     if not db_fat.id:
         db_fat.id = str(uuid.uuid4())
-    
+
     # Set created_at/updated_at
     now = datetime.now().isoformat()
     db_fat.created_at = now
     db_fat.updated_at = now
-    
+
     db.add(db_fat)
-    
-    log_audit(db, "CREATE", "FAT", db_fat.id, db_fat.equipment, 
+
+    log_audit(db, "CREATE", "FAT", db_fat.id, db_fat.equipment,
               new_value=fat.dict(), user_id=user_id, username=username)
-    
+
     db.commit()
     db.refresh(db_fat)
     return db_fat
@@ -1349,24 +1352,24 @@ def update_fat(db: Session, fat_id: str, fat: schemas.FATUpdate, user_id: int = 
     db_fat = db.query(FAT).filter(FAT.id == fat_id).first()
     if db_fat:
         old_val = {c.name: getattr(db_fat, c.name) for c in db_fat.__table__.columns}
-        
+
         d = fat.dict(exclude_unset=True)
         d = _json_serialize(d, ['detail_data', 'attachments'])
-        
+
         # Handle Vendor Name -> ID mapping
         if 'supplier' in d:
             vendor_name = d.pop('supplier')
             d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
-            
+
         for key, value in d.items():
             setattr(db_fat, key, value)
-            
+
         db_fat.updated_at = datetime.now().isoformat()
-            
-        log_audit(db, "UPDATE", "FAT", fat_id, db_fat.equipment, 
-                  old_value=old_val, new_value=fat.dict(exclude_unset=True), 
+
+        log_audit(db, "UPDATE", "FAT", fat_id, db_fat.equipment,
+                  old_value=old_val, new_value=fat.dict(exclude_unset=True),
                   user_id=user_id, username=username)
-        
+
         db.commit()
         db.refresh(db_fat)
     return db_fat
@@ -1375,7 +1378,7 @@ def delete_fat(db: Session, fat_id: str, user_id: int = None, username: str = No
     db_fat = db.query(FAT).filter(FAT.id == fat_id).first()
     if db_fat:
         old_val = {c.name: getattr(db_fat, c.name) for c in db_fat.__table__.columns}
-        log_audit(db, "DELETE", "FAT", fat_id, db_fat.equipment, 
+        log_audit(db, "DELETE", "FAT", fat_id, db_fat.equipment,
                   old_value=old_val, user_id=user_id, username=username)
         db.delete(db_fat)
         db.commit()
@@ -1389,11 +1392,11 @@ def update_fat_detail(db: Session, fat_id: str, details: list, user_id: int = No
         db_fat.detail_data = json.dumps(details)
         db_fat.hasDetails = True if details and len(details) > 0 else False
         db_fat.updated_at = datetime.now().isoformat()
-        
-        log_audit(db, "UPDATE_DETAIL", "FAT", fat_id, db_fat.equipment, 
-                  old_value=old_val, new_value=details, 
+
+        log_audit(db, "UPDATE_DETAIL", "FAT", fat_id, db_fat.equipment,
+                  old_value=old_val, new_value=details,
                   user_id=user_id, username=username)
-        
+
         db.commit()
         db.refresh(db_fat)
     return db_fat

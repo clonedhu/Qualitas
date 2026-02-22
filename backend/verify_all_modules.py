@@ -1,5 +1,6 @@
-import requests
 import sys
+
+import requests
 
 BASE_URL = "http://localhost:8000/api"
 
@@ -39,7 +40,7 @@ endpoints = [
 def test_endpoints():
     print("正在驗證所有模組...")
     print("=" * 60)
-    
+
     # 先登入取得 token
     print("🔐 正在登入...")
     token = get_auth_token()
@@ -47,10 +48,10 @@ def test_endpoints():
         print("❌ 無法取得認證令牌，測試中止")
         sys.exit(1)
     print("✅ 登入成功\n")
-    
+
     headers = {"Authorization": f"Bearer {token}"}
     all_passed = True
-    
+
     for ep in endpoints:
         try:
             url = f"{BASE_URL}{ep}"
@@ -65,7 +66,7 @@ def test_endpoints():
         except Exception as e:
             print(f"❌ {ep:<30} ERROR - {str(e)[:100]}")
             all_passed = False
-    
+
     print("=" * 60)
     if all_passed:
         print("\n🎉 所有後端模組都正常運作！")

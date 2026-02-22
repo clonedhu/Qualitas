@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -23,6 +23,13 @@ class ITP(Base):
     # Relationships
     vendor_ref = relationship("Contractor", back_populates="itps")
     nois = relationship("NOI", back_populates="itp_ref")
+
+    # Composite indexes for common query patterns
+    __table_args__ = (
+        Index('idx_itp_vendor_status', 'vendor', 'status'),
+        Index('idx_itp_status_duedate', 'status', 'dueDate'),
+        Index('idx_itp_submission_date', 'submissionDate'),
+    )
 
 
 class NCR(Base):
@@ -59,6 +66,13 @@ class NCR(Base):
     # Relationships
     vendor_ref = relationship("Contractor", back_populates="ncrs")
     noi_ref = relationship("NOI", back_populates="ncrs")
+
+    # Composite indexes for common query patterns
+    __table_args__ = (
+        Index('idx_ncr_vendor_status', 'vendor', 'status'),
+        Index('idx_ncr_status_duedate', 'status', 'dueDate'),
+        Index('idx_ncr_raise_date', 'raiseDate'),
+    )
 
 
 class FollowUp(Base):

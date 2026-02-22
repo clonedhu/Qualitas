@@ -1,7 +1,8 @@
-from pydantic import BaseModel, field_validator, EmailStr, constr
-from typing import Optional, List, Any
 import json
 import re
+from typing import Any
+
+from pydantic import BaseModel, EmailStr, constr, field_validator
 
 # 輸入驗證常數
 MAX_TEXT_LENGTH = 10000  # 一般文字欄位最大長度
@@ -15,19 +16,19 @@ def validate_date_format(v: str) -> str:
     return v
 
 class ITPBase(BaseModel):
-    vendor: Optional[str] = None
-    referenceNo: Optional[str] = None  # 由後端自動產生
-    description: Optional[constr(max_length=MAX_TEXT_LENGTH)] = ''
-    rev: Optional[constr(max_length=MAX_SHORT_LENGTH)] = ''
-    submit: Optional[str] = ''
+    vendor: str | None = None
+    referenceNo: str | None = None  # 由後端自動產生
+    description: constr(max_length=MAX_TEXT_LENGTH) | None = ''
+    rev: constr(max_length=MAX_SHORT_LENGTH) | None = ''
+    submit: str | None = ''
     status: str
-    remark: Optional[str] = None
-    hasDetails: Optional[bool] = False
-    submissionDate: Optional[str] = None
-    detail_data: Optional[Any] = None  # Allow List/Dict/Any
-    attachments: Optional[List[str]] = []
-    last_reminded_at: Optional[str] = None
-    dueDate: Optional[str] = None
+    remark: str | None = None
+    hasDetails: bool | None = False
+    submissionDate: str | None = None
+    detail_data: Any | None = None  # Allow List/Dict/Any
+    attachments: list[str] | None = []
+    last_reminded_at: str | None = None
+    dueDate: str | None = None
 
     @field_validator('submissionDate', 'dueDate', mode='before')
     @classmethod
@@ -46,29 +47,29 @@ class ITPBase(BaseModel):
 
 
 class ITPCreate(ITPBase):
-    id: Optional[str] = None
+    id: str | None = None
 class ITPDetailBody(BaseModel):
-    a: List[Any] = []
-    b: List[Any] = []
-    c: List[Any] = []
-    checklist: List[Any] = []
-    self_inspection: Optional[Any] = None
+    a: list[Any] = []
+    b: list[Any] = []
+    c: list[Any] = []
+    checklist: list[Any] = []
+    self_inspection: Any | None = None
 
 class ITPUpdate(BaseModel):
     """ITP 更新用 schema，referenceNo 不可更新"""
-    vendor: Optional[str] = None
+    vendor: str | None = None
     # referenceNo 不可更新（由後端自動產生，建立後不可變）
-    description: Optional[str] = None
-    rev: Optional[str] = None
-    submit: Optional[str] = None
-    status: Optional[str] = None
-    remark: Optional[str] = None
-    hasDetails: Optional[bool] = None
-    submissionDate: Optional[str] = None
-    detail_data: Optional[Any] = None
-    attachments: Optional[List[str]] = None
-    last_reminded_at: Optional[str] = None
-    dueDate: Optional[str] = None
+    description: str | None = None
+    rev: str | None = None
+    submit: str | None = None
+    status: str | None = None
+    remark: str | None = None
+    hasDetails: bool | None = None
+    submissionDate: str | None = None
+    detail_data: Any | None = None
+    attachments: list[str] | None = None
+    last_reminded_at: str | None = None
+    dueDate: str | None = None
 
 
 class ITP(ITPBase):
@@ -78,32 +79,32 @@ class ITP(ITPBase):
 
 # NCR
 class NCRBase(BaseModel):
-    vendor: Optional[str] = None
-    documentNumber: Optional[str] = None  # 由後端自動產生
+    vendor: str | None = None
+    documentNumber: str | None = None  # 由後端自動產生
     description: constr(max_length=MAX_TEXT_LENGTH)
     rev: constr(max_length=MAX_SHORT_LENGTH)
     submit: str
     status: str
-    remark: Optional[str] = None
-    hasDetails: Optional[bool] = False
-    raiseDate: Optional[str] = None
-    closeoutDate: Optional[str] = None
-    aconex: Optional[str] = None
-    type: Optional[str] = None
-    subject: Optional[str] = None
-    foundBy: Optional[str] = None
-    raisedBy: Optional[str] = None
-    foundLocation: Optional[str] = None
-    productDisposition: Optional[str] = None
-    productIntegrityRelated: Optional[str] = None
-    permanentProductDeviation: Optional[str] = None
-    impactToOM: Optional[str] = None
-    defectPhotos: Optional[Any] = None
-    improvementPhotos: Optional[Any] = None
-    noiNumber: Optional[str] = None  # 連結到觸發此 NCR 的 NOI
-    dueDate: Optional[str] = None  # 到期日 (YYYY-MM-DD)
-    attachments: Optional[List[str]] = []
-    last_reminded_at: Optional[str] = None
+    remark: str | None = None
+    hasDetails: bool | None = False
+    raiseDate: str | None = None
+    closeoutDate: str | None = None
+    aconex: str | None = None
+    type: str | None = None
+    subject: str | None = None
+    foundBy: str | None = None
+    raisedBy: str | None = None
+    foundLocation: str | None = None
+    productDisposition: str | None = None
+    productIntegrityRelated: str | None = None
+    permanentProductDeviation: str | None = None
+    impactToOM: str | None = None
+    defectPhotos: Any | None = None
+    improvementPhotos: Any | None = None
+    noiNumber: str | None = None  # 連結到觸發此 NCR 的 NOI
+    dueDate: str | None = None  # 到期日 (YYYY-MM-DD)
+    attachments: list[str] | None = []
+    last_reminded_at: str | None = None
 
     @field_validator('raiseDate', 'closeoutDate', 'dueDate', mode='before')
     @classmethod
@@ -121,35 +122,35 @@ class NCRBase(BaseModel):
         return v
 
 class NCRCreate(NCRBase):
-    id: Optional[str] = None
+    id: str | None = None
 
 class NCRUpdate(BaseModel):
-    vendor: Optional[str] = None
+    vendor: str | None = None
     # documentNumber 不可更新（由後端自動產生，建立後不可變）
-    description: Optional[str] = None
-    rev: Optional[str] = None
-    submit: Optional[str] = None
-    status: Optional[str] = None
-    remark: Optional[str] = None
-    hasDetails: Optional[bool] = None
-    raiseDate: Optional[str] = None
-    closeoutDate: Optional[str] = None
-    aconex: Optional[str] = None
-    type: Optional[str] = None
-    subject: Optional[str] = None
-    foundBy: Optional[str] = None
-    raisedBy: Optional[str] = None
-    foundLocation: Optional[str] = None
-    productDisposition: Optional[str] = None
-    productIntegrityRelated: Optional[str] = None
-    permanentProductDeviation: Optional[str] = None
-    impactToOM: Optional[str] = None
-    defectPhotos: Optional[Any] = None
-    improvementPhotos: Optional[Any] = None
-    noiNumber: Optional[str] = None
-    dueDate: Optional[str] = None
-    attachments: Optional[List[str]] = None
-    last_reminded_at: Optional[str] = None
+    description: str | None = None
+    rev: str | None = None
+    submit: str | None = None
+    status: str | None = None
+    remark: str | None = None
+    hasDetails: bool | None = None
+    raiseDate: str | None = None
+    closeoutDate: str | None = None
+    aconex: str | None = None
+    type: str | None = None
+    subject: str | None = None
+    foundBy: str | None = None
+    raisedBy: str | None = None
+    foundLocation: str | None = None
+    productDisposition: str | None = None
+    productIntegrityRelated: str | None = None
+    permanentProductDeviation: str | None = None
+    impactToOM: str | None = None
+    defectPhotos: Any | None = None
+    improvementPhotos: Any | None = None
+    noiNumber: str | None = None
+    dueDate: str | None = None
+    attachments: list[str] | None = None
+    last_reminded_at: str | None = None
 
 class NCR(NCRBase):
     id: str
@@ -160,25 +161,25 @@ class NCR(NCRBase):
 # NOI
 class NOIBase(BaseModel):
     package: str
-    referenceNo: Optional[str] = None  # 由後端自動產生
+    referenceNo: str | None = None  # 由後端自動產生
     issueDate: str
     inspectionTime: str
     itpNo: str  # 連結到 ITP referenceNo
-    eventNumber: Optional[str] = None
-    checkpoint: Optional[str] = None
+    eventNumber: str | None = None
+    checkpoint: str | None = None
     inspectionDate: str
     type: str
-    contractor: Optional[str] = None
-    contacts: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    status: Optional[str] = None
-    remark: Optional[str] = None
-    closeoutDate: Optional[str] = None
-    attachments: Optional[List[str]] = []
-    ncrNumber: Optional[str] = None  # 若此 NOI 是針對 NCR 的重新檢驗
-    last_reminded_at: Optional[str] = None
-    dueDate: Optional[str] = None
+    contractor: str | None = None
+    contacts: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    status: str | None = None
+    remark: str | None = None
+    closeoutDate: str | None = None
+    attachments: list[str] | None = []
+    ncrNumber: str | None = None  # 若此 NOI 是針對 NCR 的重新檢驗
+    last_reminded_at: str | None = None
+    dueDate: str | None = None
 
     @field_validator('issueDate', 'inspectionDate', 'closeoutDate', 'dueDate', mode='before')
     @classmethod
@@ -196,29 +197,29 @@ class NOIBase(BaseModel):
         return v
 
 class NOICreate(NOIBase):
-    id: Optional[str] = None
+    id: str | None = None
 
 class NOIUpdate(BaseModel):
-    package: Optional[str] = None
+    package: str | None = None
     # referenceNo 不可更新（由後端自動產生，建立後不可變）
-    issueDate: Optional[str] = None
-    inspectionTime: Optional[str] = None
-    itpNo: Optional[str] = None
-    eventNumber: Optional[str] = None
-    checkpoint: Optional[str] = None
-    inspectionDate: Optional[str] = None
-    type: Optional[str] = None
-    contractor: Optional[str] = None
-    contacts: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    status: Optional[str] = None
-    remark: Optional[str] = None
-    closeoutDate: Optional[str] = None
-    attachments: Optional[List[str]] = None
-    ncrNumber: Optional[str] = None
-    last_reminded_at: Optional[str] = None
-    dueDate: Optional[str] = None
+    issueDate: str | None = None
+    inspectionTime: str | None = None
+    itpNo: str | None = None
+    eventNumber: str | None = None
+    checkpoint: str | None = None
+    inspectionDate: str | None = None
+    type: str | None = None
+    contractor: str | None = None
+    contacts: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    status: str | None = None
+    remark: str | None = None
+    closeoutDate: str | None = None
+    attachments: list[str] | None = None
+    ncrNumber: str | None = None
+    last_reminded_at: str | None = None
+    dueDate: str | None = None
 
 class NOI(NOIBase):
     id: str
@@ -228,29 +229,29 @@ class NOI(NOIBase):
 
 # ITR
 class ITRBase(BaseModel):
-    vendor: Optional[str] = None
-    documentNumber: Optional[str] = None  # 由後端自動產生
+    vendor: str | None = None
+    documentNumber: str | None = None  # 由後端自動產生
     description: str
     rev: str
     submit: str
     status: str
-    remark: Optional[str] = None
-    hasDetails: Optional[bool] = False
-    raiseDate: Optional[str] = None
-    closeoutDate: Optional[str] = None
-    aconex: Optional[str] = None
-    type: Optional[str] = None
-    subject: Optional[str] = None
-    ncrNumber: Optional[str] = None  # 若檢驗失敗，連結到產生的 NCR
-    raisedBy: Optional[str] = None
-    foundLocation: Optional[str] = None
-    noiNumber: Optional[str] = None  # 連結到產生此 ITR 的 NOI（取代舊的 itpNo）
-    eventNumber: Optional[str] = None
-    checkpoint: Optional[str] = None
-    defectPhotos: Optional[Any] = None
-    improvementPhotos: Optional[Any] = None
-    detail_data: Optional[str] = None  # JSON string for extended data
-    attachments: Optional[List[str]] = []
+    remark: str | None = None
+    hasDetails: bool | None = False
+    raiseDate: str | None = None
+    closeoutDate: str | None = None
+    aconex: str | None = None
+    type: str | None = None
+    subject: str | None = None
+    ncrNumber: str | None = None  # 若檢驗失敗，連結到產生的 NCR
+    raisedBy: str | None = None
+    foundLocation: str | None = None
+    noiNumber: str | None = None  # 連結到產生此 ITR 的 NOI（取代舊的 itpNo）
+    eventNumber: str | None = None
+    checkpoint: str | None = None
+    defectPhotos: Any | None = None
+    improvementPhotos: Any | None = None
+    detail_data: str | None = None  # JSON string for extended data
+    attachments: list[str] | None = []
 
     @field_validator('raiseDate', 'closeoutDate', mode='before')
     @classmethod
@@ -268,33 +269,33 @@ class ITRBase(BaseModel):
         return v
 
 class ITRCreate(ITRBase):
-    id: Optional[str] = None
+    id: str | None = None
 
 class ITRUpdate(BaseModel):
-    vendor: Optional[str] = None
+    vendor: str | None = None
     # documentNumber 不可更新（由後端自動產生，建立後不可變）
-    description: Optional[str] = None
-    rev: Optional[str] = None
-    submit: Optional[str] = None
-    status: Optional[str] = None
-    remark: Optional[str] = None
-    hasDetails: Optional[bool] = None
-    raiseDate: Optional[str] = None
-    closeoutDate: Optional[str] = None
-    aconex: Optional[str] = None
-    type: Optional[str] = None
-    subject: Optional[str] = None
-    ncrNumber: Optional[str] = None
-    raisedBy: Optional[str] = None
-    foundLocation: Optional[str] = None
-    noiNumber: Optional[str] = None
-    eventNumber: Optional[str] = None
-    checkpoint: Optional[str] = None
-    defectPhotos: Optional[Any] = None
-    defectPhotos: Optional[Any] = None
-    improvementPhotos: Optional[Any] = None
-    detail_data: Optional[str] = None
-    attachments: Optional[List[str]] = None
+    description: str | None = None
+    rev: str | None = None
+    submit: str | None = None
+    status: str | None = None
+    remark: str | None = None
+    hasDetails: bool | None = None
+    raiseDate: str | None = None
+    closeoutDate: str | None = None
+    aconex: str | None = None
+    type: str | None = None
+    subject: str | None = None
+    ncrNumber: str | None = None
+    raisedBy: str | None = None
+    foundLocation: str | None = None
+    noiNumber: str | None = None
+    eventNumber: str | None = None
+    checkpoint: str | None = None
+    defectPhotos: Any | None = None
+    defectPhotos: Any | None = None
+    improvementPhotos: Any | None = None
+    detail_data: str | None = None
+    attachments: list[str] | None = None
 
 class ITR(ITRBase):
     id: str
@@ -304,15 +305,15 @@ class ITR(ITRBase):
 
 # PQP
 class PQPBase(BaseModel):
-    pqpNo: Optional[str] = None  # 由後端自動產生
+    pqpNo: str | None = None  # 由後端自動產生
     title: str
     description: str
-    vendor: Optional[str] = None
+    vendor: str | None = None
     status: str
     version: str
     createdAt: str
     updatedAt: str
-    attachments: Optional[List[str]] = []
+    attachments: list[str] | None = []
 
     @field_validator('attachments', mode='before')
     @classmethod
@@ -325,26 +326,26 @@ class PQPBase(BaseModel):
         return v
 
 class PQPCreate(PQPBase):
-    id: Optional[str] = None
-    pqpNo: Optional[str] = ''
-    title: Optional[str] = ''
-    description: Optional[str] = ''
-    vendor: Optional[str] = ''
-    status: Optional[str] = 'Approved'
-    version: Optional[str] = 'Rev1.0'
-    createdAt: Optional[str] = ''
-    updatedAt: Optional[str] = ''
+    id: str | None = None
+    pqpNo: str | None = ''
+    title: str | None = ''
+    description: str | None = ''
+    vendor: str | None = ''
+    status: str | None = 'Approved'
+    version: str | None = 'Rev1.0'
+    createdAt: str | None = ''
+    updatedAt: str | None = ''
 
 class PQPUpdate(BaseModel):
     # pqpNo 不可更新（由後端自動產生，建立後不可變）
-    title: Optional[str] = None
-    description: Optional[str] = None
-    vendor: Optional[str] = None
-    status: Optional[str] = None
-    version: Optional[str] = None
-    createdAt: Optional[str] = None
-    updatedAt: Optional[str] = None
-    attachments: Optional[List[str]] = None
+    title: str | None = None
+    description: str | None = None
+    vendor: str | None = None
+    status: str | None = None
+    version: str | None = None
+    createdAt: str | None = None
+    updatedAt: str | None = None
+    attachments: list[str] | None = None
 
 class PQP(PQPBase):
     id: str
@@ -354,30 +355,30 @@ class PQP(PQPBase):
 
 # OBS
 class OBSBase(BaseModel):
-    vendor: Optional[str] = None
-    documentNumber: Optional[str] = None  # 由後端自動產生
+    vendor: str | None = None
+    documentNumber: str | None = None  # 由後端自動產生
     description: str
     rev: str
     submit: str
     status: str
-    remark: Optional[str] = None
-    hasDetails: Optional[bool] = False
-    raiseDate: Optional[str] = None
-    closeoutDate: Optional[str] = None
-    aconex: Optional[str] = None
-    type: Optional[str] = None
-    subject: Optional[str] = None
-    foundBy: Optional[str] = None
-    raisedBy: Optional[str] = None
-    foundLocation: Optional[str] = None
-    productDisposition: Optional[str] = None
-    productIntegrityRelated: Optional[str] = None
-    permanentProductDeviation: Optional[str] = None
-    impactToOM: Optional[str] = None
-    defectPhotos: Optional[Any] = None
-    improvementPhotos: Optional[Any] = None
-    attachments: Optional[Any] = None
-    dueDate: Optional[str] = None
+    remark: str | None = None
+    hasDetails: bool | None = False
+    raiseDate: str | None = None
+    closeoutDate: str | None = None
+    aconex: str | None = None
+    type: str | None = None
+    subject: str | None = None
+    foundBy: str | None = None
+    raisedBy: str | None = None
+    foundLocation: str | None = None
+    productDisposition: str | None = None
+    productIntegrityRelated: str | None = None
+    permanentProductDeviation: str | None = None
+    impactToOM: str | None = None
+    defectPhotos: Any | None = None
+    improvementPhotos: Any | None = None
+    attachments: Any | None = None
+    dueDate: str | None = None
 
     @field_validator('raiseDate', 'closeoutDate', 'dueDate', mode='before')
     @classmethod
@@ -385,36 +386,36 @@ class OBSBase(BaseModel):
         return validate_date_format(v)
 
 class OBSCreate(OBSBase):
-    id: Optional[str] = None
+    id: str | None = None
 
 class OBSUpdate(BaseModel):
-    vendor: Optional[str] = None
+    vendor: str | None = None
     # documentNumber 不可更新（由後端自動產生，建立後不可變）
-    description: Optional[str] = None
-    rev: Optional[str] = None
-    submit: Optional[str] = None
-    status: Optional[str] = None
-    remark: Optional[str] = None
-    hasDetails: Optional[bool] = None
-    raiseDate: Optional[str] = None
-    closeoutDate: Optional[str] = None
-    aconex: Optional[str] = None
-    type: Optional[str] = None
-    subject: Optional[str] = None
-    foundBy: Optional[str] = None
-    raisedBy: Optional[str] = None
-    foundLocation: Optional[str] = None
-    productDisposition: Optional[str] = None
-    productIntegrityRelated: Optional[str] = None
-    permanentProductDeviation: Optional[str] = None
-    impactToOM: Optional[str] = None
-    defectPhotos: Optional[Any] = None
-    improvementPhotos: Optional[Any] = None
-    attachments: Optional[Any] = None
-    last_reminded_at: Optional[str] = None
-    dueDate: Optional[str] = None
-    noiNumber: Optional[str] = None
-    itrNumber: Optional[str] = None
+    description: str | None = None
+    rev: str | None = None
+    submit: str | None = None
+    status: str | None = None
+    remark: str | None = None
+    hasDetails: bool | None = None
+    raiseDate: str | None = None
+    closeoutDate: str | None = None
+    aconex: str | None = None
+    type: str | None = None
+    subject: str | None = None
+    foundBy: str | None = None
+    raisedBy: str | None = None
+    foundLocation: str | None = None
+    productDisposition: str | None = None
+    productIntegrityRelated: str | None = None
+    permanentProductDeviation: str | None = None
+    impactToOM: str | None = None
+    defectPhotos: Any | None = None
+    improvementPhotos: Any | None = None
+    attachments: Any | None = None
+    last_reminded_at: str | None = None
+    dueDate: str | None = None
+    noiNumber: str | None = None
+    itrNumber: str | None = None
 
 class OBS(OBSBase):
     id: str
@@ -424,29 +425,29 @@ class OBS(OBSBase):
 
 # Contractor
 class ContractorBase(BaseModel):
-    package: Optional[str] = None
+    package: str | None = None
     name: str
-    abbreviation: Optional[str] = None
-    scope: Optional[str] = None
-    contactPerson: Optional[str] = None
-    email: Optional[EmailStr] = None
-    phone: Optional[str] = None
-    address: Optional[str] = None
+    abbreviation: str | None = None
+    scope: str | None = None
+    contactPerson: str | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+    address: str | None = None
     status: str = "active"
 
 class ContractorCreate(ContractorBase):
-    id: Optional[str] = None
+    id: str | None = None
 
 class ContractorUpdate(BaseModel):
-    package: Optional[str] = None
-    name: Optional[str] = None
-    abbreviation: Optional[str] = None
-    scope: Optional[str] = None
-    contactPerson: Optional[str] = None
-    email: Optional[str] = None
-    phone: Optional[str] = None
-    address: Optional[str] = None
-    status: Optional[str] = None
+    package: str | None = None
+    name: str | None = None
+    abbreviation: str | None = None
+    scope: str | None = None
+    contactPerson: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    address: str | None = None
+    status: str | None = None
 
 class Contractor(ContractorBase):
     id: str
@@ -456,19 +457,19 @@ class Contractor(ContractorBase):
 
 # FollowUp
 class FollowUpBase(BaseModel):
-    issueNo: Optional[str] = None
+    issueNo: str | None = None
     title: str
     description: str
     status: str
-    priority: Optional[str] = None
-    assignedTo: Optional[str] = None
-    vendor: Optional[str] = None
-    dueDate: Optional[str] = None
+    priority: str | None = None
+    assignedTo: str | None = None
+    vendor: str | None = None
+    dueDate: str | None = None
     createdAt: str
     updatedAt: str
-    action: Optional[str] = None
-    sourceModule: Optional[str] = None  # 來源模組
-    sourceReferenceNo: Optional[str] = None  # 來源單號
+    action: str | None = None
+    sourceModule: str | None = None  # 來源模組
+    sourceReferenceNo: str | None = None  # 來源單號
 
     @field_validator('dueDate', 'createdAt', 'updatedAt', mode='before')
     @classmethod
@@ -476,21 +477,21 @@ class FollowUpBase(BaseModel):
         return validate_date_format(v)
 
 class FollowUpCreate(FollowUpBase):
-    id: Optional[str] = None
+    id: str | None = None
 
 class FollowUpUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    status: Optional[str] = None
-    priority: Optional[str] = None
-    assignedTo: Optional[str] = None
-    vendor: Optional[str] = None
-    dueDate: Optional[str] = None
-    updatedAt: Optional[str] = None
-    action: Optional[str] = None
-    sourceModule: Optional[str] = None
-    sourceReferenceNo: Optional[str] = None
-    last_reminded_at: Optional[str] = None
+    title: str | None = None
+    description: str | None = None
+    status: str | None = None
+    priority: str | None = None
+    assignedTo: str | None = None
+    vendor: str | None = None
+    dueDate: str | None = None
+    updatedAt: str | None = None
+    action: str | None = None
+    sourceModule: str | None = None
+    sourceReferenceNo: str | None = None
+    last_reminded_at: str | None = None
 
 class FollowUp(FollowUpBase):
     id: str
@@ -516,8 +517,8 @@ class NamingRule(NamingRuleBase):
 # Role
 class RoleBase(BaseModel):
     name: str
-    description: Optional[str] = None
-    permissions: List[str] = []
+    description: str | None = None
+    permissions: list[str] = []
 
     @field_validator('permissions', mode='before')
     @classmethod
@@ -532,13 +533,13 @@ class RoleBase(BaseModel):
         return v
 
 class RoleCreate(RoleBase):
-    reason: Optional[str] = None
+    reason: str | None = None
 
 class RoleUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    permissions: Optional[List[str]] = None
-    reason: Optional[str] = None
+    name: str | None = None
+    description: str | None = None
+    permissions: list[str] | None = None
+    reason: str | None = None
 
 class Role(RoleBase):
     id: int
@@ -549,7 +550,7 @@ class Role(RoleBase):
 # Permission
 class PermissionBase(BaseModel):
     code: str
-    description: Optional[str] = None
+    description: str | None = None
 
 class Permission(PermissionBase):
     id: int
@@ -559,44 +560,44 @@ class Permission(PermissionBase):
 
 # User
 class ChecklistBase(BaseModel):
-    recordsNo: Optional[str] = None  # 改為 Optional 以支援後端自動產生
-    activity: Optional[str] = None
+    recordsNo: str | None = None  # 改為 Optional 以支援後端自動產生
+    activity: str | None = None
     date: str
     status: str
-    packageName: Optional[str] = None
-    location: Optional[str] = None
-    itpIndex: Optional[int] = 0
-    detail_data: Optional[str] = None
-    noiNumber: Optional[str] = None
-    contractor: Optional[str] = None
-    itpId: Optional[str] = None
-    itpVersion: Optional[str] = None
-    passCount: Optional[int] = 0
-    failCount: Optional[int] = 0
-    itrId: Optional[str] = None
-    itrNumber: Optional[str] = None
+    packageName: str | None = None
+    location: str | None = None
+    itpIndex: int | None = 0
+    detail_data: str | None = None
+    noiNumber: str | None = None
+    contractor: str | None = None
+    itpId: str | None = None
+    itpVersion: str | None = None
+    passCount: int | None = 0
+    failCount: int | None = 0
+    itrId: str | None = None
+    itrNumber: str | None = None
 
 class ChecklistCreate(ChecklistBase):
     pass
 
 class ChecklistUpdate(BaseModel):
     """Checklist 更新用 schema"""
-    recordsNo: Optional[str] = None
-    activity: Optional[str] = None
-    date: Optional[str] = None
-    status: Optional[str] = None
-    packageName: Optional[str] = None
-    location: Optional[str] = None
-    itpIndex: Optional[int] = None
-    detail_data: Optional[str] = None
-    noiNumber: Optional[str] = None
-    contractor: Optional[str] = None
-    itpId: Optional[str] = None
-    itpVersion: Optional[str] = None
-    passCount: Optional[int] = None
-    failCount: Optional[int] = None
-    itrId: Optional[str] = None
-    itrNumber: Optional[str] = None
+    recordsNo: str | None = None
+    activity: str | None = None
+    date: str | None = None
+    status: str | None = None
+    packageName: str | None = None
+    location: str | None = None
+    itpIndex: int | None = None
+    detail_data: str | None = None
+    noiNumber: str | None = None
+    contractor: str | None = None
+    itpId: str | None = None
+    itpVersion: str | None = None
+    passCount: int | None = None
+    failCount: int | None = None
+    itrId: str | None = None
+    itrNumber: str | None = None
 
 class Checklist(ChecklistBase):
     id: str
@@ -607,27 +608,27 @@ class Checklist(ChecklistBase):
 class UserBase(BaseModel):
     username: str
     email: EmailStr
-    full_name: Optional[str] = None
-    is_active: Optional[bool] = True
-    role_id: Optional[int] = None
+    full_name: str | None = None
+    is_active: bool | None = True
+    role_id: int | None = None
 
 class UserCreate(UserBase):
     password: str
-    reason: Optional[str] = None
+    reason: str | None = None
 
 class UserUpdate(BaseModel):
-    username: Optional[str] = None
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    is_active: Optional[bool] = None
-    role_id: Optional[int] = None
-    password: Optional[str] = None
-    reason: Optional[str] = None
+    username: str | None = None
+    email: str | None = None
+    full_name: str | None = None
+    is_active: bool | None = None
+    role_id: int | None = None
+    password: str | None = None
+    reason: str | None = None
 
 class User(UserBase):
     id: int
-    role_name: Optional[str] = None
-    created_at: Optional[str] = None
+    role_name: str | None = None
+    created_at: str | None = None
 
     class Config:
         from_attributes = True
@@ -641,7 +642,7 @@ class AuditBase(BaseModel):
     status: str
     location: str
     findings: str
-    contractor: Optional[str] = None
+    contractor: str | None = None
 
     @field_validator('date', mode='before')
     @classmethod
@@ -649,17 +650,17 @@ class AuditBase(BaseModel):
         return validate_date_format(v)
 
 class AuditCreate(AuditBase):
-    id: Optional[str] = None
+    id: str | None = None
 
 class AuditUpdate(BaseModel):
-    auditNo: Optional[str] = None
-    title: Optional[str] = None
-    date: Optional[str] = None
-    auditor: Optional[str] = None
-    status: Optional[str] = None
-    location: Optional[str] = None
-    findings: Optional[str] = None
-    contractor: Optional[str] = None
+    auditNo: str | None = None
+    title: str | None = None
+    date: str | None = None
+    auditor: str | None = None
+    status: str | None = None
+    location: str | None = None
+    findings: str | None = None
+    contractor: str | None = None
 
 class Audit(AuditBase):
     id: str
@@ -679,7 +680,7 @@ class KPIWeightUpdate(KPIWeightBase):
 
 class KPIWeight(KPIWeightBase):
     id: int
-    updated_at: Optional[str] = None
+    updated_at: str | None = None
     class Config:
         from_attributes = True
 
@@ -687,20 +688,20 @@ class OwnerPerformanceBase(BaseModel):
     owner_name: str
     month: str
     score: int = 0
-    details: Optional[str] = None
+    details: str | None = None
 
 class OwnerPerformanceCreate(OwnerPerformanceBase):
-    id: Optional[str] = None
+    id: str | None = None
 
 class OwnerPerformanceUpdate(BaseModel):
-    owner_name: Optional[str] = None
-    month: Optional[str] = None
-    score: Optional[int] = None
-    details: Optional[str] = None
+    owner_name: str | None = None
+    month: str | None = None
+    score: int | None = None
+    details: str | None = None
 
 class OwnerPerformance(OwnerPerformanceBase):
     id: str
-    updated_at: Optional[str] = None
+    updated_at: str | None = None
     class Config:
         from_attributes = True
 
@@ -714,10 +715,10 @@ class AttachmentResponse(BaseModel):
     entity_id: str
     file_name: str
     file_url: str            # 由 API 動態組裝的完整存取 URL
-    file_size: Optional[int] = None
-    mime_type: Optional[str] = None
+    file_size: int | None = None
+    mime_type: str | None = None
     category: str = "attachment"
-    uploaded_by: Optional[str] = None
+    uploaded_by: str | None = None
     uploaded_at: str
 
     class Config:
@@ -729,38 +730,38 @@ class Token(BaseModel):
     token_type: str
 
 class TokenData(BaseModel):
-    username: Optional[str] = None
+    username: str | None = None
 
 
 # --- FAT Schemas ---
 
 class FATDetailItem(BaseModel):
     id: str
-    sNo: Optional[str] = ''
-    itemName: Optional[str] = ''
-    specification: Optional[str] = ''
-    qty: Optional[str] = ''
-    unit: Optional[str] = ''
-    acceptanceCriteria: Optional[str] = ''
-    fatActualValue: Optional[str] = ''
-    fatJudgment: Optional[str] = ''
-    remarks: Optional[str] = ''
+    sNo: str | None = ''
+    itemName: str | None = ''
+    specification: str | None = ''
+    qty: str | None = ''
+    unit: str | None = ''
+    acceptanceCriteria: str | None = ''
+    fatActualValue: str | None = ''
+    fatJudgment: str | None = ''
+    remarks: str | None = ''
 
 class FATBase(BaseModel):
     equipment: str
     supplier: str
-    procedure: Optional[str] = None
-    location: Optional[str] = None
+    procedure: str | None = None
+    location: str | None = None
     startDate: str
     endDate: str
-    deliveryFrom: Optional[str] = None
-    deliveryTo: Optional[str] = None
-    siteReadiness: Optional[str] = None
-    moveInDate: Optional[str] = None
-    status: Optional[str] = "Scheduled"
-    hasDetails: Optional[bool] = False
-    detail_data: Optional[List[FATDetailItem]] = None
-    attachments: Optional[List[str]] = []
+    deliveryFrom: str | None = None
+    deliveryTo: str | None = None
+    siteReadiness: str | None = None
+    moveInDate: str | None = None
+    status: str | None = "Scheduled"
+    hasDetails: bool | None = False
+    detail_data: list[FATDetailItem] | None = None
+    attachments: list[str] | None = []
 
     @field_validator('startDate', 'endDate', 'moveInDate', mode='before')
     @classmethod
@@ -778,28 +779,28 @@ class FATBase(BaseModel):
         return v
 
 class FATCreate(FATBase):
-    id: Optional[str] = None
+    id: str | None = None
 
 class FATUpdate(BaseModel):
-    equipment: Optional[str] = None
-    supplier: Optional[str] = None
-    procedure: Optional[str] = None
-    location: Optional[str] = None
-    startDate: Optional[str] = None
-    endDate: Optional[str] = None
-    deliveryFrom: Optional[str] = None
-    deliveryTo: Optional[str] = None
-    siteReadiness: Optional[str] = None
-    moveInDate: Optional[str] = None
-    status: Optional[str] = None
-    hasDetails: Optional[bool] = None
-    detail_data: Optional[List[FATDetailItem]] = None
-    attachments: Optional[List[str]] = None
+    equipment: str | None = None
+    supplier: str | None = None
+    procedure: str | None = None
+    location: str | None = None
+    startDate: str | None = None
+    endDate: str | None = None
+    deliveryFrom: str | None = None
+    deliveryTo: str | None = None
+    siteReadiness: str | None = None
+    moveInDate: str | None = None
+    status: str | None = None
+    hasDetails: bool | None = None
+    detail_data: list[FATDetailItem] | None = None
+    attachments: list[str] | None = None
 
 class FAT(FATBase):
     id: str
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
+    created_at: str | None = None
+    updated_at: str | None = None
 
     class Config:
         from_attributes = True
@@ -807,21 +808,21 @@ class FAT(FATBase):
 # --- KM Schemas ---
 class KMAttachment(BaseModel):
     name: str
-    filename: Optional[str] = None
-    size: Optional[str] = None
-    url: Optional[str] = None
+    filename: str | None = None
+    size: str | None = None
+    url: str | None = None
 
 class KMArticleBase(BaseModel):
-    articleNo: Optional[str] = None
+    articleNo: str | None = None
     title: str
     content: str
-    category: Optional[str] = None
-    tags: Optional[str] = None
-    status: Optional[str] = "Published"
-    attachments: Optional[List[KMAttachment]] = None
-    parent_id: Optional[str] = None
-    chapter_no: Optional[str] = None
-    change_summary: Optional[str] = None
+    category: str | None = None
+    tags: str | None = None
+    status: str | None = "Published"
+    attachments: list[KMAttachment] | None = None
+    parent_id: str | None = None
+    chapter_no: str | None = None
+    change_summary: str | None = None
 
     @field_validator('attachments', mode='before')
     @classmethod
@@ -834,25 +835,25 @@ class KMArticleBase(BaseModel):
         return v
 
 class KMArticleCreate(KMArticleBase):
-    id: Optional[str] = None
+    id: str | None = None
 
 class KMArticleUpdate(BaseModel):
-    title: Optional[str] = None
-    content: Optional[str] = None
-    category: Optional[str] = None
-    tags: Optional[str] = None
-    status: Optional[str] = None
-    attachments: Optional[List[KMAttachment]] = None
-    parent_id: Optional[str] = None
-    chapter_no: Optional[str] = None
-    change_summary: Optional[str] = None
+    title: str | None = None
+    content: str | None = None
+    category: str | None = None
+    tags: str | None = None
+    status: str | None = None
+    attachments: list[KMAttachment] | None = None
+    parent_id: str | None = None
+    chapter_no: str | None = None
+    change_summary: str | None = None
 
 class KMArticle(KMArticleBase):
     id: str
-    author_id: Optional[int] = None
-    created_at: Optional[str] = None
-    updated_at: Optional[str] = None
-    version_no: Optional[int] = 1
+    author_id: int | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+    version_no: int | None = 1
 
     class Config:
         from_attributes = True
@@ -863,17 +864,17 @@ class KMArticleHistory(BaseModel):
     version_no: int
     title: str
     content: str
-    category: Optional[str] = None
-    tags: Optional[str] = None
-    status: Optional[str] = None
-    author_id: Optional[int] = None
-    attachments: Optional[str] = None
-    parent_id: Optional[str] = None
-    chapter_no: Optional[str] = None
-    change_summary: Optional[str] = None
+    category: str | None = None
+    tags: str | None = None
+    status: str | None = None
+    author_id: int | None = None
+    attachments: str | None = None
+    parent_id: str | None = None
+    chapter_no: str | None = None
+    change_summary: str | None = None
     created_at: str
 
 
-    
+
     class Config:
         from_attributes = True

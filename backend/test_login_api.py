@@ -1,5 +1,5 @@
+
 import requests
-import json
 
 BASE_URL = "http://127.0.0.1:8000/api"
 
@@ -13,7 +13,7 @@ def test_login():
         response = requests.post(url, data=payload)
         print(f"Status Code: {response.status_code}")
         print(f"Response: {response.text}")
-        
+
         if response.status_code == 200:
             token = response.json().get("access_token")
             test_profile(token)

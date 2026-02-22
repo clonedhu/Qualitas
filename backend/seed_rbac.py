@@ -1,7 +1,7 @@
-from sqlalchemy.orm import Session
+from core.perms import ALL_PERMISSIONS
 from database import SessionLocal
 from models import Permission, Role, RolePermission
-from core.perms import ALL_PERMISSIONS
+
 
 def seed_rbac():
     db = SessionLocal()
@@ -11,7 +11,7 @@ def seed_rbac():
         for p_data in ALL_PERMISSIONS:
             code = p_data["code"]
             desc = p_data["description"]
-            
+
             perm = db.query(Permission).filter(Permission.code == code).first()
             if not perm:
                 perm = Permission(code=code, description=desc)
@@ -19,7 +19,7 @@ def seed_rbac():
                 db.flush() # get ID
                 print(f"Created Permission: {code}")
             perm_map[code] = perm
-        
+
         db.commit()
 
         # Seed Roles
@@ -38,19 +38,19 @@ def seed_rbac():
                 db.add(role)
                 db.flush()
                 print(f"Created Role: {role_name}")
-            
+
             # Sync permissions
             # Clear existing logic if needed, but for seeding just ensure they exist
             # Check existing relationships
             existing_perm_ids = {rp.permission_id for rp in db.query(RolePermission).filter(RolePermission.role_id == role.id).all()}
-            
+
             for p_dict in perms_list:
                 p_code = p_dict["code"]
                 p_obj = perm_map.get(p_code)
                 if p_obj and p_obj.id not in existing_perm_ids:
                     db.add(RolePermission(role_id=role.id, permission_id=p_obj.id))
                     print(f"  + Added {p_code} to {role_name}")
-        
+
         db.commit()
         print("\nRBAC Seeding Completed Successfully.")
 

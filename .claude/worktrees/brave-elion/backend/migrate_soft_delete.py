@@ -3,6 +3,12 @@
 """
 import sqlite3
 from datetime import datetime
+import sys
+import os
+
+# Add parent directory to path to import validators
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from core.sql_validators import validate_table_name
 
 DB_PATH = "qualitas.db"
 
@@ -33,28 +39,35 @@ def migrate():
     # 1. 為現有表格新增軟刪除欄位
     for table in TABLES_FOR_SOFT_DELETE:
         try:
-            # 檢查表格是否存在
-            cursor.execute(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'")
+            # SECURITY: Validate table name before using in SQL
+            validated_table = validate_table_name(table)
+
+            # 檢查表格是否存在 - using parameterized query
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (validated_table,))
             if not cursor.fetchone():
-                print(f"  ⚠️  表格 '{table}' 不存在，跳過")
+                print(f"  ⚠️  表格 '{validated_table}' 不存在，跳過")
                 continue
-            
+
             # 檢查欄位是否已存在
-            cursor.execute(f"PRAGMA table_info({table})")
+            # Note: PRAGMA statements don't support parameterization, but table name is validated
+            cursor.execute(f"PRAGMA table_info({validated_table})")
             columns = [col[1] for col in cursor.fetchall()]
-            
+
             if 'is_deleted' not in columns:
-                cursor.execute(f"ALTER TABLE {table} ADD COLUMN is_deleted INTEGER DEFAULT 0")
-                print(f"  ✅ 已為 '{table}' 新增 'is_deleted' 欄位")
+                # Safe to use validated table name in f-string after validation
+                cursor.execute(f"ALTER TABLE {validated_table} ADD COLUMN is_deleted INTEGER DEFAULT 0")
+                print(f"  ✅ 已為 '{validated_table}' 新增 'is_deleted' 欄位")
             else:
-                print(f"  ⏭️  '{table}' 已有 'is_deleted' 欄位")
-            
+                print(f"  ⏭️  '{validated_table}' 已有 'is_deleted' 欄位")
+
             if 'deleted_at' not in columns:
-                cursor.execute(f"ALTER TABLE {table} ADD COLUMN deleted_at TEXT")
-                print(f"  ✅ 已為 '{table}' 新增 'deleted_at' 欄位")
+                cursor.execute(f"ALTER TABLE {validated_table} ADD COLUMN deleted_at TEXT")
+                print(f"  ✅ 已為 '{validated_table}' 新增 'deleted_at' 欄位")
             else:
-                print(f"  ⏭️  '{table}' 已有 'deleted_at' 欄位")
-                
+                print(f"  ⏭️  '{validated_table}' 已有 'deleted_at' 欄位")
+
+        except ValueError as e:
+            print(f"  ❌ 安全驗證失敗: {e}")
         except Exception as e:
             print(f"  ❌ 處理 '{table}' 時發生錯誤: {e}")
     

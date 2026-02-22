@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import text
 from datetime import datetime
 import uuid
@@ -23,6 +23,7 @@ from models import (
     KPIWeight,
     OwnerPerformance,
 )
+from core.base_crud import BaseCRUD, init_crud_globals
 # NOTE: 移除重複的 import (uuid, json, re 已在上方匯入)
 
 # 固定專案代碼
@@ -205,91 +206,186 @@ def generate_reference_no(db: Session, vendor_name: str, doc_type: str) -> str:
     seq_str = str(next_seq).zfill(6)
     return f"{PROJECT_CODE}-{vendor_abbrev}-{doc_type.upper()}-{seq_str}"
 
+
+# ============================================================================
+# Initialize BaseCRUD with helper functions
+# ============================================================================
+init_crud_globals(_json_serialize, log_audit, WorkflowEngine, generate_reference_no)
+
+
+# ============================================================================
+# CRUD Instances - Generic CRUD operations for each entity
+# ============================================================================
+
+# ITP CRUD
+itp_crud = BaseCRUD(
+    model=ITP,
+    entity_name="ITP",
+    reference_field="referenceNo",
+    list_fields=["attachments"],
+    search_fields=["referenceNo", "projectTitle", "activity"],
+    date_filter_field="created_at",
+    has_workflow=True,
+    auto_generate_reference=True,
+    reference_doc_type="ITP"
+)
+
+# NCR CRUD
+ncr_crud = BaseCRUD(
+    model=NCR,
+    entity_name="NCR",
+    reference_field="documentNumber",
+    list_fields=["defectPhotos", "improvementPhotos", "attachments"],
+    search_fields=["documentNumber", "subject"],
+    date_filter_field="issuedDate",
+    has_workflow=True,
+    auto_generate_reference=True,
+    reference_doc_type="NCR"
+)
+
+# NOI CRUD
+noi_crud = BaseCRUD(
+    model=NOI,
+    entity_name="NOI",
+    reference_field="documentNumber",
+    list_fields=["attachments"],
+    search_fields=["documentNumber", "subject"],
+    date_filter_field="issuedDate",
+    has_workflow=True,
+    auto_generate_reference=True,
+    reference_doc_type="NOI"
+)
+
+# ITR CRUD
+itr_crud = BaseCRUD(
+    model=ITR,
+    entity_name="ITR",
+    reference_field="referenceNo",
+    list_fields=["attachments"],
+    search_fields=["referenceNo", "description"],
+    date_filter_field="created_at",
+    has_workflow=True,
+    auto_generate_reference=True,
+    reference_doc_type="ITR"
+)
+
+# PQP CRUD
+pqp_crud = BaseCRUD(
+    model=PQP,
+    entity_name="PQP",
+    reference_field="pqpNo",
+    list_fields=["attachments"],
+    search_fields=["pqpNo", "title"],
+    date_filter_field="createdAt",
+    has_workflow=True,
+    auto_generate_reference=True,
+    reference_doc_type="PQP"
+)
+
+# OBS CRUD
+obs_crud = BaseCRUD(
+    model=OBS,
+    entity_name="OBS",
+    reference_field="documentNumber",
+    list_fields=["attachments", "photos"],
+    search_fields=["documentNumber", "subject"],
+    date_filter_field="issuedDate",
+    has_workflow=True,
+    auto_generate_reference=True,
+    reference_doc_type="OBS"
+)
+
+# Contractor CRUD
+contractor_crud = BaseCRUD(
+    model=Contractor,
+    entity_name="Contractor",
+    reference_field="name",
+    list_fields=[],
+    search_fields=["name", "abbreviation", "scope"],
+    has_workflow=False,
+    auto_generate_reference=False
+)
+
+# FollowUp CRUD
+followup_crud = BaseCRUD(
+    model=FollowUp,
+    entity_name="FollowUp",
+    reference_field="id",
+    list_fields=[],
+    search_fields=["vendor", "description"],
+    date_filter_field="dueDate",
+    has_workflow=False,
+    auto_generate_reference=False
+)
+
+# Checklist CRUD
+checklist_crud = BaseCRUD(
+    model=Checklist,
+    entity_name="Checklist",
+    reference_field="recordsNo",
+    list_fields=[],
+    search_fields=["recordsNo", "packageName", "activity"],
+    date_filter_field="date",
+    has_workflow=True,
+    auto_generate_reference=False
+)
+
+
+# ============================================================================
+# Backward-Compatible CRUD Functions
+# These functions maintain the existing API while using the new CRUD instances
+#
+# REFACTORING PROGRESS:
+# - ITP: ✅ Refactored (reduced from ~85 lines to ~19 lines)
+# - NCR: Can be refactored using ncr_crud instance (same pattern as ITP)
+# - NOI: Can be refactored using noi_crud instance
+# - ITR: Can be refactored using itr_crud instance
+# - PQP: Can be refactored using pqp_crud instance
+# - OBS: Can be refactored using obs_crud instance
+# - Contractor: Can be refactored using contractor_crud instance
+# - FollowUp: Can be refactored using followup_crud instance
+# - Checklist: Can be refactored using checklist_crud instance
+#
+# Pattern for each entity (example with NCR):
+#   def get_ncr(db, ncr_id): return ncr_crud.get(db, ncr_id)
+#   def get_ncrs(db, skip, limit, ...): return ncr_crud.get_all(db, skip, limit, ...)
+#   def create_ncr(db, ncr, user_id, username): return ncr_crud.create(db, ncr, user_id, username)
+#   def update_ncr(db, ncr_id, ncr, user_id, username): return ncr_crud.update(db, ncr_id, ncr, user_id, username)
+#   def delete_ncr(db, ncr_id, user_id, username): return ncr_crud.delete(db, ncr_id, user_id, username)
+#
+# BENEFITS:
+# - Reduces code from ~1034 lines to ~400-500 lines (50-60% reduction)
+# - Eliminates duplication across entities
+# - Centralizes audit logging, workflow validation, reference number generation
+# - Makes adding new entities much faster (just configure CRUD instance)
+# ============================================================================
+
 # ---- ITP ----
 def get_itp(db: Session, itp_id: str):
-    return db.query(ITP).filter(ITP.id == itp_id).first()
+    """Get single ITP by ID."""
+    return itp_crud.get(db, itp_id)
 
-def get_itps(db: Session, skip: int = 0, limit: int = 100, 
-               search: str = None, status: str = None, 
+def get_itps(db: Session, skip: int = 0, limit: int = 100,
+               search: str = None, status: str = None,
                start_date: str = None, end_date: str = None):
-    query = db.query(ITP)
-    
-    if search:
-        query = query.filter(
-            (ITP.referenceNo.ilike(f"%{search}%")) |
-            (ITP.projectTitle.ilike(f"%{search}%")) |
-            (ITP.activity.ilike(f"%{search}%"))
-        )
-    if status:
-        query = query.filter(ITP.status == status)
-    if start_date:
-        query = query.filter(ITP.created_at >= start_date) # 假設 ITP 有 created_at 或用其他日期欄位
-    if end_date:
-        query = query.filter(ITP.created_at <= end_date)
-        
-    return query.offset(skip).limit(limit).all()
+    """Get all ITPs with optional filters."""
+    return itp_crud.get_all(db, skip, limit, search, status, start_date, end_date)
 
 def create_itp(db: Session, itp: schemas.ITPCreate, user_id: int = None, username: str = None):
-    data = _json_serialize(itp.dict(), ['attachments'])
-    # 自動產生 Reference No（若未提供或為空）
-    if not data.get('referenceNo'):
-        data['referenceNo'] = generate_reference_no(db, data.get('vendor', ''), 'ITP')
-    db_itp = ITP(**data)
-    if not db_itp.id:
-        db_itp.id = str(uuid.uuid4())
-    db.add(db_itp)
-    
-    log_audit(db, "CREATE", "ITP", db_itp.id, db_itp.referenceNo, 
-              new_value=itp.dict(), user_id=user_id, username=username)
-    
-    db.commit()
-    db.refresh(db_itp)
-    return db_itp
+    """Create new ITP."""
+    return itp_crud.create(db, itp, user_id, username)
 
 def update_itp(db: Session, itp_id: str, itp: schemas.ITPUpdate, user_id: int = None, username: str = None):
-    db_itp = db.query(ITP).filter(ITP.id == itp_id).first()
-    if db_itp:
-        # 狀態轉換檢查
-        if itp.status and not WorkflowEngine.validate_transition("ITP", db_itp.status, itp.status):
-            raise ValueError(f"Invalid status transition from {db_itp.status} to {itp.status}")
-
-        old_val = {c.name: getattr(db_itp, c.name) for c in db_itp.__table__.columns}
-        d = itp.dict(exclude_unset=True)
-        d = _json_serialize(d, ['attachments'])
-        for key, value in d.items():
-            setattr(db_itp, key, value)
-        
-        log_audit(db, "UPDATE", "ITP", itp_id, db_itp.referenceNo, 
-                  old_value=old_val, new_value=itp.dict(exclude_unset=True), 
-                  user_id=user_id, username=username)
-            
-        db.commit()
-        db.refresh(db_itp)
-    return db_itp
+    """Update existing ITP."""
+    return itp_crud.update(db, itp_id, itp, user_id, username)
 
 def delete_itp(db: Session, itp_id: str, user_id: int = None, username: str = None):
-    db_itp = db.query(ITP).filter(ITP.id == itp_id).first()
-    if db_itp:
-        old_val = {c.name: getattr(db_itp, c.name) for c in db_itp.__table__.columns}
-        log_audit(db, "DELETE", "ITP", itp_id, db_itp.referenceNo, 
-                  old_value=old_val, user_id=user_id, username=username)
-        db.delete(db_itp)
-        db.commit()
-    return db_itp
+    """Delete ITP."""
+    return itp_crud.delete(db, itp_id, user_id, username)
 
 def update_itp_detail(db: Session, itp_id: str, detail_body: dict, user_id: int = None, username: str = None):
-    db_itp = db.query(ITP).filter(ITP.id == itp_id).first()
-    if db_itp:
-        old_val = db_itp.detail_data
-        db_itp.detail_data = json.dumps(detail_body) if detail_body else None
-        
-        log_audit(db, "UPDATE_DETAIL", "ITP", itp_id, db_itp.referenceNo, 
-                  old_value=old_val, new_value=detail_body, 
-                  user_id=user_id, username=username)
-        
-        db.commit()
-        db.refresh(db_itp)
-    return db_itp
+    """Update ITP detail_data field."""
+    return itp_crud.update_detail(db, itp_id, detail_body, "detail_data", user_id, username)
 
 # ---- NCR ----
 def get_ncr(db: Session, ncr_id: str):
@@ -761,13 +857,20 @@ def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
 
 def get_users(db: Session, skip: int = 0, limit: int = 100):
-    users = db.query(models.User).offset(skip).limit(limit).all()
+    """
+    Get users with eager-loaded roles to avoid N+1 queries.
+    Uses joinedload() to fetch user and role data in a single query.
+    """
+    users = db.query(models.User).options(
+        joinedload(models.User.role)  # Eager load the role relationship
+    ).offset(skip).limit(limit).all()
+
     # Populate role_name for UI convenience
+    # No additional queries needed - role is already loaded
     for user in users:
-        if user.role_id:
-            role = get_role(db, user.role_id)
-            if role:
-                user.role_name = role.name
+        if user.role:
+            user.role_name = user.role.name
+
     return users
 
 def create_user(db: Session, user: schemas.UserCreate, hashed_password: str):

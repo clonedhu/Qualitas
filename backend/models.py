@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
+
 from database import Base
+
 
 class ITP(Base):
     __tablename__ = "itp"
@@ -323,8 +325,8 @@ class Role(Base):
     name = Column(String, unique=True, index=True)
     description = Column(String, nullable=True)
     # permissions column is deprecated in favor of relationship
-    # permissions = Column(Text, nullable=True) 
-    
+    # permissions = Column(Text, nullable=True)
+
     # Relationships
     permissions_rel = relationship("Permission", secondary="role_permissions", backref="roles")
 

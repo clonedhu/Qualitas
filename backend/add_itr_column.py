@@ -1,6 +1,6 @@
 
-import sqlite3
 import os
+import sqlite3
 
 DB_FILE = os.path.join("backend", "qualitas.db")
 
@@ -11,12 +11,12 @@ def add_column():
 
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    
+
     try:
         # Check if column exists
         cursor.execute("PRAGMA table_info(itr)")
         columns = [info[1] for info in cursor.fetchall()]
-        
+
         if "detail_data" in columns:
             print("Column 'detail_data' already exists in 'itr' table.")
         else:
@@ -24,7 +24,7 @@ def add_column():
             cursor.execute("ALTER TABLE itr ADD COLUMN detail_data TEXT")
             conn.commit()
             print("Column added successfully.")
-            
+
     except Exception as e:
         print(f"Error: {e}")
     finally:

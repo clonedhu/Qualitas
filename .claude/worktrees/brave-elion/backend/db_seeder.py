@@ -1,15 +1,14 @@
 from datetime import datetime
 import uuid
 import json
+import os
 import schemas
 import crud
 import models
 from database import SessionLocal
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
-
-# Import configuration if needed, but schemas/models usually suffice
-# from core.config import settings
+from core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -81,16 +80,33 @@ def seed_initial_data():
             print("Seeded user role.")
         
         # 3. Create Admin User if not exists
-        admin_user = crud.get_user_by_email(db, "admin@example.com")
+        admin_email = os.getenv("INITIAL_ADMIN_EMAIL", "admin@example.com")
+        admin_password = os.getenv("INITIAL_ADMIN_PASSWORD")
+
+        # Check if admin already exists
+        admin_user = crud.get_user_by_email(db, admin_email)
         if not admin_user:
-            crud.create_user(db, schemas.UserCreate(
-                username="admin",
-                email="admin@example.com",
-                password="admin",
-                full_name="System Administrator",
-                role_id=admin_role.id
-            ), hashed_password=get_password_hash("admin"))
-            print("Seeded admin user.")
+            if not admin_password:
+                print("WARNING: INITIAL_ADMIN_PASSWORD not set in environment variables.")
+                print("Skipping admin user creation. Please set INITIAL_ADMIN_PASSWORD and run seeder again.")
+                print("This is a security measure to prevent default credentials in production.")
+            else:
+                # Validate password strength
+                if len(admin_password) < 8:
+                    print("ERROR: INITIAL_ADMIN_PASSWORD must be at least 8 characters long.")
+                    print("Skipping admin user creation for security reasons.")
+                else:
+                    crud.create_user(db, schemas.UserCreate(
+                        username="admin",
+                        email=admin_email,
+                        password=admin_password,
+                        full_name="System Administrator",
+                        role_id=admin_role.id
+                    ), hashed_password=get_password_hash(admin_password))
+                    print(f"✓ Seeded admin user with email: {admin_email}")
+                    print("IMPORTANT: Change the admin password immediately after first login!")
+        else:
+            print(f"Admin user already exists with email: {admin_email}")
 
         # 4. Create Seed Checklist Records if none exists
         if db.query(models.Checklist).count() == 0:

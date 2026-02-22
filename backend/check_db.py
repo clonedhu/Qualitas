@@ -1,5 +1,5 @@
+
 from sqlalchemy import create_engine, text
-import os
 
 db_path = "c:\\Users\\YUKAI\\Desktop\\Qualitas\\backend\\qualitas.db"
 engine = create_engine(f"sqlite:///{db_path}")
@@ -9,12 +9,12 @@ with engine.connect() as conn:
     users = conn.execute(text("SELECT id, username, email, role_id FROM users")).fetchall()
     for u in users:
         print(u)
-        
+
     print("\n--- ROLES ---")
     roles = conn.execute(text("SELECT id, name FROM roles")).fetchall()
     for r in roles:
         print(r)
-        
+
     print("\n--- ROLE PERMISSIONS ---")
     rp = conn.execute(text("SELECT * FROM role_permissions")).fetchall()
     for r in rp:

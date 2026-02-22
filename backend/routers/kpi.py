@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from typing import List, Optional
-import schemas
+
 import crud
-from database import get_db
-from middleware.auth import get_current_user
+import schemas
 from core.dependencies import RoleChecker
-from core.perms import KPI_VIEW, KPI_UPDATE
+from core.perms import KPI_UPDATE, KPI_VIEW
+from database import get_db
 
 router = APIRouter(
     prefix="/kpi",
@@ -22,7 +22,7 @@ def read_kpi_weight(db: Session = Depends(get_db), current_user: schemas.User = 
 
 @router.put("/weights", response_model=schemas.KPIWeight)
 def update_kpi_weight(
-    weight: schemas.KPIWeightUpdate, 
+    weight: schemas.KPIWeightUpdate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(KPI_UPDATE))
 ):
@@ -31,10 +31,10 @@ def update_kpi_weight(
 
 # --- Owner Performance Endpoints ---
 
-@router.get("/performance", response_model=List[schemas.OwnerPerformance])
+@router.get("/performance", response_model=list[schemas.OwnerPerformance])
 def read_owner_performances(
-    month: Optional[str] = None, 
- 
+    month: str | None = None,
+
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(KPI_VIEW))
 ):
@@ -42,7 +42,7 @@ def read_owner_performances(
 
 @router.post("/performance", response_model=schemas.OwnerPerformance)
 def create_owner_performance(
-    perf: schemas.OwnerPerformanceCreate, 
+    perf: schemas.OwnerPerformanceCreate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(KPI_UPDATE))
 ):

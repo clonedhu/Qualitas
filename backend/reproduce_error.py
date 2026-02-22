@@ -1,6 +1,7 @@
 
-import requests
 import time
+
+import requests
 
 try:
     # Login
@@ -23,11 +24,11 @@ try:
     }
     r_create = requests.post('http://localhost:8000/api/checklist/', json=payload, headers=headers)
     print(f'Create status: {r_create.status_code}')
-    
+
     if r_create.status_code == 200:
         chk_id = r_create.json()['id']
         print(f'Created ID: {chk_id}')
-        
+
         # Delete
         r_delete = requests.delete(f'http://localhost:8000/api/checklist/{chk_id}/', headers=headers)
         print(f'Delete status: {r_delete.status_code}')

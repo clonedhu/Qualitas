@@ -1,11 +1,12 @@
 import asyncio
-from sqlalchemy.orm import Session
+
+from jose import jwt
+
+import crud
+from core.config import settings
 from database import SessionLocal
 from middleware.auth import get_current_user
-from core.config import settings
-from jose import jwt
-import crud
-import models
+
 
 def create_test_token(username: str):
     data = {"sub": username}

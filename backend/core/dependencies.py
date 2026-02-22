@@ -1,8 +1,17 @@
-from fastapi import Depends, HTTPException, status
 import logging
+
+from fastapi import Depends, HTTPException, status
+
 import models
-import schemas
 from core.security import get_current_user
+from sqlalchemy.orm import Session
+from database import get_db
+from repositories.user_repository import UserRepository
+from services.user_service import UserService
+
+def get_user_service(db: Session = Depends(get_db)) -> UserService:
+    repo = UserRepository(db)
+    return UserService(repo)
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +37,12 @@ class RoleChecker:
         # 3. Check if role has the required permission
         # Using the permissions_rel relationship (List[Permission])
         user_permissions = [p.code for p in user.role.permissions_rel]
-        
+
         if self.required_permission not in user_permissions:
             logger.debug(f"Permission denied. User: {user.username}, Role: {user.role.name}, Required: {self.required_permission}, Has: {user_permissions}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Operation not permitted. Required: {self.required_permission}"
             )
-        
+
         return user

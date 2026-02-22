@@ -1,6 +1,8 @@
 
-from main import app
 from fastapi.routing import APIRoute
+
+from main import app
+
 
 def list_routes():
     print("Listing all registered routes:")

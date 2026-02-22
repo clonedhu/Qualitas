@@ -1,6 +1,6 @@
-import requests
-import json
 import sys
+
+import requests
 
 BASE_URL = "http://localhost:8000/api"
 
@@ -16,7 +16,7 @@ def test_pqp_attachments():
         "updatedAt": "2023-10-27",
         "attachments": ["data:image/png;base64,fakeimage", "http://example.com/file.pdf"]
     }
-    
+
     print("Creating PQP...")
     try:
         resp = requests.post(f"{BASE_URL}/pqp/", json=payload)
@@ -34,13 +34,13 @@ def test_pqp_attachments():
     if 'attachments' not in data:
         print("Error: 'attachments' field missing in create response")
         sys.exit(1)
-    
+
     # Check if attachments is None or empty list
     attachments = data.get('attachments')
     if attachments is None:
         print("Error: attachments is None")
         sys.exit(1)
-        
+
     if len(attachments) != 2:
         print(f"Error: Expected 2 attachments, got {len(attachments)}")
         print(attachments)
@@ -61,7 +61,7 @@ def test_pqp_attachments():
     if 'attachments' not in fetched_data:
         print("Error: 'attachments' field missing in get response")
         sys.exit(1)
-        
+
     fetched_attachments = fetched_data.get('attachments')
     if fetched_attachments != payload['attachments']:
         print("Error: Attachments mismatch")

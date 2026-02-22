@@ -1,5 +1,5 @@
+
 from sqlalchemy import create_engine, text
-import os
 
 db_path = "c:\\Users\\YUKAI\\Desktop\\Qualitas\\backend\\qualitas.db"
 engine = create_engine(f"sqlite:///{db_path}")

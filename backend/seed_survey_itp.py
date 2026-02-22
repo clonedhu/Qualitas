@@ -1,16 +1,15 @@
-import sys
-import os
 import json
+import os
+import sys
 import uuid
 from datetime import datetime
 
 # Add the current directory (backend) to sys.path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from database import SessionLocal
 import models
-import crud
-import schemas
+from database import SessionLocal
+
 
 def seed_survey_itp():
     db = SessionLocal()

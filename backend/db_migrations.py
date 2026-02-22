@@ -1,5 +1,5 @@
 from sqlalchemy import text
-from sqlalchemy.orm import Session
+
 from database import engine
 
 # Migration: Add unique indexes on reference/document number columns for each table
@@ -21,7 +21,7 @@ def add_unique_index_if_not_exists(conn, table: str, column: str) -> None:
     # 安全檢查：只允許預定義的表格和欄位組合
     if (table, column) not in ALLOWED_INDEX_CONFIGS:
         raise ValueError(f"Invalid table/column combination: {table}.{column}")
-    
+
     try:
         # 使用預定義的安全值，因為已通過白名單驗證
         conn.execute(text(f"CREATE UNIQUE INDEX IF NOT EXISTS ix_{table}_{column}_unique ON {table} ({column})"))
@@ -32,7 +32,7 @@ def add_unique_index_if_not_exists(conn, table: str, column: str) -> None:
 def run_migrations():
     """Run all database migrations"""
     print("Running database migrations...")
-    
+
     # 1. Add unique constraint to reference_sequences
     try:
         with engine.connect() as conn:
@@ -48,10 +48,10 @@ def run_migrations():
 
     # 3. Add missing columns (NCR, NOI, ITP, etc.)
     _add_missing_columns()
-    
+
     # 4. Create document_naming_rules
     _create_naming_rules_table()
-    
+
     print("Migrations completed.")
 
 def _add_missing_columns():
@@ -62,22 +62,22 @@ def _add_missing_columns():
             _add_column_if_missing(conn, "ncr", "last_reminded_at", "TEXT")
             _add_column_if_missing(conn, "ncr", "attachments", "TEXT")
             _add_column_if_missing(conn, "ncr", "noiNumber", "VARCHAR")
-            
+
             # NOI
             for col in ["attachments", "remark", "closeoutDate", "ncrNumber", "dueDate", "last_reminded_at"]:
                 _add_column_if_missing(conn, "noi", col, "TEXT")
-            
+
             # ITP
             _add_column_if_missing(conn, "itp", "detail_data", "TEXT")
             _add_column_if_missing(conn, "itp", "dueDate", "TEXT")
             _add_column_if_missing(conn, "itp", "last_reminded_at", "TEXT")
             _add_column_if_missing(conn, "itp", "attachments", "TEXT")
-            
+
             # OBS
             _add_column_if_missing(conn, "obs", "dueDate", "TEXT")
             _add_column_if_missing(conn, "obs", "last_reminded_at", "TEXT")
             _add_column_if_missing(conn, "obs", "attachments", "TEXT")
-            
+
             # ITR
             _add_column_if_missing(conn, "itr", "last_reminded_at", "TEXT")
             _add_column_if_missing(conn, "itr", "dueDate", "TEXT")
@@ -86,10 +86,10 @@ def _add_missing_columns():
 
             # FollowUp
             _add_column_if_missing(conn, "followup", "last_reminded_at", "TEXT")
-            
+
             # PQP
             _add_column_if_missing(conn, "pqp", "attachments", "TEXT")
-            
+
             # Checklist
             _add_column_if_missing(conn, "checklist", "noiNumber", "VARCHAR")
 
@@ -99,7 +99,7 @@ def _add_missing_columns():
 
             # Audits - 新增 vendor_id 外鍵欄位
             _add_column_if_missing(conn, "audits", "vendor_id", "VARCHAR")
-            
+
             conn.commit()
     except Exception as e:
         print(f"Migration warning: {e}")

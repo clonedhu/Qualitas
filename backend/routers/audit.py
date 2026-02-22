@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-import schemas
+
 import crud
-from database import get_db
-from middleware.auth import get_current_user
+import schemas
 from core.dependencies import RoleChecker
-from core.perms import AUDIT_VIEW, AUDIT_CREATE, AUDIT_UPDATE, AUDIT_DELETE
+from core.perms import AUDIT_CREATE, AUDIT_DELETE, AUDIT_UPDATE, AUDIT_VIEW
+from database import get_db
 
 router = APIRouter(
     prefix="/audit",
@@ -14,7 +14,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@router.get("/", response_model=List[schemas.Audit])
+@router.get("/", response_model=list[schemas.Audit])
 def read_audits(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(AUDIT_VIEW))):
     return crud.get_audits(db, skip=skip, limit=limit)
 
@@ -27,7 +27,7 @@ def read_audit(audit_id: str, db: Session = Depends(get_db), current_user: schem
 
 @router.post("/", response_model=schemas.Audit)
 def create_audit(
-    audit: schemas.AuditCreate, 
+    audit: schemas.AuditCreate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(AUDIT_CREATE))
 ):
@@ -35,8 +35,8 @@ def create_audit(
 
 @router.put("/{audit_id}", response_model=schemas.Audit)
 def update_audit(
-    audit_id: str, 
-    audit: schemas.AuditUpdate, 
+    audit_id: str,
+    audit: schemas.AuditUpdate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(AUDIT_UPDATE))
 ):
@@ -47,7 +47,7 @@ def update_audit(
 
 @router.delete("/{audit_id}")
 def delete_audit(
-    audit_id: str, 
+    audit_id: str,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(AUDIT_DELETE))
 ):

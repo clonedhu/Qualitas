@@ -1,7 +1,7 @@
-import requests
 import json
 import uuid
-from datetime import datetime
+
+import requests
 
 BASE_URL = "http://127.0.0.1:3002/api"
 TOKEN = None
@@ -34,7 +34,7 @@ def test_module_crud(module_name, url_suffix, create_data, update_data, id_field
     print(f"\n--- Testing {module_name} ---")
     headers = get_headers()
     url = f"{BASE_URL}/{url_suffix}/"
-    
+
     # 1. CREATE
     print(f"CREATE Payload: {json.dumps(create_data)}")
     try:
@@ -42,13 +42,13 @@ def test_module_crud(module_name, url_suffix, create_data, update_data, id_field
         if resp.status_code not in [200, 201]:
             print(f"❌ CREATE Failed: {resp.status_code} {resp.text}")
             return False
-        
+
         item = resp.json()
         item_id = item.get(id_field)
         if not item_id:
              print(f"❌ CREATE Success but no ID returned: {item}")
              return False
-             
+
         print(f"✅ CREATE Success. ID: {item_id}")
     except Exception as e:
         print(f"❌ CREATE Exception: {e}")
@@ -62,7 +62,7 @@ def test_module_crud(module_name, url_suffix, create_data, update_data, id_field
         if resp.status_code != 200:
             print(f"❌ UPDATE Failed: {resp.status_code} {resp.text}")
             return False
-        print(f"✅ UPDATE Success")
+        print("✅ UPDATE Success")
     except Exception as e:
         print(f"❌ UPDATE Exception: {e}")
         return False
@@ -74,11 +74,11 @@ def test_module_crud(module_name, url_suffix, create_data, update_data, id_field
         if resp.status_code != 200:
             print(f"❌ DELETE Failed: {resp.status_code} {resp.text}")
             return False
-        print(f"✅ DELETE Success")
+        print("✅ DELETE Success")
     except Exception as e:
         print(f"❌ DELETE Exception: {e}")
         return False
-        
+
     return True
 
 def run_health_check():
@@ -90,7 +90,7 @@ def run_health_check():
     itp_create = {
         "referenceNo": f"ITP-TEST-{uuid.uuid4().hex[:6]}",
         "description": "Health Check ITP",
-        "vendor": "Vendor A", 
+        "vendor": "Vendor A",
         "status": "Draft",
         "rev": "Rev1.0"
     }
@@ -113,7 +113,7 @@ def run_health_check():
         "submit": "Initial"
     }
     ncr_update = {
-        "description": "Updated Health Check NCR", 
+        "description": "Updated Health Check NCR",
         "status": "In Progress"
     }
     test_module_crud("NCR", "ncr", ncr_create, ncr_update)
@@ -145,7 +145,7 @@ def run_health_check():
     }
     checklist_update = {
         "activity": "Updated CL",
-        "contractor": "Vendor B" 
+        "contractor": "Vendor B"
     }
     # Note endpoint might be 'checklist' or 'checklists'? Checking routers... it's 'checklist'
     test_module_crud("Checklist", "checklist", checklist_create, checklist_update)

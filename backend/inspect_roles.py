@@ -1,6 +1,6 @@
-from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import Role
+
 
 def inspect_roles():
     db = SessionLocal()

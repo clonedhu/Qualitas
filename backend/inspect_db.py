@@ -1,31 +1,9 @@
 import sqlite3
-import os
 
-db_path = "qualitas.db"
-
-def inspect_db():
-    if not os.path.exists(db_path):
-        print(f"Error: {db_path} not found.")
-        return
-
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('checklist', 'checklists');")
-    tables = [row[0] for row in cursor.fetchall()]
-
-    
-    for table in tables:
-        print(f"\n--- Schema for table: {table} ---")
-        try:
-            cursor.execute(f"PRAGMA table_info({table})")
-            columns = cursor.fetchall()
-            for col in columns:
-                print(f"ID: {col[0]}, Name: {col[1]}, Type: {col[2]}, NotNull: {col[3]}, PK: {col[5]}")
-        except Exception as e:
-            print(f"Error inspecting {table}: {e}")
-
-    conn.close()
-
-if __name__ == "__main__":
-    inspect_db()
+conn = sqlite3.connect('qualitas.db')
+cursor = conn.cursor()
+cursor.execute("SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='audit_logs'")
+for row in cursor.fetchall():
+    if row[0]:
+        print(row[0])
+conn.close()

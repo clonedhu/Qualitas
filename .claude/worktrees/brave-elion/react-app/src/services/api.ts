@@ -9,15 +9,17 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  // SECURITY: Enable credentials to send httpOnly cookies with requests
+  withCredentials: true,
 });
 
-// Request interceptor to add token
+// Request interceptor for additional config
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // SECURITY: Tokens are now in httpOnly cookies, not localStorage
+    // No need to add Authorization header manually
+    // The browser automatically sends cookies with requests
+
     // Don't override Content-Type if it's already set
     if (!config.headers['Content-Type'] && !config.headers['content-type']) {
       config.headers['Content-Type'] = 'application/json';
@@ -41,7 +43,8 @@ api.interceptors.response.use(
       const isAlreadyOnLogin = window.location.pathname === '/login';
 
       if (!isAuthEndpoint && !isAlreadyOnLogin) {
-        localStorage.removeItem('token');
+        // SECURITY: No token in localStorage anymore - httpOnly cookie will be cleared by server
+        // Just redirect to login
         window.location.href = '/login';
       }
     }

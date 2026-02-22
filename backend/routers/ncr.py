@@ -1,12 +1,12 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-import schemas
+
 import crud
-from database import get_db
-from core.security import get_current_user
+import schemas
 from core.dependencies import RoleChecker
-from core.perms import NCR_VIEW, NCR_CREATE, NCR_UPDATE, NCR_DELETE, NCR_APPROVE, NCR_CLOSE
+from core.perms import NCR_CREATE, NCR_DELETE, NCR_UPDATE, NCR_VIEW
+from database import get_db
 
 router = APIRouter(
     prefix="/ncr",
@@ -15,10 +15,10 @@ router = APIRouter(
 )
 
 # 讀取操作 - 無需認證
-@router.get("/", response_model=List[schemas.NCR])
+@router.get("/", response_model=list[schemas.NCR])
 def read_ncrs(
-    skip: int = 0, 
-    limit: int = 500, 
+    skip: int = 0,
+    limit: int = 500,
     search: str = None,
     status: str = None,
     start_date: str = None,
@@ -27,12 +27,12 @@ def read_ncrs(
     current_user: schemas.User = Depends(RoleChecker(NCR_VIEW))
 ):
     return crud.get_ncrs(
-        db, 
-        skip=skip, 
-        limit=limit, 
-        search=search, 
-        status=status, 
-        start_date=start_date, 
+        db,
+        skip=skip,
+        limit=limit,
+        search=search,
+        status=status,
+        start_date=start_date,
         end_date=end_date
     )
 
@@ -46,7 +46,7 @@ def read_ncr(ncr_id: str, db: Session = Depends(get_db), current_user: schemas.U
 # 寫入操作 - 需要認證
 @router.post("/", response_model=schemas.NCR)
 def create_ncr(
-    ncr: schemas.NCRCreate, 
+    ncr: schemas.NCRCreate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(NCR_CREATE))
 ):
@@ -54,8 +54,8 @@ def create_ncr(
 
 @router.put("/{ncr_id}/", response_model=schemas.NCR)
 def update_ncr(
-    ncr_id: str, 
-    ncr: schemas.NCRUpdate, 
+    ncr_id: str,
+    ncr: schemas.NCRUpdate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(NCR_UPDATE))
 ):
@@ -69,7 +69,7 @@ def update_ncr(
 
 @router.delete("/{ncr_id}/")
 def delete_ncr(
-    ncr_id: str, 
+    ncr_id: str,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(NCR_DELETE))
 ):

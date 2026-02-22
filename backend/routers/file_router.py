@@ -4,19 +4,18 @@
 - 查詢指定實體的所有附件
 - 軟刪除附件
 """
+import logging
 import os
 import uuid
-import logging
 from datetime import datetime, timezone
-from typing import Optional
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from sqlalchemy.orm import Session
 
+import schemas
 from database import get_db
 from middleware.auth import get_current_user
 from models import Attachment
-import schemas
 from schemas import AttachmentResponse
 
 logger = logging.getLogger(__name__)
@@ -134,7 +133,7 @@ def get_entity_files(
     request: Request,
     entity_type: str,
     entity_id: str,
-    category: Optional[str] = None,
+    category: str | None = None,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(get_current_user),
 ) -> list[AttachmentResponse]:
@@ -142,7 +141,7 @@ def get_entity_files(
     query = db.query(Attachment).filter(
         Attachment.entity_type == entity_type,
         Attachment.entity_id == entity_id,
-        Attachment.is_deleted == False,
+        not Attachment.is_deleted,
     )
     if category:
         query = query.filter(Attachment.category == category)
@@ -161,7 +160,7 @@ def get_file(
     """取得單一附件 metadata"""
     attachment = db.query(Attachment).filter(
         Attachment.id == file_id,
-        Attachment.is_deleted == False,
+        not Attachment.is_deleted,
     ).first()
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")
@@ -177,7 +176,7 @@ def delete_file(
     """軟刪除附件（保留磁碟檔案，僅標記為已刪除）"""
     attachment = db.query(Attachment).filter(
         Attachment.id == file_id,
-        Attachment.is_deleted == False,
+        not Attachment.is_deleted,
     ).first()
     if not attachment:
         raise HTTPException(status_code=404, detail="Attachment not found")

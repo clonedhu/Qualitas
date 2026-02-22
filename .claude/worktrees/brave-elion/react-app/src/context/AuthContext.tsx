@@ -5,8 +5,8 @@ export type { User };
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
-  login: (accessToken: string, refreshToken: string) => Promise<void>;
-  logout: () => void;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -15,49 +15,57 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
+  // SECURITY: On mount, verify if session is valid via httpOnly cookie
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      verifyToken(token);
-    }
+    verifySession();
   }, []);
 
-  const verifyToken = async (token: string) => {
+  const verifySession = async () => {
     try {
+      // Token is automatically sent via httpOnly cookie
       const response = await api.get('/auth/verify');
-      if (response.data) {
+      if (response.data && response.data.ok) {
         setIsAuthenticated(true);
         await fetchUser();
       }
     } catch (error) {
-      localStorage.removeItem('token');
+      // Session invalid or expired
       setIsAuthenticated(false);
+      setUser(null);
     }
   };
 
   const fetchUser = async () => {
     try {
+      // Token is automatically sent via httpOnly cookie
       const response = await api.get('/user/profile');
       setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch user:', error);
+      setIsAuthenticated(false);
+      setUser(null);
     }
   };
 
-  const login = async (accessToken: string, refreshToken: string) => {
-    localStorage.setItem('token', accessToken);
-    if (refreshToken) {
-      localStorage.setItem('refreshToken', refreshToken);
-    }
+  const login = async () => {
+    // SECURITY: Token is stored in httpOnly cookie by backend
+    // No need to handle tokens in frontend JavaScript
+    // Just verify the session and fetch user data
     setIsAuthenticated(true);
     await fetchUser();
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
-    setIsAuthenticated(false);
-    setUser(null);
+  const logout = async () => {
+    try {
+      // Call backend logout endpoint to clear httpOnly cookie
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear local state regardless of API call result
+      setIsAuthenticated(false);
+      setUser(null);
+    }
   };
 
   return (

@@ -1,16 +1,15 @@
-from datetime import timedelta, datetime, timezone
-from typing import Optional
-from jose import jwt, JWTError
+from datetime import datetime, timedelta, timezone
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from core.config import settings
-import schemas
 import crud
+import schemas
+from core.config import settings
 from database import get_db
-
-from passlib.context import CryptContext
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
@@ -24,7 +23,7 @@ def get_password_hash(password):
 
 # ... (imports)
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=15))
     to_encode.update({"exp": expire})
@@ -45,8 +44,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         token_data = schemas.TokenData(username=username)
     except JWTError:
         raise credentials_exception
-    
-    user = crud.get_user_by_username(db, username=token_data.username)
+
+    from repositories.user_repository import UserRepository
+    from services.user_service import UserService
+    user_service = UserService(UserRepository(db))
+    user = user_service.get_user_by_username(username=token_data.username)
     if user is None:
         raise credentials_exception
     return user

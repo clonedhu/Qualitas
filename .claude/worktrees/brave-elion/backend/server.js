@@ -38,13 +38,8 @@ app.use(express.json({ limit: '50mb' }));
 // Apply rate limiting to all API routes
 app.use('/api', apiLimiter);
 
-// NOTE: Mock user data 已棄用，改由 Python 後端處理認證
-// 保留此處以便開發測試，生產環境應移除
-const ENABLE_MOCK_AUTH = process.env.ENABLE_MOCK_AUTH === 'true';
-
-// Token 過期時間（毫秒）
-const TOKEN_EXPIRY_MS = 30 * 60 * 1000; // 30 分鐘
-const tokenStore = new Map(); // 儲存 token 和過期時間
+// All authentication is now handled by Python FastAPI backend
+// Mock authentication has been removed for security reasons
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -78,82 +73,31 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
         console.log('[Backend] Login successful via Python backend for:', username);
         return res.json(response.data);
     } catch (pythonError) {
-        // Python 後端不可用或登入失敗，回退到 mock auth（僅開發環境）
-        if (ENABLE_MOCK_AUTH) {
-            console.log('[Backend] Python backend unavailable, using mock auth');
-            // Mock 認證邏輯（僅開發用）
-            if (username === 'admin@example.com' && password === 'admin') {
-                const tokenId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                const expiresAt = Date.now() + TOKEN_EXPIRY_MS;
-                tokenStore.set(tokenId, { userId: '1', expiresAt });
-
-                return res.json({
-                    access_token: tokenId,
-                    refresh_token: `refresh_${tokenId}`,
-                    token_type: 'bearer'
-                });
-            }
-        }
+        // SECURITY: No fallback authentication - must use Python backend
+        console.error('[Backend] Python backend authentication failed:', pythonError.message);
 
         // Python 後端回傳的錯誤
         if (pythonError.response) {
             return res.status(pythonError.response.status).json(pythonError.response.data);
         }
 
-        return res.status(401).json({ detail: 'Authentication service unavailable' });
+        // If Python backend is completely unavailable, return clear error
+        return res.status(503).json({
+            detail: 'Authentication service unavailable. Please ensure the backend server is running.'
+        });
     }
 });
 
-// Verify token endpoint - 帶有過期檢查
+// Verify token endpoint - proxy all verification to Python backend
 app.get('/api/auth/verify', (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ detail: 'Not authenticated' });
-    }
-
-    const token = authHeader.substring(7);
-
-    // 檢查 token 是否存在且未過期
-    const tokenData = tokenStore.get(token);
-    if (tokenData) {
-        if (Date.now() < tokenData.expiresAt) {
-            return res.json({ valid: true });
-        } else {
-            // Token 已過期，清除
-            tokenStore.delete(token);
-            return res.status(401).json({ detail: 'Token expired' });
-        }
-    }
-
-    // 嘗試代理到 Python 後端驗證
+    // SECURITY: All token verification handled by Python backend
     return createCrudProxy('/api/auth')(req, res);
 });
 
-// User profile endpoint
+// User profile endpoint - proxy to Python backend
 app.get('/api/user/profile', (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ detail: 'Not authenticated' });
-    }
-
-    const token = authHeader.substring(7);
-    if (token.startsWith('mock_access_token_')) {
-        // Extract user id from token
-        const parts = token.split('_');
-        const userId = parts[3];
-        const user = users.find(u => u.id === userId);
-
-        if (user) {
-            return res.json({
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                role: user.role
-            });
-        }
-    }
-
-    return res.status(401).json({ detail: 'Invalid token' });
+    // SECURITY: All user profile retrieval handled by Python backend
+    return createCrudProxy('/api/user')(req, res);
 });
 
 // Proxy CRUD paths to Python FastAPI backend (port 8000)

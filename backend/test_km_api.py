@@ -1,10 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
-from main import app
-from database import Base, engine, SessionLocal
+
 import models
-import schemas
 from core.security import create_access_token
+from database import SessionLocal, engine
+from main import app
 
 # Configure Test Database
 models.Base.metadata.create_all(bind=engine)
@@ -31,7 +31,7 @@ def admin_token(db_session):
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)
-    
+
     access_token = create_access_token(data={"sub": user.username})
     return {"Authorization": f"Bearer {access_token}"}
 
@@ -50,7 +50,7 @@ def test_create_km_article_with_strict_attachments(client, admin_token):
             }
         ]
     }
-    
+
     response = client.post("/api/km/", json=payload, headers=admin_token)
     assert response.status_code == 200
     data = response.json()
@@ -59,7 +59,7 @@ def test_create_km_article_with_strict_attachments(client, admin_token):
     # Attachments should be correctly parsed and returned as list of dicts
     assert len(data["attachments"]) == 1
     assert data["attachments"][0]["name"] == "test_doc.pdf"
-    
+
 def test_create_km_article_invalid_attachments(client, admin_token):
     payload = {
         "title": "Invalid Type Test",
@@ -70,6 +70,6 @@ def test_create_km_article_invalid_attachments(client, admin_token):
             }
         ]
     }
-    
+
     response = client.post("/api/km/", json=payload, headers=admin_token)
     assert response.status_code == 422 # Unprocessable Entity due to Pydantic validation

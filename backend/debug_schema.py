@@ -1,6 +1,6 @@
 
-import sqlite3
 import os
+import sqlite3
 
 db_path = "qualitas.db"
 

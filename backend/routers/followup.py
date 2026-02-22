@@ -1,13 +1,13 @@
 
-from fastapi import APIRouter, Depends, HTTPException, status
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
-import schemas
+
 import crud
-from database import get_db
-from middleware.auth import get_current_user
+import schemas
 from core.dependencies import RoleChecker
-from core.perms import FOLLOWUP_VIEW, FOLLOWUP_CREATE, FOLLOWUP_UPDATE, FOLLOWUP_DELETE
+from core.perms import FOLLOWUP_CREATE, FOLLOWUP_DELETE, FOLLOWUP_UPDATE, FOLLOWUP_VIEW
+from database import get_db
 
 router = APIRouter(
     prefix="/followup",
@@ -16,7 +16,7 @@ router = APIRouter(
 )
 
 # 讀取操作 - 需要 FOLLOWUP_VIEW
-@router.get("/", response_model=List[schemas.FollowUp])
+@router.get("/", response_model=list[schemas.FollowUp])
 def read_followups(skip: int = 0, limit: int = 500, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(FOLLOWUP_VIEW))):
     return crud.get_followups(db, skip=skip, limit=limit)
 
@@ -30,7 +30,7 @@ def read_followup(followup_id: str, db: Session = Depends(get_db), current_user:
 # 寫入操作 - 需要認證
 @router.post("/", response_model=schemas.FollowUp)
 def create_followup(
-    followup: schemas.FollowUpCreate, 
+    followup: schemas.FollowUpCreate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(FOLLOWUP_CREATE))
 ):
@@ -38,8 +38,8 @@ def create_followup(
 
 @router.put("/{followup_id}", response_model=schemas.FollowUp)
 def update_followup(
-    followup_id: str, 
-    followup: schemas.FollowUpUpdate, 
+    followup_id: str,
+    followup: schemas.FollowUpUpdate,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(FOLLOWUP_UPDATE))
 ):
@@ -50,7 +50,7 @@ def update_followup(
 
 @router.delete("/{followup_id}")
 def delete_followup(
-    followup_id: str, 
+    followup_id: str,
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(RoleChecker(FOLLOWUP_DELETE))
 ):

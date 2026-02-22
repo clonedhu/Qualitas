@@ -19,7 +19,9 @@
       "Bash(Start-Sleep 1)",
       "Bash(Write-Host \"Done\")",
       "Bash(exit:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(code:*)",
+      "Bash(wc:*)"
     ]
   }
 }

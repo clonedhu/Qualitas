@@ -1,5 +1,5 @@
+
 import requests
-import json
 
 BASE_URL = "http://127.0.0.1:8001/api"
 TOKEN = None
@@ -36,13 +36,13 @@ def test_checklist_python():
         "itrId": None,
         "itrNumber": None
     }
-    
+
     print(f"Creating checklist via Python port 8000: {create_url}")
     try:
         resp = requests.post(create_url, json=checklist_data, headers=headers)
         print(f"Status Code: {resp.status_code}")
         print(f"Response: {resp.text}")
-        
+
         if resp.status_code == 200:
             chk_id = resp.json()['id']
             # Test Update
@@ -54,7 +54,7 @@ def test_checklist_python():
             }
             # Note: ChecklistUpdate has contractor: Optional[str]
             # Passing it should trigger the fix in update_checklist
-            
+
             resp_upd = requests.put(update_url, json=update_data, headers=headers)
             print(f"Update Status: {resp_upd.status_code}")
             print(f"Update Response: {resp_upd.text}")

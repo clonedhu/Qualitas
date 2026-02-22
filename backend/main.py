@@ -1,18 +1,37 @@
+import logging
+import os
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-import logging
-import os
 
-from core.config import settings
-import models
-from database import engine
 import db_migrations
 import db_seeder
-from scheduler import start_scheduler
+import models
+from core.config import settings
+from database import engine
 from middleware.rate_limiter import RateLimitMiddleware
-from routers import itp, ncr, noi, itr, pqp, obs, contractors, followup, iam, audit, checklist, kpi, file_router, fat, auth, settings as settings_router, km
+from routers import (
+    audit,
+    auth,
+    checklist,
+    contractors,
+    fat,
+    file_router,
+    followup,
+    iam,
+    itp,
+    itr,
+    km,
+    kpi,
+    ncr,
+    noi,
+    obs,
+    pqp,
+)
+from routers import settings as settings_router
+from scheduler import start_scheduler
 
 # Setup Logger
 logging.basicConfig(
@@ -65,14 +84,15 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # API Router
 from fastapi import APIRouter
+
 api = APIRouter(prefix="/api")
 
 # Include Routers
 # Added auth and settings_router
 for router in [
-    auth, 
-    settings_router, 
-    iam, 
+    auth,
+    settings_router,
+    iam,
     itp, ncr, noi, itr, pqp, obs, contractors, followup, audit, checklist, kpi, file_router, fat, km
 ]:
     api.include_router(router.router)

@@ -1,11 +1,11 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
 
-from database import get_db
 import models
 import schemas
-from middleware.auth import get_current_user, PermissionChecker
+from database import get_db
+from middleware.auth import PermissionChecker, get_current_user
 
 DEFAULT_NAMING_RULES = [
     {"doc_type": "itp", "prefix": "QTS-RKS-[ABBREV]-ITP-", "sequence_digits": 6},
@@ -22,7 +22,7 @@ DEFAULT_NAMING_RULES = [
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
 
-@router.get("/naming-rules", response_model=List[schemas.NamingRule])
+@router.get("/naming-rules", response_model=list[schemas.NamingRule])
 def get_naming_rules(
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(get_current_user)
@@ -36,9 +36,9 @@ def get_naming_rules(
         rules = db.query(models.DocumentNamingRule).all()
     return rules
 
-@router.put("/naming-rules", response_model=List[schemas.NamingRule])
+@router.put("/naming-rules", response_model=list[schemas.NamingRule])
 def update_naming_rules(
-    rules: List[schemas.NamingRuleBase], 
+    rules: list[schemas.NamingRuleBase],
     db: Session = Depends(get_db),
     _: bool = Depends(PermissionChecker(["settings:manage:all"]))
 ):
@@ -47,7 +47,7 @@ def update_naming_rules(
             doc_type_normalized = (rule.doc_type or "").strip().lower()
             if not doc_type_normalized: continue
             seq_digits = rule.sequence_digits if rule.sequence_digits and 1 <= rule.sequence_digits <= 6 else 6
-            
+
             db_rule = db.query(models.DocumentNamingRule).filter(models.DocumentNamingRule.doc_type == doc_type_normalized).first()
             if db_rule:
                 db_rule.prefix = rule.prefix or ""

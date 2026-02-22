@@ -91,7 +91,7 @@ ALL_PERMISSIONS = [
     {"code": ITP_DELETE, "description": "刪除 ITP"},
     {"code": ITP_APPROVE, "description": "審核 ITP"},
     {"code": ITP_VOID, "description": "作廢 ITP"},
-    
+
     {"code": NCR_VIEW, "description": "查看 NCR 記錄"},
     {"code": NCR_CREATE, "description": "建立 NCR"},
     {"code": NCR_UPDATE, "description": "更新 NCR 內容"},

@@ -1,5 +1,5 @@
+
 import requests
-import json
 
 BASE_URL = "http://localhost:8000/km"
 
@@ -17,7 +17,7 @@ try:
     if km_res.status_code == 200 and len(km_res.json()) > 0:
         article = km_res.json()[0]
         print(f"Testing edit on article: {article['id']}")
-        
+
         # 3. Simulate an update
         update_payload = {
             "title": article["title"] + " (Edited)",
@@ -28,10 +28,10 @@ try:
             "parent_id": article.get("parent_id"),
             "chapter_no": article.get("chapter_no")
         }
-        
+
         put_res = requests.put(f"{BASE_URL}/{article['id']}", headers=headers, json=update_payload)
         print("PUT Status Code:", put_res.status_code)
-        
+
         if put_res.status_code != 200:
             print("PUT Response:", put_res.text)
         else:

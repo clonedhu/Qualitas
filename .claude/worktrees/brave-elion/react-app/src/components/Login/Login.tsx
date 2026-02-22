@@ -7,8 +7,8 @@ import api from '../../services/api';
 import styles from './Login.module.css';
 
 const Login = () => {
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('admin');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
@@ -24,15 +24,21 @@ const Login = () => {
       formData.append('username', email);
       formData.append('password', password);
 
+      // SECURITY: Backend sets httpOnly cookie with token
+      // No tokens are returned in response body
       const response = await api.post('/auth/login', formData.toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
-        }
+        },
+        withCredentials: true  // Important: Send cookies with request
       });
 
-      const { access_token, refresh_token } = response.data;
-      await login(access_token, refresh_token || '');
-      navigate('/');
+      if (response.data && response.data.message === 'Login successful') {
+        // Login updates auth state and fetches user profile
+        // Token is already in httpOnly cookie
+        await login();
+        navigate('/');
+      }
     } catch (err: unknown) {
       setError(getErrorMessage(err, t('login.failed')));
     } finally {
