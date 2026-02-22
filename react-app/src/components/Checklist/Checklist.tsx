@@ -3,16 +3,16 @@ import ReactDOM from 'react-dom';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { Plus, Printer, FileText, Info, MapPin, Calendar, CheckCircle, AlertCircle, Trash2, XCircle, Check, HelpCircle, User, Signature } from 'lucide-react';
-import { useChecklist, ChecklistRecord } from '../../context/ChecklistContext';
+import { useChecklistStore, ChecklistRecord } from '../../store/checklistStore';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
 import { BackButton } from '@/components/ui/BackButton';
 import styles from './Checklist.module.css';
 import { useDebounce } from '../../hooks/useDebounce';
-import { useNOI } from '../../context/NOIContext';
-import { useITP } from '../../context/ITPContext';
-import { useITR } from '../../context/ITRContext';
-import { useContractors } from '../../context/ContractorsContext';
+import { useNOIStore } from '../../store/noiStore';
+import { useITPStore } from '../../store/itpStore';
+import { useITRStore } from '../../store/itrStore';
+import { useContractorsStore } from '../../store/contractorsStore';
 
 // --- ITP 資料庫定義 ---
 interface ItpItemDefinition {
@@ -47,7 +47,7 @@ const itpDatabase: ItpItemDefinition[] = [
 const Checklist: React.FC = () => {
     const { t } = useLanguage();
     const navigate = useNavigate();
-    const { records, loading, deleteRecord, addRecord, updateRecord, refreshRecords } = useChecklist();
+    const { records, loading, deleteRecord, addRecord, updateRecord, refreshRecords } = useChecklistStore();
     const [view, setView] = useState<'list' | 'editor'>('list');
     const [editingRecord, setEditingRecord] = useState<ChecklistRecord | null>(null);
     const [saving, setSaving] = useState(false);
@@ -105,7 +105,7 @@ const Checklist: React.FC = () => {
     // Removed Modal State
     const [selectedItpIndex, setSelectedItpIndex] = useState(0);
 
-    const { itpList } = useITP();
+    const itpList = useITPStore(state => state.itpList);
 
     // Transform dynamic itpList into itpDatabase format
     const dynamicItpDatabase = useMemo(() => {
@@ -317,10 +317,10 @@ const ChecklistEditor = ({ record, onCancel, onSave, saving, selectedItpIndex, d
     dynamicItpDatabase: ItpItemDefinition[]
 }) => {
     const { t } = useLanguage();
-    const { noiList } = useNOI();
-    const { itpList } = useITP();
-    const { itrList } = useITR();
-    const { contractors } = useContractors();
+    const noiList = useNOIStore(state => state.noiList);
+    const itpList = useITPStore(state => state.itpList);
+    const itrList = useITRStore(state => state.itrList);
+    const { contractors } = useContractorsStore();
 
     const getActiveContractors = () => contractors.filter(c => c.status === 'active');
 

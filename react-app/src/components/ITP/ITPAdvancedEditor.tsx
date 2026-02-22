@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { PenTool, Trash2, Plus, FileText, CheckCircle2, Calendar, Filter, AlertCircle, FileCheck, Tag, X, Save, ShieldCheck, HardHat, Building2, User, ArrowDown, LayoutTemplate } from 'lucide-react';
 import { InspectionItem } from '../../types/itp';
 import { PHASES, EMPTY_ITEM } from '../../constants/itp';
-import { useITR } from '../../context/ITRContext';
+import { useITRStore } from '../../store/itrStore';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import VPBadge from './VPBadge';
@@ -28,7 +28,7 @@ export interface ITPAdvancedEditorRef {
 }
 
 export const ITPAdvancedEditor = React.forwardRef<ITPAdvancedEditorRef, ITPAdvancedEditorProps>(({ items, onItemsChange, readOnly = false, onViewRecord, headerData }, ref) => {
-    const { itrList } = useITR();
+    const itrList = useITRStore(state => state.itrList);
     const navigate = useNavigate();
     const [editingItem, setEditingItem] = useState<InspectionItem | null>(null);
 

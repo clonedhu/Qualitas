@@ -2,11 +2,12 @@ import React, { useState, useMemo, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
-import { useContractors } from '../../context/ContractorsContext';
-import { useNOI, NOIItem } from '../../context/NOIContext';
-import { useITP } from '../../context/ITPContext';
-import { useNCR } from '../../context/NCRContext';
-import { useITR } from '../../context/ITRContext';
+import { useContractorsStore } from '../../store/contractorsStore';
+import { useNOIStore } from '../../store/noiStore';
+import type { NOIItem } from '../../store/noiStore';
+import { useITPStore } from '../../store/itpStore';
+import { useNCRStore } from '../../store/ncrStore';
+import { useITRStore } from '../../store/itrStore';
 import { checkNOIReferences, generateDeleteMessage } from '../../utils/cascadeDelete';
 import { formatTime24h, getLocalizedStatus } from '../../utils/formatters';
 import ConfirmModal from '../Shared/ConfirmModal';
@@ -26,10 +27,10 @@ import {
 const NOI: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { getActiveContractors } = useContractors();
-  const { noiList, loading, error, refetch, addNOI, addBulkNOI, updateNOI, deleteNOI } = useNOI();
-  const { ncrList } = useNCR();
-  const { itrList } = useITR();
+  const { getActiveContractors } = useContractorsStore();
+  const { noiList, loading, error, refetch, addNOI, addBulkNOI, updateNOI, deleteNOI } = useNOIStore();
+  const ncrList = useNCRStore(state => state.ncrList);
+  const itrList = useITRStore(state => state.itrList);
 
   // Search and Filter States
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -219,6 +220,9 @@ const NOI: React.FC = () => {
     }
   };
 
+  // Columns memoization
+  const columns = useMemo(() => createColumns(handleEdit, handleDeleteClick, t), [t]);
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -351,7 +355,7 @@ const NOI: React.FC = () => {
                   </button>
                 </div>
               }
-              columns={createColumns(handleEdit, handleDeleteClick, t)}
+              columns={columns}
               data={filteredData}
               searchKey=""
               searchPlaceholder={t('noi.searchPlaceholder')}

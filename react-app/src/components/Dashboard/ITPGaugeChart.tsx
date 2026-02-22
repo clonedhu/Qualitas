@@ -1,3 +1,4 @@
+import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import styles from './Dashboard.module.css';
 
@@ -7,7 +8,7 @@ interface ITPGaugeChartProps {
   maturity: number;
 }
 
-const ITPGaugeChart: React.FC<ITPGaugeChartProps> = ({ approved, total, maturity }) => {
+const ITPGaugeChart: React.FC<ITPGaugeChartProps> = React.memo(({ approved, total, maturity }) => {
   // 创建gauge数据 - 使用180度的半圆，分成三段
   // 40% 橙色 (0-40%), 40% 蓝色 (40-80%), 20% 绿色 (80-100%)
   const gaugeData = [
@@ -80,6 +81,6 @@ const ITPGaugeChart: React.FC<ITPGaugeChartProps> = ({ approved, total, maturity
       </div>
     </div>
   );
-};
+});
 
 export default ITPGaugeChart;

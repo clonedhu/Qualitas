@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useContractors } from '../../context/ContractorsContext';
-import { usePQP, PQPItem } from '../../context/PQPContext';
+import { useContractorsStore } from '../../store/contractorsStore';
+import { usePQPStore } from '../../store/pqpStore';
+import type { PQPItem } from '../../store/pqpStore';
 import { useLanguage } from '../../context/LanguageContext';
 import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './PQP.module.css';
@@ -14,8 +15,8 @@ import { useDebounce } from '../../hooks/useDebounce';
 const PQP: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { getActiveContractors } = useContractors();
-  const { pqpList, loading, error, refetch, addPQP, updatePQP, deletePQP } = usePQP();
+  const { getActiveContractors } = useContractorsStore();
+  const { pqpList, loading, error, refetch, addPQP, updatePQP, deletePQP } = usePQPStore();
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,6 +74,14 @@ const PQP: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
+  const confirmDelete = (id: string) => {
+    setDeleteModal({ isOpen: true, id });
+  };
+
+  // Columns memoization
+  const columns = useMemo(() => createColumns(handleEdit, confirmDelete, t, getActiveContractors), [t, getActiveContractors]);
+
+
   const handleAddNew = () => {
     setCurrentPqpId('new');
     setIsEditModalOpen(true);
@@ -106,9 +115,6 @@ const PQP: React.FC = () => {
     }
   };
 
-  const confirmDelete = (id: string) => {
-    setDeleteModal({ isOpen: true, id });
-  };
 
   const handleDelete = async () => {
     if (!deleteModal.id) return;
@@ -191,7 +197,6 @@ const PQP: React.FC = () => {
           </div>
         </div>
       </div>
-
       <div className={styles.content}>
         {loading && <p className={styles.loadingMessage}>{t('common.loading')}</p>}
         {error && (
@@ -212,7 +217,7 @@ const PQP: React.FC = () => {
                 {t('pqp.addNew')}
               </button>
             }
-            columns={createColumns(handleEdit, confirmDelete, t, getActiveContractors)}
+            columns={columns}
             data={filteredList}
             searchKey=""
             searchPlaceholder={t('pqp.searchPlaceholder')}
@@ -236,29 +241,33 @@ const PQP: React.FC = () => {
         cancelText={t('common.cancel')}
       />
 
-      {isEditModalOpen && currentPqpId && (
-        <PQPDetailModal
-          pqpId={currentPqpId}
-          existingItem={currentPqpId !== 'new' ? pqpList.find(item => item.id === currentPqpId) : undefined}
-          onSave={handleSavePQPDetails}
-          onClose={() => {
-            setIsEditModalOpen(false);
-            setCurrentPqpId(null);
-          }}
-        />
-      )}
+      {
+        isEditModalOpen && currentPqpId && (
+          <PQPDetailModal
+            pqpId={currentPqpId}
+            existingItem={currentPqpId !== 'new' ? pqpList.find(item => item.id === currentPqpId) : undefined}
+            onSave={handleSavePQPDetails}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              setCurrentPqpId(null);
+            }}
+          />
+        )
+      }
 
-      {isDetailsModalOpen && viewingPqpId && (
-        <PQPDetailsViewModal
-          pqpId={viewingPqpId}
-          pqpItem={pqpList.find(item => item.id === viewingPqpId)}
-          onClose={() => {
-            setIsDetailsModalOpen(false);
-            setViewingPqpId(null);
-          }}
-        />
-      )}
-    </div>
+      {
+        isDetailsModalOpen && viewingPqpId && (
+          <PQPDetailsViewModal
+            pqpId={viewingPqpId}
+            pqpItem={pqpList.find(item => item.id === viewingPqpId)}
+            onClose={() => {
+              setIsDetailsModalOpen(false);
+              setViewingPqpId(null);
+            }}
+          />
+        )
+      }
+    </div >
   );
 };
 

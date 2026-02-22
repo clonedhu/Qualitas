@@ -5,7 +5,20 @@ from typing import List
 from database import get_db
 import models
 import schemas
-from middleware.auth import get_current_user, PermissionChecker, Permission
+from middleware.auth import get_current_user, PermissionChecker
+
+DEFAULT_NAMING_RULES = [
+    {"doc_type": "itp", "prefix": "QTS-RKS-[ABBREV]-ITP-", "sequence_digits": 6},
+    {"doc_type": "noi", "prefix": "QTS-RKS-[ABBREV]-NOI-", "sequence_digits": 6},
+    {"doc_type": "itr", "prefix": "QTS-RKS-[ABBREV]-ITR-", "sequence_digits": 6},
+    {"doc_type": "ncr", "prefix": "QTS-RKS-[ABBREV]-NCR-", "sequence_digits": 6},
+    {"doc_type": "obs", "prefix": "QTS-RKS-[ABBREV]-OBS-", "sequence_digits": 6},
+    {"doc_type": "pqp", "prefix": "QTS-RKS-[ABBREV]-PQP-", "sequence_digits": 6},
+    {"doc_type": "followup", "prefix": "QTS-RKS-[ABBREV]-FUI-", "sequence_digits": 6},
+    {"doc_type": "fat", "prefix": "QTS-RKS-[ABBREV]-FAT-", "sequence_digits": 6},
+    {"doc_type": "audit", "prefix": "QTS-RKS-[ABBREV]-AUD-", "sequence_digits": 6},
+    {"doc_type": "checklist", "prefix": "QTS-RKS-[ABBREV]-CHK-", "sequence_digits": 6},
+]
 
 router = APIRouter(prefix="/settings", tags=["Settings"])
 
@@ -16,10 +29,6 @@ def get_naming_rules(
 ):
     rules = db.query(models.DocumentNamingRule).all()
     if not rules:
-        # If empty, seed again (double check)
-        # Note: Importing from db_seeder inside function to avoid circular imports layout if any, 
-        # though ideally db_seeder should be independent.
-        from db_seeder import DEFAULT_NAMING_RULES
         for r in DEFAULT_NAMING_RULES:
              if not db.query(models.DocumentNamingRule).filter(models.DocumentNamingRule.doc_type == r["doc_type"]).first():
                  db.add(models.DocumentNamingRule(**r))
@@ -31,7 +40,7 @@ def get_naming_rules(
 def update_naming_rules(
     rules: List[schemas.NamingRuleBase], 
     db: Session = Depends(get_db),
-    _: bool = Depends(PermissionChecker([Permission.WRITE, Permission.MANAGE_SETTINGS]))
+    _: bool = Depends(PermissionChecker(["settings:manage:all"]))
 ):
     try:
         for rule in rules:

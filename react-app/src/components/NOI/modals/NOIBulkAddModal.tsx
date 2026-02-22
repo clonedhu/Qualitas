@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../../context/LanguageContext';
-import { useContractors } from '../../../context/ContractorsContext';
-import { useITP } from '../../../context/ITPContext';
-import { NOIItem } from '../../../context/NOIContext';
+import { useContractorsStore } from '../../../store/contractorsStore';
+import { useITPStore } from '../../../store/itpStore';
+import type { NOIItem } from '../../../store/noiStore';
 import styles from '../NOI.module.css';
 import { BulkNOIRow } from '../NOITypes';
 
@@ -13,8 +13,9 @@ export interface NOIBulkAddModalProps {
 
 export const NOIBulkAddModal: React.FC<NOIBulkAddModalProps> = ({ onSave, onClose }) => {
     const { t } = useLanguage();
-    const { getActiveContractors } = useContractors();
-    const { getITPByVendor } = useITP();
+    const { getActiveContractors } = useContractorsStore();
+    const itpList = useITPStore(state => state.itpList);
+    const getITPByVendor = (vendor: string) => itpList.filter(itp => itp.vendor === vendor);
     const activeContractors = getActiveContractors();
 
     const [commonData, setCommonData] = useState({

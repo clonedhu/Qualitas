@@ -1,29 +1,31 @@
 import { create } from 'zustand';
-import api from '../services/api';
+import * as apiService from '../services/api';
+import { getErrorMessage } from '../utils/errorUtils';
 
-export interface Permission {
-    id: number;
-    code: string;
-    description: string;
+// NOTE: 匯出 User 和 Role 型別，供 IAM 元件使用（保持與既有元件介面一致）
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    role_id?: number;
+    status: 'active' | 'inactive';
+    createdAt: string;
 }
 
 export interface Role {
-    id: string; // UI uses string for ID consistency with other modules
+    id: string;
     name: string;
     description: string;
     permissions: string[];
 }
 
-export interface User {
-    id: string;
+export interface Permission {
+    id: number;
+    code: string;
     name: string;
-    email: string;
-    full_name: string;
-    is_active: boolean;
-    role: string;
-    status: 'active' | 'inactive';
-    created_at: string;
-    role_id: number;
+    description: string;
+    module: string;
 }
 
 interface IAMState {
@@ -33,20 +35,21 @@ interface IAMState {
     loading: boolean;
     error: string | null;
 
-    // Actions
+    // Actions — 與既有 IAM 元件介面一致
     fetchUsers: () => Promise<void>;
     fetchRoles: () => Promise<void>;
     fetchPermissions: () => Promise<void>;
-
-    createUser: (user: any) => Promise<void>;
-    updateUser: (id: number, user: any) => Promise<void>;
+    fetchData: () => Promise<void>;
+    refetch: () => Promise<void>;
+    // NOTE: 接受任意 payload 物件，與 IAM 元件的呼叫方式一致
+    createUser: (payload: any) => Promise<any>;
+    updateUser: (id: number, payload: any) => Promise<any>;
     deleteUser: (id: number, reason?: string) => Promise<void>;
-
-    createRole: (role: any) => Promise<void>;
-    updateRole: (id: number, role: any) => Promise<void>;
+    createRole: (payload: any) => Promise<any>;
+    updateRole: (id: number, payload: any) => Promise<any>;
     deleteRole: (id: number, reason?: string) => Promise<void>;
-
     clearError: () => void;
+    setError: (err: string | null) => void;
 }
 
 export const useIAMStore = create<IAMState>((set, get) => ({
@@ -57,135 +60,179 @@ export const useIAMStore = create<IAMState>((set, get) => ({
     error: null,
 
     clearError: () => set({ error: null }),
+    setError: (error: string | null) => set({ error }),
 
     fetchUsers: async () => {
         set({ loading: true, error: null });
         try {
-            const response = await api.get('/iam/users/');
-            const mappedUsers = (response.data || []).map((u: any) => ({
-                id: (u.id || '').toString(),
-                name: u.username || '',
-                email: u.email || '',
-                full_name: u.full_name || '',
+            const usersData = await apiService.getUsers();
+            const formattedUsers: User[] = usersData.map(u => ({
+                id: String(u.id),
+                name: u.full_name || u.username,
+                email: u.email,
                 role: u.role_name || 'user',
-                status: u.is_active ? 'active' : 'inactive',
-                is_active: !!u.is_active,
-                created_at: u.created_at || '',
-                role_id: u.role_id || 0
+                status: u.is_active ? 'active' as const : 'inactive' as const,
+                createdAt: (u as any).created_at || new Date().toISOString().split('T')[0],
             }));
-            set({ users: mappedUsers, loading: false });
+            set({ users: formattedUsers, loading: false });
         } catch (err: any) {
-            set({ error: err.response?.data?.detail || err.message || 'Failed to fetch users', loading: false });
+            const errorMsg = getErrorMessage(err, 'Failed to fetch users');
+            set({ error: errorMsg, loading: false });
         }
     },
 
     fetchRoles: async () => {
         set({ loading: true, error: null });
         try {
-            const response = await api.get('/iam/roles/');
-            const mappedRoles = (response.data || []).map((r: any) => ({
-                id: (r.id || '').toString(),
-                name: r.name || '',
+            const rolesData = await apiService.getRoles();
+            const formattedRoles: Role[] = rolesData.map(r => ({
+                id: String(r.id),
+                name: r.name,
                 description: r.description || '',
-                permissions: r.permissions || []
+                permissions: Array.isArray(r.permissions) ? r.permissions : [],
             }));
-            set({ roles: mappedRoles, loading: false });
+            set({ roles: formattedRoles, loading: false });
         } catch (err: any) {
-            set({ error: err.response?.data?.detail || err.message || 'Failed to fetch roles', loading: false });
+            const errorMsg = getErrorMessage(err, 'Failed to fetch roles');
+            set({ error: errorMsg, loading: false });
         }
     },
 
     fetchPermissions: async () => {
         set({ loading: true, error: null });
         try {
-            const response = await api.get('/iam/permissions/');
-            set({ permissions: response.data || [], loading: false });
+            const permsData = await apiService.getPermissions();
+            // NOTE: 確保 description 為 string（API 可能回傳 undefined）
+            set({ permissions: permsData.map(p => ({ ...p, description: p.description || '' })), loading: false });
         } catch (err: any) {
-            set({ error: err.response?.data?.detail || err.message || 'Failed to fetch permissions', loading: false });
+            const errorMsg = getErrorMessage(err, 'Failed to fetch permissions');
+            set({ error: errorMsg, loading: false });
         }
     },
 
-    createUser: async (user) => {
+    // NOTE: 一次性取得 Users + Roles，供 AuthContext 登入時使用
+    fetchData: async () => {
         set({ loading: true, error: null });
         try {
-            const payload = {
-                username: user.name,
-                email: user.email,
-                full_name: user.full_name,
-                role_id: user.role_id,
-                is_active: user.status === 'active',
-                password: user.password,
-                reason: user.reason
-            };
-            await api.post('/iam/users/', payload);
-            await get().fetchUsers();
+            const [usersData, rolesData] = await Promise.all([
+                apiService.getUsers(),
+                apiService.getRoles(),
+            ]);
+            const formattedUsers: User[] = usersData.map(u => ({
+                id: String(u.id),
+                name: u.full_name || u.username,
+                email: u.email,
+                role: u.role_name || 'user',
+                status: u.is_active ? 'active' as const : 'inactive' as const,
+                createdAt: (u as any).created_at || new Date().toISOString().split('T')[0],
+            }));
+            const formattedRoles: Role[] = rolesData.map(r => ({
+                id: String(r.id),
+                name: r.name,
+                description: r.description || '',
+                permissions: Array.isArray(r.permissions) ? r.permissions : [],
+            }));
+            set({ users: formattedUsers, roles: formattedRoles, loading: false });
         } catch (err: any) {
-            set({ error: err.response?.data?.detail || err.message || 'Failed to create user', loading: false });
-            throw err;
+            const errorMsg = getErrorMessage(err, 'Failed to fetch IAM data');
+            set({ error: errorMsg, loading: false });
         }
     },
 
-    updateUser: async (id, user) => {
-        set({ loading: true, error: null });
-        try {
-            const payload = {
-                username: user.name,
-                email: user.email,
-                full_name: user.full_name,
-                role_id: user.role_id,
-                is_active: user.status === 'active',
-                password: user.password || undefined,
-                reason: user.reason
-            };
-            await api.put(`/iam/users/${id}/`, payload);
-            await get().fetchUsers();
-        } catch (err: any) {
-            set({ error: err.response?.data?.detail || err.message || 'Failed to update user', loading: false });
-            throw err;
-        }
+    refetch: async () => {
+        await get().fetchData();
     },
 
-    deleteUser: async (id, reason) => {
-        set({ loading: true, error: null });
-        try {
-            await api.delete(`/iam/users/${id}/`, { params: { reason } });
-            await get().fetchUsers();
-        } catch (err: any) {
-            set({ error: err.response?.data?.detail || err.message || 'Failed to delete user', loading: false });
-            throw err;
-        }
+    // --- User CRUD ---
+    createUser: async (payload: any) => {
+        const apiPayload: apiService.CreateUserPayload = {
+            username: payload.name || payload.username,
+            email: payload.email,
+            password: payload.password || `User_${Date.now()}`,
+            role_id: payload.role_id,
+            is_active: payload.status === 'active',
+        };
+        const result = await apiService.createUser(apiPayload);
+        const newUser: User = {
+            id: String(result.id),
+            name: result.full_name || result.username,
+            email: result.email,
+            role: result.role_name || 'user',
+            role_id: payload.role_id,
+            status: result.is_active ? 'active' : 'inactive',
+            createdAt: (result as any).created_at || new Date().toISOString().split('T')[0],
+        };
+        set((state) => ({ users: [...state.users, newUser] }));
+        return result;
     },
 
-    createRole: async (role) => {
-        set({ loading: true, error: null });
-        try {
-            await api.post('/iam/roles/', role);
-            await get().fetchRoles();
-        } catch (err: any) {
-            set({ error: err.response?.data?.detail || err.message || 'Failed to create role', loading: false });
-            throw err;
-        }
+    updateUser: async (id: number, payload: any) => {
+        const apiPayload: apiService.UpdateUserPayload = {};
+        if (payload.name) apiPayload.username = payload.name;
+        if (payload.email) apiPayload.email = payload.email;
+        if (payload.status) apiPayload.is_active = payload.status === 'active';
+        if (payload.role_id) apiPayload.role_id = payload.role_id;
+        if (payload.password) apiPayload.password = payload.password;
+
+        const result = await apiService.updateUser(id, apiPayload);
+        const updatedUser: User = {
+            id: String(result.id),
+            name: result.full_name || result.username,
+            email: result.email,
+            role: result.role_name || 'user',
+            role_id: payload.role_id || 0,
+            status: result.is_active ? 'active' : 'inactive',
+            createdAt: (result as any).created_at || new Date().toISOString().split('T')[0],
+        };
+        set((state) => ({
+            users: state.users.map(u => (u.id === String(id) ? updatedUser : u)),
+        }));
+        return result;
     },
 
-    updateRole: async (id, role) => {
-        set({ loading: true, error: null });
-        try {
-            await api.put(`/iam/roles/${id}/`, role);
-            await get().fetchRoles();
-        } catch (err: any) {
-            set({ error: err.response?.data?.detail || err.message || 'Failed to update role', loading: false });
-            throw err;
-        }
+    deleteUser: async (id: number, _reason?: string) => {
+        await apiService.deleteUser(id);
+        set((state) => ({ users: state.users.filter(u => u.id !== String(id)) }));
     },
 
-    deleteRole: async (id, reason) => {
-        set({ loading: true, error: null });
-        try {
-            await api.delete(`/iam/roles/${id}/`, { params: { reason } });
-            await get().fetchRoles();
-        } catch (err: any) {
-            set({ error: err.response?.data?.detail || err.message || 'Failed to delete role', loading: false });
-            throw err;
-        }
+    // --- Role CRUD ---
+    createRole: async (payload: any) => {
+        const apiPayload: apiService.CreateRolePayload = {
+            name: payload.name,
+            description: payload.description,
+            permissions: payload.permissions,
+        };
+        const result = await apiService.createRole(apiPayload);
+        const newRole: Role = {
+            id: String(result.id),
+            name: result.name,
+            description: result.description || '',
+            permissions: result.permissions,
+        };
+        set((state) => ({ roles: [...state.roles, newRole] }));
+        return result;
+    },
+
+    updateRole: async (id: number, payload: any) => {
+        const apiPayload: apiService.UpdateRolePayload = {};
+        if (payload.name) apiPayload.name = payload.name;
+        if (payload.description) apiPayload.description = payload.description;
+        if (payload.permissions) apiPayload.permissions = payload.permissions;
+
+        const result = await apiService.updateRole(id, apiPayload);
+        set((state) => ({
+            roles: state.roles.map(r => (r.id === String(id) ? {
+                id: String(result.id),
+                name: result.name,
+                description: result.description || '',
+                permissions: result.permissions,
+            } : r)),
+        }));
+        return result;
+    },
+
+    deleteRole: async (id: number, _reason?: string) => {
+        await apiService.deleteRole(id);
+        set((state) => ({ roles: state.roles.filter(r => r.id !== String(id)) }));
     },
 }));

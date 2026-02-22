@@ -1,15 +1,17 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChecklistSnapshotModal } from './ChecklistSnapshotModal';
-import { ChecklistRecord, useChecklist } from '../../context/ChecklistContext';
+import { ChecklistRecord, useChecklistStore } from '../../store/checklistStore';
 import { Printer, ShieldCheck, Save, LayoutTemplate, Plus, ClipboardCheck, ArrowRight, AlertCircle, Info } from 'lucide-react';
 import { getNextRevision } from '../../utils/revision';
 import { useLanguage } from '../../context/LanguageContext';
-import { useContractors } from '../../context/ContractorsContext';
-import { useNOI } from '../../context/NOIContext';
-import { useNCR } from '../../context/NCRContext';
-import { useITR, ITRItem } from '../../context/ITRContext';
-import { useITP } from '../../context/ITPContext';
+import { useContractorsStore } from '../../store/contractorsStore';
+import { useNOIStore } from '../../store/noiStore';
+import { useNCRStore } from '../../store/ncrStore';
+import { useOBSStore } from '../../store/obsStore';
+import { useITRStore } from '../../store/itrStore';
+import type { ITRItem } from '../../store/itrStore';
+import { useITPStore } from '../../store/itpStore';
 import { validateStatusTransition, ITRStatusTransitions } from '../../utils/statusValidation';
 import { addSevenWorkingDays } from '../../utils/dateUtils';
 import { formatDateISO } from '../../utils/formatters';
@@ -64,16 +66,20 @@ export interface ITRDetailModalProps {
 export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingData, existingItem, itrList: propItrList, onSave, onClose }) => {
     console.log("ITRDetailModal mounted", { itrId, existingItem, linkedChecklists: existingItem?.linkedChecklists });
     const { t } = useLanguage();
-    const { getActiveContractors, contractors } = useContractors();
+    const { getActiveContractors, contractors } = useContractorsStore();
     const navigate = useNavigate();
 
     if (!itrId) {
         return null;
     }
-    const { getNOIList } = useNOI();
-    const { getNCRList } = useNCR();
-    const { itrList: contextItrList } = useITR();
-    const { getITPList } = useITP();
+    const noiList = useNOIStore(state => state.noiList);
+    const getNOIList = () => noiList;
+    const ncrList = useNCRStore(state => state.ncrList);
+    const obsList = useOBSStore(state => state.obsList);
+    const getNCRList = () => ncrList;
+    const contextItrList = useITRStore(state => state.itrList);
+    const itpList = useITPStore(state => state.itpList);
+    const getITPList = () => itpList;
 
     // Use context list if available, otherwise use prop
     const itrList = contextItrList.length > 0 ? contextItrList : propItrList;
@@ -166,7 +172,7 @@ export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingD
     const [formData, setFormData] = useState<ITRDetailData>(getInitialData());
     const [showPrintPreview, setShowPrintPreview] = useState(false);
 
-    const { records: allChecklists } = useChecklist();
+    const allChecklists = useChecklistStore(state => state.records);
     const [editingSnapshotIndex, setEditingSnapshotIndex] = useState<number | null>(null);
 
     const linkedChecklists = useMemo(() => {
@@ -332,6 +338,19 @@ export const ITRDetailModal: React.FC<ITRDetailModalProps> = ({ itrId, existingD
             alert(t('itr.validation.noiRequired') || 'Please select an NOI Number.');
             return;
         }
+
+        // P4: Cascade Validation - Blocks closing ITR if linked NCR or OBS is still Open
+        if (formData.status === 'Closed' && formData.itrNumber) {
+            const openNcrs = ncrList.filter(ncr => ncr.itrNumber === formData.itrNumber && ncr.status === 'Open');
+            const openObs = obsList.filter(obs => obs.itrNumber === formData.itrNumber && obs.status === 'Open');
+
+            if (openNcrs.length > 0 || openObs.length > 0) {
+                const totalOpen = openNcrs.length + openObs.length;
+                alert(`Cannot close ITR: There are still ${totalOpen} open NCR/OBS associated with this inspection. Please close them first.`);
+                return;
+            }
+        }
+
         try {
             await onSave(formData);
             onClose();

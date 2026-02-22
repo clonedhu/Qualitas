@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
-import { useContractors } from '../../context/ContractorsContext';
+import { useContractorsStore } from '../../store/contractorsStore';
 import { checkFATReferences, generateDeleteMessage } from '../../utils/cascadeDelete';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
-import { useFAT, FATItem, FATDetailItem } from '../../context/FATContext';
+import { useFATStore } from '../../store/fatStore';
+import type { FATItem, FATDetailItem } from '../../store/fatStore';
 import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './FAT.module.css';
 import { BackButton } from '@/components/ui/BackButton';
@@ -18,8 +19,8 @@ import { BackButton } from '@/components/ui/BackButton';
 const FAT: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { getActiveContractors } = useContractors();
-  const { fatList, loading, addFAT, updateFAT, deleteFAT, saveFATDetails, fatDetails } = useFAT();
+  const { getActiveContractors } = useContractorsStore();
+  const { fatList, loading, addFAT, updateFAT, deleteFAT, saveFATDetails, fatDetails } = useFATStore();
   const [searchQuery, setSearchQuery] = useState<string>('');
   // Vendor filter removed (handled by DataTable)
 
@@ -485,7 +486,7 @@ interface FATEditModalProps {
 
 const FATEditModal: React.FC<FATEditModalProps> = ({ fatId, existingItem, onSave, onClose }) => {
   const { t } = useLanguage();
-  const { getActiveContractors } = useContractors();
+  const { getActiveContractors } = useContractorsStore();
   const [formData, setFormData] = useState<Partial<FATItem>>({
     equipment: existingItem?.equipment || '',
     supplier: existingItem?.supplier || '',

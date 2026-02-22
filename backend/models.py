@@ -224,6 +224,8 @@ class OBS(Base):
     attachments = Column(Text, nullable=True)
     last_reminded_at = Column(String, nullable=True)
     dueDate = Column(String, nullable=True)
+    noiNumber = Column(String, nullable=True, index=True)
+    itrNumber = Column(String, nullable=True, index=True)
 
     # Relationships
     vendor_ref = relationship("Contractor", back_populates="obss")
@@ -345,7 +347,11 @@ class Audit(Base):
     status = Column(String)
     location = Column(String)
     findings = Column(String)
-    contractor = Column(String, nullable=True)
+    vendor_id = Column(String, ForeignKey("contractors.id"), nullable=True, index=True)
+    contractor = Column(String, nullable=True)  # NOTE: 保留純文字欄位以相容舊資料
+
+    # Relationships
+    vendor_ref = relationship("Contractor")
 
 
 class Checklist(Base):
@@ -367,7 +373,9 @@ class Checklist(Base):
     failCount = Column(Integer, default=0) # 統計數據
     detail_data = Column(Text, nullable=True) # JSON 數據
     noiNumber = Column(String, ForeignKey("noi.referenceNo"), nullable=True, index=True)
-    contractor_id = Column("vendor_id", String, ForeignKey("contractors.id"), nullable=True, index=True) # 新增承包商關聯
+    # NOTE: DB 欄位名為 vendor_id，Python attr 為 contractor_id，透過 Column("vendor_id") alias 實現
+    # 這是為了保持 DB schema 與其他模組一致（都叫 vendor_id），同時在 Python 層面語義更清楚
+    contractor_id = Column("vendor_id", String, ForeignKey("contractors.id"), nullable=True, index=True)
     itrId = Column(String, ForeignKey("itr.id"), nullable=True, index=True) # ITR 關聯
     itrNumber = Column(String, ForeignKey("itr.documentNumber"), nullable=True, index=True) # ITR 單號
 
@@ -483,3 +491,44 @@ class FAT(Base):
 
 
 
+class KMArticle(Base):
+    __tablename__ = "km_articles"
+
+    id = Column(String, primary_key=True, index=True)
+    articleNo = Column(String, index=True, unique=True) # e.g., QTS-KM-000001
+    title = Column(String, index=True)
+    content = Column(Text) # Markdown or HTML content
+    category = Column(String, index=True)
+    tags = Column(String) # Comma-separated or JSON list
+    author_id = Column(Integer, ForeignKey("users.id"))
+    status = Column(String, default="Published") # Draft, Published, Archived
+    created_at = Column(String)
+    updated_at = Column(String)
+    attachments = Column(Text, nullable=True) # JSON list of attachment IDs
+    parent_id = Column(String, nullable=True, index=True) # Links to main book
+    chapter_no = Column(String, nullable=True) # e.g., "1.0", "1.1"
+    version_no = Column(Integer, default=1)
+
+    author = relationship("User")
+    history = relationship("KMArticleHistory", back_populates="article", cascade="all, delete-orphan")
+
+class KMArticleHistory(Base):
+    __tablename__ = "km_article_history"
+
+    id = Column(String, primary_key=True, index=True)
+    article_id = Column(String, ForeignKey("km_articles.id"), index=True)
+    version_no = Column(Integer, index=True)
+    title = Column(String)
+    content = Column(Text)
+    category = Column(String)
+    tags = Column(String)
+    status = Column(String)
+    author_id = Column(Integer, ForeignKey("users.id"))
+    attachments = Column(Text, nullable=True)
+    parent_id = Column(String, nullable=True)
+    chapter_no = Column(String, nullable=True)
+    change_summary = Column(String, nullable=True)
+    created_at = Column(String)
+
+    article = relationship("KMArticle", back_populates="history")
+    author = relationship("User")

@@ -1,5 +1,5 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { PQPItem } from "../../context/PQPContext";
+import { PQPItem } from "../../store/pqpStore";
 import { DataTableColumnHeader } from "@/components/Shared/DataTable/DataTableColumnHeader";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";

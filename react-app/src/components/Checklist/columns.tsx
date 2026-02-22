@@ -1,5 +1,5 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { ChecklistRecord } from "../../context/ChecklistContext";
+import { ChecklistRecord } from "../../store/checklistStore";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTableColumnHeader } from "@/components/Shared/DataTable/DataTableColumnHeader";

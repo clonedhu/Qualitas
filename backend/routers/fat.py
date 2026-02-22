@@ -5,6 +5,8 @@ import schemas
 import crud
 from database import get_db
 from middleware.auth import get_current_user
+from core.dependencies import RoleChecker
+from core.perms import FAT_VIEW, FAT_CREATE, FAT_UPDATE, FAT_DELETE
 
 router = APIRouter(
     prefix="/fat",
@@ -16,7 +18,7 @@ router = APIRouter(
 def create_fat(
     fat: schemas.FATCreate, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(FAT_CREATE))
 ):
     return crud.create_fat(db=db, fat=fat, user_id=current_user.id, username=current_user.username)
 
@@ -28,9 +30,8 @@ def read_fats(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
-
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(FAT_VIEW))
 ):
     fats = crud.get_fats(
         db, 
@@ -44,7 +45,11 @@ def read_fats(
     return fats
 
 @router.get("/{fat_id}", response_model=schemas.FAT)
-def read_fat(fat_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
+def read_fat(
+    fat_id: str, 
+    db: Session = Depends(get_db), 
+    current_user: schemas.User = Depends(RoleChecker(FAT_VIEW))
+):
     db_fat = crud.get_fat(db, fat_id=fat_id)
     if db_fat is None:
         raise HTTPException(status_code=404, detail="FAT not found")
@@ -55,7 +60,7 @@ def update_fat(
     fat_id: str, 
     fat: schemas.FATUpdate, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(FAT_UPDATE))
 ):
     db_fat = crud.update_fat(db, fat_id=fat_id, fat=fat, user_id=current_user.id, username=current_user.username)
     if db_fat is None:
@@ -66,7 +71,7 @@ def update_fat(
 def delete_fat(
     fat_id: str, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(FAT_DELETE))
 ):
     db_fat = crud.delete_fat(db, fat_id=fat_id, user_id=current_user.id, username=current_user.username)
     if db_fat is None:
@@ -78,9 +83,8 @@ def update_fat_detail(
     fat_id: str, 
     details: List[schemas.FATDetailItem], 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(FAT_UPDATE))
 ):
-    # Convert Pydantic models to dicts for JSON serialization
     details_data = [item.dict() for item in details]
     db_fat = crud.update_fat_detail(db, fat_id=fat_id, details=details_data, user_id=current_user.id, username=current_user.username)
     if db_fat is None:

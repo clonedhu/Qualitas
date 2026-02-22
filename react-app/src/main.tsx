@@ -4,7 +4,7 @@ import App from './App.tsx'
 import './index.css'
 import { LanguageProvider } from './context/LanguageContext.tsx'
 import { AuthProvider } from './context/AuthContext.tsx'
-import { ErrorBoundary } from './components/Shared/ErrorBoundary'
+import { ErrorBoundary } from './components/Shared/ErrorBoundary';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

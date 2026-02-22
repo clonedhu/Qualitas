@@ -1,7 +1,10 @@
 from fastapi import Depends, HTTPException, status
+import logging
 import models
 import schemas
 from core.security import get_current_user
+
+logger = logging.getLogger(__name__)
 
 class RoleChecker:
     def __init__(self, required_permission: str):
@@ -27,7 +30,7 @@ class RoleChecker:
         user_permissions = [p.code for p in user.role.permissions_rel]
         
         if self.required_permission not in user_permissions:
-            print(f"AUTH DEBUG: Permission denied. User: {user.username}, Role: {user.role.name}, Required: {self.required_permission}, Has: {user_permissions}")
+            logger.debug(f"Permission denied. User: {user.username}, Role: {user.role.name}, Required: {self.required_permission}, Has: {user_permissions}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Operation not permitted. Required: {self.required_permission}"

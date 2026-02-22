@@ -1,5 +1,5 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { NCRItem } from "../../context/NCRContext";
+import { NCRItem } from "../../store/ncrStore";
 import { DataTableColumnHeader } from "@/components/Shared/DataTable/DataTableColumnHeader";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";

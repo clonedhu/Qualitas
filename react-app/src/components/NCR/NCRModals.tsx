@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { getNextRevision } from '../../utils/revision';
 import { useLanguage } from '../../context/LanguageContext';
-import { useContractors } from '../../context/ContractorsContext';
-import { useNOI } from '../../context/NOIContext';
-import { useITR } from '../../context/ITRContext';
-import { useNCR, NCRItem } from '../../context/NCRContext';
+import { useContractorsStore } from '../../store/contractorsStore';
+import { useNOIStore } from '../../store/noiStore';
+import { useITRStore } from '../../store/itrStore';
+import { useNCRStore } from '../../store/ncrStore';
+import type { NCRItem } from '../../store/ncrStore';
 import FileAttachment from '../Shared/FileAttachment';
 import styles from './NCR.module.css';
 
@@ -56,10 +57,11 @@ export interface NCRDetailModalProps {
 
 export const NCRDetailModal: React.FC<NCRDetailModalProps> = ({ ncrId, existingData, existingItem, ncrList: propNcrList, onSave, onClose }) => {
     const { t } = useLanguage();
-    const { getActiveContractors } = useContractors();
-    const { ncrList: contextNcrList } = useNCR();
-    const { getNOIList } = useNOI();
-    const { itrList } = useITR();
+    const { getActiveContractors } = useContractorsStore();
+    const { ncrList: contextNcrList } = useNCRStore();
+    const noiList = useNOIStore(state => state.noiList);
+    const getNOIList = () => noiList;
+    const itrList = useITRStore(state => state.itrList);
 
     // Use context list if available, otherwise use prop
     const ncrList = contextNcrList.length > 0 ? contextNcrList : propNcrList;

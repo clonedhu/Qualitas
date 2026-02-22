@@ -1,5 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api, { User, setupLogoutHandler } from '../services/api';
+import { useITPStore } from '../store/itpStore';
+import { useNCRStore } from '../store/ncrStore';
+import { useNOIStore } from '../store/noiStore';
+import { useOBSStore } from '../store/obsStore';
+import { useITRStore } from '../store/itrStore';
+import { usePQPStore } from '../store/pqpStore';
+import { useChecklistStore } from '../store/checklistStore';
+import { useFollowUpStore } from '../store/followUpStore';
+import { useAuditStore } from '../store/auditStore';
+import { useFATStore } from '../store/fatStore';
+import { useIAMStore } from '../store/iamStore';
+import { useContractorsStore } from '../store/contractorsStore';
 export type { User };
 
 interface AuthContextType {
@@ -34,7 +46,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const response = await api.get('/auth/verify');
       if (response.data) {
         setIsAuthenticated(true);
-        await fetchUser();
+        await Promise.all([
+          fetchUser(),
+          useITPStore.getState().fetchITPs(),
+          useNCRStore.getState().fetchNCRs(),
+          useNOIStore.getState().fetchNOIs(),
+          useOBSStore.getState().fetchOBSs(),
+          useITRStore.getState().fetchITRs(),
+          usePQPStore.getState().fetchPQPs(),
+          useChecklistStore.getState().fetchRecords(),
+          useFollowUpStore.getState().fetchFollowUps(),
+          useAuditStore.getState().fetchAudits(),
+          useFATStore.getState().fetchFATs(),
+          useIAMStore.getState().fetchData(),
+          useContractorsStore.getState().fetchContractors()
+        ]);
       }
     } catch (error) {
       localStorage.removeItem('token');
@@ -59,7 +85,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       localStorage.setItem('refreshToken', refreshToken);
     }
     setIsAuthenticated(true);
-    await fetchUser();
+    await Promise.all([
+      fetchUser(),
+      useITPStore.getState().fetchITPs(),
+      useNCRStore.getState().fetchNCRs(),
+      useNOIStore.getState().fetchNOIs(),
+      useOBSStore.getState().fetchOBSs(),
+      useITRStore.getState().fetchITRs(),
+      usePQPStore.getState().fetchPQPs(),
+      useChecklistStore.getState().fetchRecords(),
+      useFollowUpStore.getState().fetchFollowUps(),
+      useAuditStore.getState().fetchAudits(),
+      useFATStore.getState().fetchFATs(),
+      useIAMStore.getState().fetchData(),
+      useContractorsStore.getState().fetchContractors()
+    ]);
   };
 
   const logout = () => {

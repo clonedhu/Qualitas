@@ -37,7 +37,7 @@ def read_nois(
     )
 
 @router.get("/{noi_id}/", response_model=schemas.NOI)
-def read_noi(noi_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
+def read_noi(noi_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(NOI_VIEW))):
     db_noi = crud.get_noi(db, noi_id=noi_id)
     if db_noi is None:
         raise HTTPException(status_code=404, detail="NOI not found")
@@ -48,7 +48,7 @@ def read_noi(noi_id: str, db: Session = Depends(get_db), current_user: schemas.U
 def create_noi(
     noi: schemas.NOICreate, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(NOI_CREATE))
 ):
     return crud.create_noi(db=db, noi=noi, user_id=current_user.id, username=current_user.username)
 
@@ -56,7 +56,7 @@ def create_noi(
 def create_nois_bulk(
     nois: List[schemas.NOICreate], 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(NOI_CREATE))
 ):
     """批次建立多筆 NOI，每筆都會自動產生 Reference No"""
     created = []

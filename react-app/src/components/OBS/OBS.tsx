@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
-import { useContractors } from '../../context/ContractorsContext';
-import { useOBS } from '../../context/OBSContext';
-import type { OBSItem as ContextOBSItem } from '../../context/OBSContext';
+import { useContractorsStore } from '../../store/contractorsStore';
+import { useOBSStore } from '../../store/obsStore';
+import type { OBSItem as ContextOBSItem } from '../../store/obsStore';
 import styles from './OBS.module.css';
 import ConfirmModal from '../Shared/ConfirmModal';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
@@ -23,8 +23,8 @@ interface SortConfig {
 const OBS: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { getActiveContractors } = useContractors();
-  const { obsList, loading, error, refetch, addOBS, updateOBS, deleteOBS } = useOBS();
+  const { getActiveContractors } = useContractorsStore();
+  const { obsList, loading, error, refetch, addOBS, updateOBS, deleteOBS } = useOBSStore();
 
 
   // Search & Filter States
@@ -80,7 +80,8 @@ const OBS: React.FC = () => {
     };
   }, [obsList]);
 
-  // ... (handlers)
+
+
   const handleAdd = (id: string) => {
     navigate(`/obs/${id}`);
   };
@@ -141,6 +142,9 @@ const OBS: React.FC = () => {
       message: t('common.deleteConfirmMessage', { item: 'OBS' }),
     });
   };
+
+  // Columns memoization
+  const columns = useMemo(() => createColumns(handleEdit, confirmDelete, t, getActiveContractors), [t, getActiveContractors]);
 
   const handleDelete = async () => {
     if (deleteModal.id) {
@@ -248,7 +252,7 @@ const OBS: React.FC = () => {
               {t('obs.addNew')}
             </button>
           }
-          columns={createColumns(handleEdit, confirmDelete, t, getActiveContractors)}
+          columns={columns}
           data={filteredList}
           searchKey=""
           searchPlaceholder={t('obs.searchPlaceholder')}

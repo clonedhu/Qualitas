@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -6,6 +5,8 @@ import schemas
 import crud
 from database import get_db
 from middleware.auth import get_current_user, PermissionChecker, Permission
+from core.dependencies import RoleChecker
+from core.perms import ITR_VIEW, ITR_CREATE, ITR_UPDATE, ITR_DELETE
 
 router = APIRouter(
     prefix="/itr",
@@ -13,7 +14,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-# 讀取操作 - 無需認證
+# 讀取操作 - 需要 ITR_VIEW
 @router.get("/", response_model=List[schemas.ITR])
 def read_itrs(
     skip: int = 0, 
@@ -24,7 +25,7 @@ def read_itrs(
     end_date: str = None,
 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(ITR_VIEW))
 ):
     return crud.get_itrs(
         db, 
@@ -37,7 +38,7 @@ def read_itrs(
     )
 
 @router.get("/{itr_id}", response_model=schemas.ITR)
-def read_itr(itr_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
+def read_itr(itr_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(ITR_VIEW))):
     db_itr = crud.get_itr(db, itr_id=itr_id)
     if db_itr is None:
         raise HTTPException(status_code=404, detail="ITR not found")
@@ -48,7 +49,7 @@ def read_itr(itr_id: str, db: Session = Depends(get_db), current_user: schemas.U
 def create_itr(
     itr: schemas.ITRCreate, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(ITR_CREATE))
 ):
     return crud.create_itr(db=db, itr=itr, user_id=current_user.id, username=current_user.username)
 
@@ -57,7 +58,7 @@ def update_itr(
     itr_id: str, 
     itr: schemas.ITRUpdate, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(ITR_UPDATE))
 ):
     try:
         db_itr = crud.update_itr(db, itr_id=itr_id, itr=itr, user_id=current_user.id, username=current_user.username)
@@ -71,7 +72,7 @@ def update_itr(
 def delete_itr(
     itr_id: str, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(ITR_DELETE))
 ):
     if crud.delete_itr(db, itr_id=itr_id, user_id=current_user.id, username=current_user.username) is None:
         raise HTTPException(status_code=404, detail="ITR not found")

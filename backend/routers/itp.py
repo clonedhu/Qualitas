@@ -34,7 +34,7 @@ def read_itps(
     start_date: str = None,
     end_date: str = None,
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(ITP_VIEW))
 ):
     try:
         itps = crud.get_itps(
@@ -72,7 +72,7 @@ def read_itps(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/{itp_id}/", response_model=schemas.ITP)
-def read_itp(itp_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
+def read_itp(itp_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(ITP_VIEW))):
     db_itp = crud.get_itp(db, itp_id=itp_id)
     if db_itp is None:
         raise HTTPException(status_code=404, detail="ITP not found")

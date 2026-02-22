@@ -33,6 +33,15 @@ const RoleManagement: React.FC = () => {
         reason: ''
     });
 
+    const groupedPermissions = useMemo(() => {
+        return permissions.reduce((acc, perm) => {
+            const moduleName = (perm.code.split(':')[0] || 'OTHER').toUpperCase();
+            if (!acc[moduleName]) acc[moduleName] = [];
+            acc[moduleName].push(perm);
+            return acc;
+        }, {} as Record<string, typeof permissions>);
+    }, [permissions]);
+
     const filteredRoles = useMemo(() => {
         const query = searchQuery.toLowerCase();
         return roles.filter(r =>
@@ -141,16 +150,25 @@ const RoleManagement: React.FC = () => {
                         </div>
                         <div className={styles.formGroup}>
                             <label>{t('iam.permissionsLabel')}</label>
-                            <div className={styles.permissionsGrid}>
-                                {permissions.map(p => (
-                                    <label key={p.code} className={styles.permissionCheckbox}>
-                                        <input
-                                            type="checkbox"
-                                            checked={form.permissions.includes(p.code)}
-                                            onChange={() => togglePermission(p.code)}
-                                        />
-                                        <span>{p.description || p.code}</span>
-                                    </label>
+                            <div className={styles.permissionsGroupContainer}>
+                                {Object.entries(groupedPermissions).map(([moduleName, modulePerms]) => (
+                                    <div key={moduleName} className={styles.permissionSection}>
+                                        <div className={styles.permissionSectionHeader}>
+                                            {moduleName} MODULE
+                                        </div>
+                                        <div className={styles.permissionsSectionGrid}>
+                                            {modulePerms.map(p => (
+                                                <label key={p.code} className={styles.permissionCheckbox}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={form.permissions.includes(p.code)}
+                                                        onChange={() => togglePermission(p.code)}
+                                                    />
+                                                    <span>{p.description || p.code}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         </div>

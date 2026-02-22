@@ -3,6 +3,7 @@
 提供 API 路由的權限驗證功能
 """
 import os
+import logging
 from functools import wraps
 from typing import List, Optional
 from fastapi import Depends, HTTPException, status
@@ -11,6 +12,8 @@ from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from database import get_db
 import crud
+
+logger = logging.getLogger(__name__)
 
 # JWT 設定 - 使用 core.config.settings
 # SECRET_KEY and ALGORITHM are now accessed via settings.SECRET_KEY and settings.ALGORITHM
@@ -50,13 +53,13 @@ async def get_current_user(
         if username is None:
             raise credentials_exception
     except JWTError as e:
-        print(f"AUTH DEBUG: JWT Error: {str(e)}")
+        logger.debug(f"JWT Error: {str(e)}")
         raise credentials_exception
     
     # 從資料庫獲取代碼
     user = crud.get_user_by_username(db, username=username)
     if user is None:
-        print(f"AUTH DEBUG: User not found for username: {username}")
+        logger.debug(f"User not found for username: {username}")
         raise credentials_exception
     return user
 

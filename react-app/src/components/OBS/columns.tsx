@@ -1,5 +1,5 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { OBSItem } from "../../context/OBSContext";
+import { OBSItem } from "../../store/obsStore";
 import { DataTableColumnHeader } from "@/components/Shared/DataTable/DataTableColumnHeader";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";

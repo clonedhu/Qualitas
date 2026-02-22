@@ -633,19 +633,18 @@ def get_pqps(db: Session, skip: int = 0, limit: int = 500,
     return query.offset(skip).limit(limit).all()
 
 def create_pqp(db: Session, pqp: schemas.PQPCreate, user_id: int = None, username: str = None):
-    data = pqp.dict()
-    data = _json_serialize(data, ['attachments'])
+    d = _json_serialize(pqp.dict(), ['attachments'])
     
     # Handle Vendor Name -> ID mapping
-    vendor_name = data.pop('vendor', None)
+    vendor_name = d.pop('vendor', None)
     if vendor_name:
-        data['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+        d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
 
     # 自動產生 Reference No（若未提供或為空）
-    if not data.get('pqpNo'):
-        data['pqpNo'] = generate_reference_no(db, vendor_name or '', 'PQP')
+    if not d.get('pqpNo'):
+        d['pqpNo'] = generate_reference_no(db, vendor_name or '', 'PQP')
         
-    db_pqp = PQP(**data)
+    db_pqp = PQP(**d)
     if not db_pqp.id:
         db_pqp.id = str(uuid.uuid4())
     db.add(db_pqp)
@@ -1078,16 +1077,16 @@ def get_audits(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Audit).offset(skip).limit(limit).all()
 
 def create_audit(db: Session, audit: schemas.AuditCreate):
+    d = audit.dict()
+
+    # Handle Vendor Name -> ID mapping (Audit uses 'contractor' field)
+    vendor_name = d.get('contractor', None)
+    if vendor_name:
+        d['vendor_id'] = _resolve_vendor_id(db, vendor_name)
+
     db_audit = models.Audit(
         id=str(uuid.uuid4()),
-        auditNo=audit.auditNo,
-        title=audit.title,
-        date=audit.date,
-        auditor=audit.auditor,
-        status=audit.status,
-        location=audit.location,
-        findings=audit.findings,
-        contractor=audit.contractor
+        **{k: v for k, v in d.items() if k != 'id'}
     )
     if not db_audit.auditNo:
          db_audit.auditNo = f"AUD-{datetime.now().year}-{str(uuid.uuid4())[:6]}"

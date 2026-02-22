@@ -2,8 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BackButton } from '../ui/BackButton';
 import { useLanguage } from '../../context/LanguageContext';
-import { useContractors } from '../../context/ContractorsContext';
-import { ITPItem, ITPInspectionItem } from '../../context/ITPContext';
+import { useContractorsStore } from '../../store/contractorsStore';
+import { ITPItem, ITPInspectionItem } from '../../store/itpStore';
 import { ITPAdvancedEditor, ITPAdvancedEditorRef } from './ITPAdvancedEditor';
 import ReactDOM from 'react-dom';
 import { ITPPrintTemplate } from './ITPPrintTemplate';
@@ -11,7 +11,7 @@ import { InspectionItem } from '../../types/itp';
 import FileAttachment from '../Shared/FileAttachment';
 import styles from './ITP.module.css';
 import { getNextRevision } from '../../utils/revision';
-import { useITR } from '../../context/ITRContext';
+import { useITRStore } from '../../store/itrStore';
 
 import { Printer, ShieldCheck, Save, LayoutTemplate, Plus } from 'lucide-react';
 import { PHASES } from '../../constants/itp';
@@ -28,8 +28,8 @@ export const ITPDetailModal: React.FC<ITPDetailModalProps> = ({ itpId, existingI
     const editorRef = useRef<ITPAdvancedEditorRef>(null);
     const navigate = useNavigate();
     const { t } = useLanguage();
-    const { getActiveContractors } = useContractors();
-    const { itrList } = useITR();
+    const { getActiveContractors } = useContractorsStore();
+    const itrList = useITRStore(state => state.itrList);
     const REV_OPTIONS = ['Rev1.0', 'Rev2.0', 'Rev3.0', 'Rev4.0'];
 
     const [activeTab, setActiveTab] = useState<'general' | 'plan'>('general');

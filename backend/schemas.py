@@ -413,6 +413,8 @@ class OBSUpdate(BaseModel):
     attachments: Optional[Any] = None
     last_reminded_at: Optional[str] = None
     dueDate: Optional[str] = None
+    noiNumber: Optional[str] = None
+    itrNumber: Optional[str] = None
 
 class OBS(OBSBase):
     id: str
@@ -802,3 +804,76 @@ class FAT(FATBase):
     class Config:
         from_attributes = True
 
+# --- KM Schemas ---
+class KMAttachment(BaseModel):
+    name: str
+    filename: Optional[str] = None
+    size: Optional[str] = None
+    url: Optional[str] = None
+
+class KMArticleBase(BaseModel):
+    articleNo: Optional[str] = None
+    title: str
+    content: str
+    category: Optional[str] = None
+    tags: Optional[str] = None
+    status: Optional[str] = "Published"
+    attachments: Optional[List[KMAttachment]] = None
+    parent_id: Optional[str] = None
+    chapter_no: Optional[str] = None
+    change_summary: Optional[str] = None
+
+    @field_validator('attachments', mode='before')
+    @classmethod
+    def parse_attachments(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
+
+class KMArticleCreate(KMArticleBase):
+    id: Optional[str] = None
+
+class KMArticleUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    category: Optional[str] = None
+    tags: Optional[str] = None
+    status: Optional[str] = None
+    attachments: Optional[List[KMAttachment]] = None
+    parent_id: Optional[str] = None
+    chapter_no: Optional[str] = None
+    change_summary: Optional[str] = None
+
+class KMArticle(KMArticleBase):
+    id: str
+    author_id: Optional[int] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    version_no: Optional[int] = 1
+
+    class Config:
+        from_attributes = True
+
+class KMArticleHistory(BaseModel):
+    id: str
+    article_id: str
+    version_no: int
+    title: str
+    content: str
+    category: Optional[str] = None
+    tags: Optional[str] = None
+    status: Optional[str] = None
+    author_id: Optional[int] = None
+    attachments: Optional[str] = None
+    parent_id: Optional[str] = None
+    chapter_no: Optional[str] = None
+    change_summary: Optional[str] = None
+    created_at: str
+
+
+    
+    class Config:
+        from_attributes = True

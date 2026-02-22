@@ -5,7 +5,8 @@ from passlib.context import CryptContext
 import schemas
 import crud
 from database import get_db
-from middleware.auth import get_current_user, PermissionChecker
+from core.dependencies import RoleChecker
+from core.security import get_current_user
 from core.perms import USER_VIEW, USER_MANAGE, ROLE_VIEW, ROLE_MANAGE
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -26,7 +27,7 @@ def read_users(
     skip: int = 0, 
     limit: int = 100, 
     db: Session = Depends(get_db),
-    _: bool = Depends(PermissionChecker([USER_VIEW]))
+    current_user: schemas.User = Depends(RoleChecker(USER_VIEW))
 ):
     return crud.get_users(db, skip=skip, limit=limit)
 
@@ -34,7 +35,7 @@ def read_users(
 def read_user(
     user_id: int, 
     db: Session = Depends(get_db),
-    _: bool = Depends(PermissionChecker([USER_VIEW]))
+    current_user: schemas.User = Depends(RoleChecker(USER_VIEW))
 ):
     db_user = crud.get_user(db, user_id=user_id)
     if db_user is None:
@@ -45,8 +46,7 @@ def read_user(
 def create_user(
     user: schemas.UserCreate, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user),
-    _: bool = Depends(PermissionChecker([USER_MANAGE]))
+    current_user: schemas.User = Depends(RoleChecker(USER_MANAGE))
 ):
     db_user = crud.get_user_by_email(db, email=user.email)
     if db_user:
@@ -64,8 +64,7 @@ def update_user(
     user_id: int, 
     user: schemas.UserUpdate, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user),
-    _: bool = Depends(PermissionChecker([USER_MANAGE]))
+    current_user: schemas.User = Depends(RoleChecker(USER_MANAGE))
 ):
     hashed_password = get_password_hash(user.password) if user.password else None
     db_user = crud.update_user(db, user_id=user_id, user=user, hashed_password=hashed_password,
@@ -79,11 +78,10 @@ def delete_user(
     user_id: int, 
     reason: str = None,
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user),
-    _: bool = Depends(PermissionChecker([USER_MANAGE]))
+    current_user: schemas.User = Depends(RoleChecker(USER_MANAGE))
 ):
     db_user = crud.delete_user(db, user_id=user_id, current_user_id=current_user.id, 
-                               current_username=current_username, reason=reason)
+                               current_username=current_user.username, reason=reason)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return {"ok": True}
@@ -94,7 +92,7 @@ def read_roles(
     skip: int = 0, 
     limit: int = 100, 
     db: Session = Depends(get_db),
-    _: bool = Depends(PermissionChecker([ROLE_VIEW]))
+    current_user: schemas.User = Depends(RoleChecker(ROLE_VIEW))
 ):
     return crud.get_roles(db, skip=skip, limit=limit)
 
@@ -102,7 +100,7 @@ def read_roles(
 def read_role(
     role_id: int, 
     db: Session = Depends(get_db),
-    _: bool = Depends(PermissionChecker([ROLE_VIEW]))
+    current_user: schemas.User = Depends(RoleChecker(ROLE_VIEW))
 ):
     db_role = crud.get_role(db, role_id=role_id)
     if db_role is None:
@@ -113,8 +111,7 @@ def read_role(
 def create_role(
     role: schemas.RoleCreate, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user),
-    _: bool = Depends(PermissionChecker([ROLE_MANAGE]))
+    current_user: schemas.User = Depends(RoleChecker(ROLE_MANAGE))
 ):
     db_role = crud.get_role_by_name(db, name=role.name)
     if db_role:
@@ -126,8 +123,7 @@ def update_role(
     role_id: int, 
     role: schemas.RoleUpdate, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user),
-    _: bool = Depends(PermissionChecker([ROLE_MANAGE]))
+    current_user: schemas.User = Depends(RoleChecker(ROLE_MANAGE))
 ):
     db_role = crud.update_role(db, role_id=role_id, role=role, current_user_id=current_user.id, current_username=current_user.username)
     if db_role is None:
@@ -139,8 +135,7 @@ def delete_role(
     role_id: int, 
     reason: str = None,
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user),
-    _: bool = Depends(PermissionChecker([ROLE_MANAGE]))
+    current_user: schemas.User = Depends(RoleChecker(ROLE_MANAGE))
 ):
     db_role = crud.delete_role(db, role_id=role_id, current_user_id=current_user.id, current_username=current_user.username, reason=reason)
     if db_role is None:
@@ -152,7 +147,7 @@ def read_permissions(
     skip: int = 0, 
     limit: int = 100, 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(ROLE_VIEW))
 ):
     """
     獲取系統中定義的所有權限

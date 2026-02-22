@@ -43,7 +43,7 @@ interface DataTableProps<TData, TValue> {
     onRowClick?: (row: TData) => void
 }
 
-export function DataTable<TData, TValue>({
+const DataTableInner = <TData, TValue>({
     columns,
     data,
     searchKey,
@@ -54,7 +54,7 @@ export function DataTable<TData, TValue>({
     getRowClassName,
     onRowClick,
     ...props
-}: DataTableProps<TData, TValue>) {
+}: DataTableProps<TData, TValue>) => {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
         []
@@ -177,3 +177,7 @@ export function DataTable<TData, TValue>({
         </div>
     )
 }
+
+export const DataTable = React.memo(DataTableInner) as <TData, TValue>(
+    props: DataTableProps<TData, TValue> & React.RefAttributes<HTMLDivElement>
+) => JSX.Element;

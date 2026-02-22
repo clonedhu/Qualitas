@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
-import { useContractors } from '../../context/ContractorsContext';
-import { useITP, ITPItem } from '../../context/ITPContext';
-import { useNOI } from '../../context/NOIContext';
+import { useContractorsStore } from '../../store/contractorsStore';
+import { useITPStore } from '../../store/itpStore';
+import type { ITPItem } from '../../store/itpStore';
+import { useNOIStore } from '../../store/noiStore';
 import { checkITPReferences, generateDeleteMessage } from '../../utils/cascadeDelete';
 import { getErrorMessage } from '../../utils/errorUtils';
 import ConfirmModal from '../Shared/ConfirmModal';
@@ -17,9 +18,9 @@ import { useDebounce } from '../../hooks/useDebounce';
 const ITP: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { getActiveContractors } = useContractors();
-  const { itpList, loading, error, refetch, addITP, updateITP, updateITPDetail, deleteITP } = useITP();
-  const { noiList } = useNOI();
+  const { getActiveContractors } = useContractorsStore();
+  const { itpList, loading, error, refetch, addITP, updateITP, updateITPDetail, deleteITP } = useITPStore();
+  const noiList = useNOIStore(state => state.noiList);
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -147,6 +148,16 @@ const ITP: React.FC = () => {
       }
     }
   };
+
+  // Memoize columns to prevent DataTable from unnecessarily re-rendering
+  const columns = useMemo(() => createColumns(
+    handleEdit,
+    confirmDelete,
+    navigate,
+    t,
+    getActiveContractors(),
+    noiList
+  ), [t, getActiveContractors, noiList, navigate]);
 
   return (
     <div className={styles.container}>
@@ -330,7 +341,7 @@ const ITP: React.FC = () => {
                   </button>
                 </div>
               }
-              columns={createColumns(handleEdit, confirmDelete, navigate, t, getActiveContractors(), noiList)}
+              columns={columns}
               data={processedData}
               searchKey=""
               getRowClassName={(row) =>

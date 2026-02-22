@@ -1,8 +1,8 @@
 import { ColumnDef } from "@tanstack/react-table";
-import { ITRItem } from "../../context/ITRContext";
+import { ITRItem } from "../../store/itrStore";
 import { DataTableColumnHeader } from "@/components/Shared/DataTable/DataTableColumnHeader";
 import { Button } from "@/components/ui/button";
-import { Eye, Pencil, Trash2, FileText, AlertTriangle } from "lucide-react";
+import { Pencil, Trash2, FileText, AlertTriangle } from "lucide-react";
 import { getLocalizedStatus } from "../../utils/formatters";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";

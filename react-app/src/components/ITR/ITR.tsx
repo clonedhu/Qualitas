@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { BackButton } from '@/components/ui/BackButton';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useLanguage } from '../../context/LanguageContext';
-import { useITR, ITRItem } from '../../context/ITRContext';
-import { useContractors } from '../../context/ContractorsContext';
+import { useITRStore } from '../../store/itrStore';
+import type { ITRItem } from '../../store/itrStore';
+import { useContractorsStore } from '../../store/contractorsStore';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
 import { ITRDetailModal, ITRDetailData } from './ITRModals';
@@ -14,8 +15,8 @@ import styles from './ITR.module.css';
 const ITR: React.FC = () => {
     const { t } = useLanguage();
     const navigate = useNavigate();
-    const { itrList, loading, error, refetch, addITR, updateITR, deleteITR } = useITR();
-    const { getActiveContractors } = useContractors();
+    const { itrList, loading, error, refetch, addITR, updateITR, deleteITR } = useITRStore();
+    const { getActiveContractors } = useContractorsStore();
 
     const [searchQuery, setSearchQuery] = useState('');
     const debouncedSearch = useDebounce(searchQuery, 500);

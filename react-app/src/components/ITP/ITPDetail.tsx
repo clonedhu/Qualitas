@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../../services/api';
-import { useITR } from '../../context/ITRContext';
+import { useITRStore } from '../../store/itrStore';
 
 import {
   FileText, Printer, Filter, PenTool, LayoutTemplate, Layers, X, Save, AlertCircle, Plus,
@@ -22,7 +22,7 @@ import './itp-print-global.css';
 const ITPDetail: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { itrList } = useITR();
+  const itrList = useITRStore(state => state.itrList);
   // NOTE: 初始為空陣列，避免所有 ITP 顯示相同的硬編碼資料
   const [items, setItems] = useState<InspectionItem[]>([]);
   const [editingItem, setEditingItem] = useState<InspectionItem | null>(null);

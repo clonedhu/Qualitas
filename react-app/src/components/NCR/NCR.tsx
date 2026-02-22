@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
-import { useContractors } from '../../context/ContractorsContext';
-import { useNOI } from '../../context/NOIContext';
-import { useNCR, NCRItem } from '../../context/NCRContext';
-import { useITR } from '../../context/ITRContext';
+import { useContractorsStore } from '../../store/contractorsStore';
+import { useNOIStore } from '../../store/noiStore';
+import { useNCRStore } from '../../store/ncrStore';
+import type { NCRItem } from '../../store/ncrStore';
+import { useITRStore } from '../../store/itrStore';
 import { checkNCRReferences, generateDeleteMessage } from '../../utils/cascadeDelete';
 import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './NCR.module.css';
@@ -17,9 +18,9 @@ import { useDebounce } from '../../hooks/useDebounce';
 const NCR: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const { getActiveContractors } = useContractors();
-  const { ncrList, loading, error, refetch, addNCR, updateNCR, deleteNCR } = useNCR();
-  const { itrList } = useITR();
+  const { getActiveContractors } = useContractorsStore();
+  const { ncrList, loading, error, refetch, addNCR, updateNCR, deleteNCR } = useNCRStore();
+  const itrList = useITRStore(state => state.itrList);
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -162,6 +163,9 @@ const NCR: React.FC = () => {
     }
   };
 
+  // Columns memoization
+  const columns = useMemo(() => createColumns(handleEdit, confirmDelete, t), [t]);
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -254,7 +258,7 @@ const NCR: React.FC = () => {
                   {t('ncr.addNew')}
                 </button>
               }
-              columns={createColumns(handleEdit, confirmDelete, t)}
+              columns={columns}
               data={filteredList}
               searchKey=""
               searchPlaceholder={t('ncr.searchPlaceholder')}

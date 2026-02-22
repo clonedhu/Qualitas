@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useLanguage } from '../../../context/LanguageContext';
-import { useContractors } from '../../../context/ContractorsContext';
-import { useITP } from '../../../context/ITPContext';
-import { useNCR } from '../../../context/NCRContext';
-import { NOIItem } from '../../../context/NOIContext';
+import { useContractorsStore } from '../../../store/contractorsStore';
+import { useITPStore } from '../../../store/itpStore';
+import { useNCRStore } from '../../../store/ncrStore';
+import { useOBSStore } from '../../../store/obsStore';
+import type { NOIItem } from '../../../store/noiStore';
 import { validateStatusTransition, NOIStatusTransitions, validateRequiredFields, NOIValidationRules } from '../../../utils/statusValidation';
 import FileAttachment from '../../Shared/FileAttachment';
 import styles from '../NOI.module.css';
@@ -21,9 +22,12 @@ export interface NOIDetailModalProps {
 
 export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingData, existingItem, noiList, onSave, onClose, onPrint }) => {
     const { t } = useLanguage();
-    const { getActiveContractors } = useContractors();
-    const { getITPByVendor } = useITP();
-    const { getNCRList } = useNCR();
+    const { getActiveContractors } = useContractorsStore();
+    const itpList = useITPStore(state => state.itpList);
+    const getITPByVendor = (vendor: string) => itpList.filter(itp => itp.vendor === vendor);
+    const ncrList = useNCRStore(state => state.ncrList);
+    const obsList = useOBSStore(state => state.obsList);
+    const getNCRList = () => ncrList;
 
     const getInitialData = (): NOIDetailData => {
         if (existingData) {
@@ -101,6 +105,10 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
             if (field === 'ncrNumber' && value) {
                 updated.status = 'Reject';
             }
+            // NOTE: 當使用者清除 NCR 綁定時，自動把 Reject 狀態還原為 Open
+            if (field === 'ncrNumber' && !value && prev.status === 'Reject') {
+                updated.status = 'Open';
+            }
             if (field === 'contractor' && value) {
                 updated.itpNo = '';
             }
@@ -146,6 +154,18 @@ export const NOIDetailModal: React.FC<NOIDetailModalProps> = ({ noiId, existingD
             // 嘗試翻譯，若無法翻譯則顯示原訊息 (支援 key 或直接文字)
             alert(t(msg) === msg && msg.includes('.') ? msg : t(msg));
             return;
+        }
+
+        // P4: Cascade Validation - Blocks closing NOI if linked NCR or OBS is still Open
+        if (formData.status === 'Closed' && formData.referenceNo) {
+            const openNcrs = ncrList.filter(ncr => ncr.noiNumber === formData.referenceNo && ncr.status === 'Open');
+            const openObs = obsList.filter(obs => obs.noiNumber === formData.referenceNo && obs.status === 'Open');
+
+            if (openNcrs.length > 0 || openObs.length > 0) {
+                const totalOpen = openNcrs.length + openObs.length;
+                alert(`Cannot close NOI: There are still ${totalOpen} open NCR/OBS associated with this inspection. Please close them first.`);
+                return;
+            }
         }
 
         onSave(formData);

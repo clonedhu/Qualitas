@@ -34,7 +34,7 @@ def read_checklists(
     noi_number: str = None,
 
     db: Session = Depends(get_db),
-    current_user: schemas.User = Depends(get_current_user)
+    current_user: schemas.User = Depends(RoleChecker(CHECKLIST_VIEW))
 ):
     return crud.get_checklists(
         db, 
@@ -49,7 +49,7 @@ def read_checklists(
     )
 
 @router.get("/{checklist_id}/", response_model=schemas.Checklist)
-def read_checklist(checklist_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(get_current_user)):
+def read_checklist(checklist_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(CHECKLIST_VIEW))):
     db_chk = crud.get_checklist(db, checklist_id=checklist_id)
     if db_chk is None:
         raise HTTPException(status_code=404, detail="Checklist not found")

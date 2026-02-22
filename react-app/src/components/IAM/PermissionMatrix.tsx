@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useIAMStore } from '../../store/iamStore';
 import styles from './IAM.module.css';
@@ -8,10 +8,18 @@ const PermissionMatrix: React.FC = () => {
     const { t } = useLanguage();
     const { roles, permissions, loading } = useIAMStore();
 
+    const groupedPermissions = useMemo(() => {
+        return permissions.reduce((acc, perm) => {
+            const moduleName = (perm.code.split(':')[0] || 'OTHER').toUpperCase();
+            if (!acc[moduleName]) acc[moduleName] = [];
+            acc[moduleName].push(perm);
+            return acc;
+        }, {} as Record<string, typeof permissions>);
+    }, [permissions]);
+
     if (loading && roles.length === 0) {
         return (
             <div className={styles.loadingSkeleton}>
-                {/* Skeleton loading placeholders */}
                 <div className={styles.skeletonRow}></div>
                 <div className={styles.skeletonRow}></div>
                 <div className={styles.skeletonRow}></div>
@@ -40,24 +48,33 @@ const PermissionMatrix: React.FC = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {permissions.map((perm) => (
-                            <tr key={perm.code}>
-                                <td className={styles.permissionName}>
-                                    <span className={styles.permissionTag}>{perm.code}</span>
-                                </td>
-                                <td className={styles.permissionDesc}>
-                                    {perm.description}
-                                </td>
-                                {roles.map((role) => (
-                                    <td key={role.id} className={styles.checkCell}>
-                                        {role.permissions.includes(perm.code) ? (
-                                            <span className={styles.checkMark}>✓</span>
-                                        ) : (
-                                            <span className={styles.checkEmpty}>—</span>
-                                        )}
+                        {Object.entries(groupedPermissions).map(([moduleName, modulePerms]) => (
+                            <React.Fragment key={moduleName}>
+                                <tr className={styles.groupHeaderRow}>
+                                    <td colSpan={2 + roles.length}>
+                                        <span className={styles.groupTitle}>{moduleName} MODULE</span>
                                     </td>
+                                </tr>
+                                {modulePerms.map((perm) => (
+                                    <tr key={perm.code}>
+                                        <td className={styles.permissionName}>
+                                            <span className={styles.permissionTag}>{perm.code}</span>
+                                        </td>
+                                        <td className={styles.permissionDesc}>
+                                            {perm.description}
+                                        </td>
+                                        {roles.map((role) => (
+                                            <td key={role.id} className={styles.checkCell}>
+                                                {role.permissions.includes(perm.code) ? (
+                                                    <span className={styles.checkMark}>✓</span>
+                                                ) : (
+                                                    <span className={styles.checkEmpty}>—</span>
+                                                )}
+                                            </td>
+                                        ))}
+                                    </tr>
                                 ))}
-                            </tr>
+                            </React.Fragment>
                         ))}
                     </tbody>
                 </table>
@@ -78,7 +95,7 @@ const PermissionMatrix: React.FC = () => {
                                 {role.permissions.map((permCode) => {
                                     const perm = permissions.find(p => p.code === permCode);
                                     return (
-                                        <span key={permCode} className={styles.permissionTag}>
+                                        <span key={permCode} className={styles.permissionTag} title={permCode}>
                                             {perm?.description || permCode}
                                         </span>
                                     );

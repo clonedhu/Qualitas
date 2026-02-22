@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { getNextRevision } from '../../utils/revision';
 import { useLanguage } from '../../context/LanguageContext';
-import { useContractors } from '../../context/ContractorsContext';
-import { PQPItem } from '../../context/PQPContext';
+import { useContractorsStore } from '../../store/contractorsStore';
+import type { PQPItem } from '../../store/pqpStore';
 import FileAttachment from '../Shared/FileAttachment';
 import styles from './PQP.module.css';
 
@@ -24,7 +24,7 @@ export interface PQPDetailModalProps {
 
 export const PQPDetailModal: React.FC<PQPDetailModalProps> = ({ pqpId, existingItem, onSave, onClose }) => {
     const { t } = useLanguage();
-    const { getActiveContractors } = useContractors();
+    const { getActiveContractors } = useContractorsStore();
     const VERSION_OPTIONS = ['Rev1.0', 'Rev2.0', 'Rev3.0', 'Rev4.0'];
     const [formData, setFormData] = useState<Partial<PQPItem>>({
         pqpNo: existingItem?.pqpNo || '',
