@@ -8,10 +8,16 @@ from sqlalchemy.orm import Session
 from database import get_db
 from repositories.user_repository import UserRepository
 from services.user_service import UserService
+from repositories.itp_repository import ITPRepository
+from services.itp_service import ITPService
 
 def get_user_service(db: Session = Depends(get_db)) -> UserService:
     repo = UserRepository(db)
     return UserService(repo)
+
+def get_itp_service(db: Session = Depends(get_db)) -> ITPService:
+    repo = ITPRepository(db)
+    return ITPService(repo)
 
 logger = logging.getLogger(__name__)
 
