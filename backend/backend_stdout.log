@@ -2030,3 +2030,8 @@ INFO:     127.0.0.1:58693 - "GET /api/iam/roles/ HTTP/1.1" 200 OK
 INFO:     127.0.0.1:58711 - "GET /api/km/ HTTP/1.1" 200 OK
 INFO:     127.0.0.1:58712 - "GET /api/km/ HTTP/1.1" 200 OK
 INFO:     127.0.0.1:58717 - "GET /api/km/ec17d9b7-1ae5-4d31-b92a-2d6af00a129d/history HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [3010]
+INFO:     Stopping reloader process [2873]
