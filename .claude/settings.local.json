@@ -23,7 +23,12 @@
       "Bash(code:*)",
       "Bash(wc:*)",
       "Bash(ls:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(for file in repositories/*.py)",
+      "Bash(do python -m py_compile \"$file\")",
+      "Bash(echo:*)",
+      "Bash(done)",
+      "Bash(for file in services/*.py)"
     ]
   }
 }
