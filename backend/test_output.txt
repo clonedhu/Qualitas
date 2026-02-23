@@ -1,0 +1,160 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.12, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\YUKAI\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\python.exe
+cachedir: .pytest_cache
+rootdir: C:\Users\YUKAI\Desktop\Qualitas\backend
+plugins: anyio-4.12.1
+collecting ... collected 5 items
+
+tests/test_checklist_service.py::test_create_checklist_auto_records_no FAILED
+tests/test_checklist_service.py::test_create_checklist_custom_records_no PASSED
+tests/test_checklist_service.py::test_update_checklist_status_transition_fail PASSED
+tests/test_checklist_service.py::test_update_checklist_success FAILED
+tests/test_checklist_service.py::test_delete_checklist PASSED
+
+================================== FAILURES ===================================
+____________________ test_create_checklist_auto_records_no ____________________
+
+checklist_service = <services.checklist_service.ChecklistService object at 0x0000014D2CA5C1A0>
+mock_repo = <MagicMock id='1430969945120'>
+
+    def test_create_checklist_auto_records_no(checklist_service, mock_repo):
+>       chk_data = schemas.ChecklistCreate(
+            recordsNo="[AUTO-GENERATE]",
+            activity="Test Activity",
+            date="2026-01-01",
+            status="Ongoing",
+            packageName="PKG-01",
+            contractor="Vendor A",
+            detail_data={"key": "value"}
+        )
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for ChecklistCreate
+E       detail_data
+E         Input should be a valid string [type=string_type, input_value={'key': 'value'}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.12/v/string_type
+
+tests\test_checklist_service.py:17: ValidationError
+________________________ test_update_checklist_success ________________________
+
+checklist_service = <services.checklist_service.ChecklistService object at 0x0000014D2C6B95B0>
+mock_repo = <MagicMock id='1430973178816'>
+
+    def test_update_checklist_success(checklist_service, mock_repo):
+        mock_db_chk = models.Checklist(id="chk-123", status="Ongoing", recordsNo="CHK-01")
+        mock_repo.get_by_id.return_value = mock_db_chk
+    
+        # Create mock column_attrs for the inspect mock
+        class MockColumn:
+            def __init__(self, key):
+                self.key = key
+    
+        with patch('services.checklist_service.WorkflowEngine.validate_transition', return_value=True), \
+             patch('services.checklist_service.inspect') as mock_inspect, \
+             patch('services.checklist_service.log_audit') as mock_log:
+    
+            # Make inspect return a mock object with column_attrs
+            mock_mapper = MagicMock()
+            mock_mapper.column_attrs = [MockColumn("id"), MockColumn("status"), MockColumn("recordsNo")]
+            mock_inspect.return_value = mock_mapper
+    
+>           chk_update = schemas.ChecklistUpdate(status="Pass", detail_data={"updated": True})
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           pydantic_core._pydantic_core.ValidationError: 1 validation error for ChecklistUpdate
+E           detail_data
+E             Input should be a valid string [type=string_type, input_value={'updated': True}, input_type=dict]
+E               For further information visit https://errors.pydantic.dev/2.12/v/string_type
+
+tests\test_checklist_service.py:110: ValidationError
+============================== warnings summary ===============================
+schemas.py:75
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:75: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ITP(ITPBase):
+
+schemas.py:155
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:155: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class NCR(NCRBase):
+
+schemas.py:224
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:224: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class NOI(NOIBase):
+
+schemas.py:300
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:300: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class ITR(ITRBase):
+
+schemas.py:350
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:350: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class PQP(PQPBase):
+
+schemas.py:420
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:420: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class OBS(OBSBase):
+
+schemas.py:452
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:452: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class Contractor(ContractorBase):
+
+schemas.py:496
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:496: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class FollowUp(FollowUpBase):
+
+schemas.py:509
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:509: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class NamingRule(NamingRuleBase):
+
+schemas.py:544
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:544: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class Role(RoleBase):
+
+schemas.py:555
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:555: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class Permission(PermissionBase):
+
+schemas.py:602
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:602: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class Checklist(ChecklistBase):
+
+schemas.py:628
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:628: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class User(UserBase):
+
+schemas.py:665
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:665: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class Audit(AuditBase):
+
+schemas.py:681
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:681: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class KPIWeight(KPIWeightBase):
+
+schemas.py:702
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:702: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class OwnerPerformance(OwnerPerformanceBase):
+
+schemas.py:711
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:711: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class AttachmentResponse(BaseModel):
+
+schemas.py:800
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:800: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class FAT(FATBase):
+
+schemas.py:851
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:851: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class KMArticle(KMArticleBase):
+
+schemas.py:861
+  C:\Users\YUKAI\Desktop\Qualitas\backend\schemas.py:861: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class KMArticleHistory(BaseModel):
+
+tests/test_checklist_service.py::test_create_checklist_custom_records_no
+  C:\Users\YUKAI\Desktop\Qualitas\backend\services\checklist_service.py:105: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    data = checklist_create.dict()
+
+tests/test_checklist_service.py::test_create_checklist_custom_records_no
+  C:\Users\YUKAI\Desktop\Qualitas\backend\services\checklist_service.py:131: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    new_value=checklist_create.dict(), user_id=user_id, username=username
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_checklist_service.py::test_create_checklist_auto_records_no
+FAILED tests/test_checklist_service.py::test_update_checklist_success - pydan...
+================== 2 failed, 3 passed, 22 warnings in 0.39s ===================
