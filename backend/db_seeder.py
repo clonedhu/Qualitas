@@ -33,13 +33,17 @@ def run_seeding():
 def seed_default_contractors():
     db = SessionLocal()
     try:
-        if crud.get_contractors(db, limit=1) == []:
+        if db.query(models.Contractor).first() is None:
             for c in [
                 {"package": "", "name": "廠商A", "abbreviation": "A", "scope": "電氣工程", "contactPerson": "張三", "email": "vendor-a@example.com", "phone": "02-1234-5678", "address": "台北市信義區信義路一段100號", "status": "active"},
                 {"package": "", "name": "廠商B", "abbreviation": "B", "scope": "機械工程", "contactPerson": "李四", "email": "vendor-b@example.com", "phone": "02-2345-6789", "address": "新北市板橋區文化路二段200號", "status": "active"},
                 {"package": "", "name": "廠商C", "abbreviation": "C", "scope": "土木工程", "contactPerson": "王五", "email": "vendor-c@example.com", "phone": "02-3456-7890", "address": "桃園市中壢區中正路三段300號", "status": "active"},
             ]:
-                crud.create_contractor(db, schemas.ContractorCreate(**c))
+                obj = models.Contractor(**c)
+                if not obj.id:
+                    obj.id = str(uuid.uuid4())
+                db.add(obj)
+            db.commit()
             print("Seeded default contractors.")
     finally:
         db.close()
@@ -47,18 +51,24 @@ def seed_default_contractors():
 def seed_default_pqp():
     db = SessionLocal()
     try:
-        if crud.get_pqps(db, skip=0, limit=1) == []:
+        if db.query(models.PQP).first() is None:
             today = datetime.now().strftime("%Y-%m-%d")
-            crud.create_pqp(db, schemas.PQPCreate(
+            vendor = db.query(models.Contractor).filter(models.Contractor.name == "廠商A").first()
+            vendor_id = vendor.id if vendor else None
+            
+            db_pqp = models.PQP(
+                id=str(uuid.uuid4()),
                 pqpNo="PQP-001",
                 title="範例品質計劃",
                 description="這是一個範例品質計劃描述",
-                vendor="廠商A",
+                vendor_id=vendor_id,
                 status="Approved",
                 version="Rev1.0",
                 createdAt=today,
                 updatedAt=today,
-            ))
+            )
+            db.add(db_pqp)
+            db.commit()
             print("Seeded default PQP.")
     finally:
         db.close()

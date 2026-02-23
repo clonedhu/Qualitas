@@ -2,7 +2,9 @@ import sys
 
 import requests
 
-BASE_URL = "http://localhost:8000/api"
+import os
+PORT = os.environ.get("VERIFY_PORT", "8000")
+BASE_URL = f"http://localhost:{PORT}/api"
 
 def get_auth_token():
     """登入並取得認證 token"""
