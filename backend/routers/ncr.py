@@ -4,9 +4,10 @@ from sqlalchemy.orm import Session
 
 import crud
 import schemas
-from core.dependencies import RoleChecker
+from core.dependencies import RoleChecker, get_ncr_service
 from core.perms import NCR_CREATE, NCR_DELETE, NCR_UPDATE, NCR_VIEW
 from database import get_db
+from services.ncr_service import NCRService
 
 router = APIRouter(
     prefix="/ncr",
@@ -23,11 +24,10 @@ def read_ncrs(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
-    db: Session = Depends(get_db),
+    ncr_service: NCRService = Depends(get_ncr_service),
     current_user: schemas.User = Depends(RoleChecker(NCR_VIEW))
 ):
-    return crud.get_ncrs(
-        db,
+    return ncr_service.get_ncrs(
         skip=skip,
         limit=limit,
         search=search,
@@ -37,8 +37,12 @@ def read_ncrs(
     )
 
 @router.get("/{ncr_id}/", response_model=schemas.NCR)
-def read_ncr(ncr_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(NCR_VIEW))):
-    db_ncr = crud.get_ncr(db, ncr_id=ncr_id)
+def read_ncr(
+    ncr_id: str,
+    ncr_service: NCRService = Depends(get_ncr_service),
+    current_user: schemas.User = Depends(RoleChecker(NCR_VIEW))
+):
+    db_ncr = ncr_service.get_ncr(ncr_id=ncr_id)
     if db_ncr is None:
         raise HTTPException(status_code=404, detail="NCR not found")
     return db_ncr
@@ -47,20 +51,25 @@ def read_ncr(ncr_id: str, db: Session = Depends(get_db), current_user: schemas.U
 @router.post("/", response_model=schemas.NCR)
 def create_ncr(
     ncr: schemas.NCRCreate,
-    db: Session = Depends(get_db),
+    ncr_service: NCRService = Depends(get_ncr_service),
     current_user: schemas.User = Depends(RoleChecker(NCR_CREATE))
 ):
-    return crud.create_ncr(db=db, ncr=ncr, user_id=current_user.id, username=current_user.username)
+    return ncr_service.create_ncr(
+        ncr_create=ncr, user_id=current_user.id, username=current_user.username
+    )
 
 @router.put("/{ncr_id}/", response_model=schemas.NCR)
 def update_ncr(
     ncr_id: str,
     ncr: schemas.NCRUpdate,
-    db: Session = Depends(get_db),
+    ncr_service: NCRService = Depends(get_ncr_service),
     current_user: schemas.User = Depends(RoleChecker(NCR_UPDATE))
 ):
     try:
-        db_ncr = crud.update_ncr(db, ncr_id=ncr_id, ncr=ncr, user_id=current_user.id, username=current_user.username)
+        db_ncr = ncr_service.update_ncr(
+            ncr_id=ncr_id, ncr_update=ncr,
+            user_id=current_user.id, username=current_user.username
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     if db_ncr is None:
@@ -70,9 +79,12 @@ def update_ncr(
 @router.delete("/{ncr_id}/")
 def delete_ncr(
     ncr_id: str,
-    db: Session = Depends(get_db),
+    ncr_service: NCRService = Depends(get_ncr_service),
     current_user: schemas.User = Depends(RoleChecker(NCR_DELETE))
 ):
-    if crud.delete_ncr(db, ncr_id=ncr_id, user_id=current_user.id, username=current_user.username) is None:
+    deleted = ncr_service.delete_ncr(
+        ncr_id=ncr_id, user_id=current_user.id, username=current_user.username
+    )
+    if not deleted:
         raise HTTPException(status_code=404, detail="NCR not found")
     return {"ok": True}

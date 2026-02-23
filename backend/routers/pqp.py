@@ -4,9 +4,10 @@ from sqlalchemy.orm import Session
 
 import crud
 import schemas
-from core.dependencies import RoleChecker
+from core.dependencies import RoleChecker, get_pqp_service
 from core.perms import PQP_CREATE, PQP_DELETE, PQP_UPDATE, PQP_VIEW
 from database import get_db
+from services.pqp_service import PQPService
 
 router = APIRouter(
     prefix="/pqp",
@@ -23,12 +24,10 @@ def read_pqps(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
-
-    db: Session = Depends(get_db),
+    pqp_service: PQPService = Depends(get_pqp_service),
     current_user: schemas.User = Depends(RoleChecker(PQP_VIEW))
 ):
-    return crud.get_pqps(
-        db,
+    return pqp_service.get_pqps(
         skip=skip,
         limit=limit,
         search=search,
@@ -38,8 +37,12 @@ def read_pqps(
     )
 
 @router.get("/{pqp_id}", response_model=schemas.PQP)
-def read_pqp(pqp_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(PQP_VIEW))):
-    db_pqp = crud.get_pqp(db, pqp_id=pqp_id)
+def read_pqp(
+    pqp_id: str,
+    pqp_service: PQPService = Depends(get_pqp_service),
+    current_user: schemas.User = Depends(RoleChecker(PQP_VIEW))
+):
+    db_pqp = pqp_service.get_pqp(pqp_id=pqp_id)
     if db_pqp is None:
         raise HTTPException(status_code=404, detail="PQP not found")
     return db_pqp
@@ -48,20 +51,20 @@ def read_pqp(pqp_id: str, db: Session = Depends(get_db), current_user: schemas.U
 @router.post("/", response_model=schemas.PQP)
 def create_pqp(
     pqp: schemas.PQPCreate,
-    db: Session = Depends(get_db),
+    pqp_service: PQPService = Depends(get_pqp_service),
     current_user: schemas.User = Depends(RoleChecker(PQP_CREATE))
 ):
-    return crud.create_pqp(db=db, pqp=pqp, user_id=current_user.id, username=current_user.username)
+    return pqp_service.create_pqp(pqp_create=pqp, user_id=current_user.id, username=current_user.username)
 
 @router.put("/{pqp_id}", response_model=schemas.PQP)
 def update_pqp(
     pqp_id: str,
     pqp: schemas.PQPUpdate,
-    db: Session = Depends(get_db),
+    pqp_service: PQPService = Depends(get_pqp_service),
     current_user: schemas.User = Depends(RoleChecker(PQP_UPDATE))
 ):
     try:
-        db_pqp = crud.update_pqp(db, pqp_id=pqp_id, pqp=pqp, user_id=current_user.id, username=current_user.username)
+        db_pqp = pqp_service.update_pqp(pqp_id=pqp_id, pqp_update=pqp, user_id=current_user.id, username=current_user.username)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     if db_pqp is None:
@@ -71,9 +74,10 @@ def update_pqp(
 @router.delete("/{pqp_id}")
 def delete_pqp(
     pqp_id: str,
-    db: Session = Depends(get_db),
+    pqp_service: PQPService = Depends(get_pqp_service),
     current_user: schemas.User = Depends(RoleChecker(PQP_DELETE))
 ):
-    if crud.delete_pqp(db, pqp_id=pqp_id, user_id=current_user.id, username=current_user.username) is None:
+    deleted = pqp_service.delete_pqp(pqp_id=pqp_id, user_id=current_user.id, username=current_user.username)
+    if not deleted:
         raise HTTPException(status_code=404, detail="PQP not found")
     return {"ok": True}

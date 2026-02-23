@@ -21,7 +21,8 @@
       "Bash(exit:*)",
       "Bash(python3:*)",
       "Bash(code:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(ls:*)"
     ]
   }
 }

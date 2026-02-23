@@ -4,9 +4,10 @@ from sqlalchemy.orm import Session
 
 import crud
 import schemas
-from core.dependencies import RoleChecker
+from core.dependencies import RoleChecker, get_itr_service
 from core.perms import ITR_CREATE, ITR_DELETE, ITR_UPDATE, ITR_VIEW
 from database import get_db
+from services.itr_service import ITRService
 
 router = APIRouter(
     prefix="/itr",
@@ -23,12 +24,10 @@ def read_itrs(
     status: str = None,
     start_date: str = None,
     end_date: str = None,
-
-    db: Session = Depends(get_db),
+    itr_service: ITRService = Depends(get_itr_service),
     current_user: schemas.User = Depends(RoleChecker(ITR_VIEW))
 ):
-    return crud.get_itrs(
-        db,
+    return itr_service.get_itrs(
         skip=skip,
         limit=limit,
         search=search,
@@ -38,8 +37,12 @@ def read_itrs(
     )
 
 @router.get("/{itr_id}", response_model=schemas.ITR)
-def read_itr(itr_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(ITR_VIEW))):
-    db_itr = crud.get_itr(db, itr_id=itr_id)
+def read_itr(
+    itr_id: str,
+    itr_service: ITRService = Depends(get_itr_service),
+    current_user: schemas.User = Depends(RoleChecker(ITR_VIEW))
+):
+    db_itr = itr_service.get_itr(itr_id=itr_id)
     if db_itr is None:
         raise HTTPException(status_code=404, detail="ITR not found")
     return db_itr
@@ -48,20 +51,25 @@ def read_itr(itr_id: str, db: Session = Depends(get_db), current_user: schemas.U
 @router.post("/", response_model=schemas.ITR)
 def create_itr(
     itr: schemas.ITRCreate,
-    db: Session = Depends(get_db),
+    itr_service: ITRService = Depends(get_itr_service),
     current_user: schemas.User = Depends(RoleChecker(ITR_CREATE))
 ):
-    return crud.create_itr(db=db, itr=itr, user_id=current_user.id, username=current_user.username)
+    return itr_service.create_itr(
+        itr_create=itr, user_id=current_user.id, username=current_user.username
+    )
 
 @router.put("/{itr_id}", response_model=schemas.ITR)
 def update_itr(
     itr_id: str,
     itr: schemas.ITRUpdate,
-    db: Session = Depends(get_db),
+    itr_service: ITRService = Depends(get_itr_service),
     current_user: schemas.User = Depends(RoleChecker(ITR_UPDATE))
 ):
     try:
-        db_itr = crud.update_itr(db, itr_id=itr_id, itr=itr, user_id=current_user.id, username=current_user.username)
+        db_itr = itr_service.update_itr(
+            itr_id=itr_id, itr_update=itr,
+            user_id=current_user.id, username=current_user.username
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     if db_itr is None:
@@ -71,9 +79,31 @@ def update_itr(
 @router.delete("/{itr_id}")
 def delete_itr(
     itr_id: str,
-    db: Session = Depends(get_db),
+    itr_service: ITRService = Depends(get_itr_service),
     current_user: schemas.User = Depends(RoleChecker(ITR_DELETE))
 ):
-    if crud.delete_itr(db, itr_id=itr_id, user_id=current_user.id, username=current_user.username) is None:
+    deleted = itr_service.delete_itr(
+        itr_id=itr_id, user_id=current_user.id, username=current_user.username
+    )
+    if not deleted:
         raise HTTPException(status_code=404, detail="ITR not found")
     return {"ok": True}
+
+# New endpoint: Link Checklist to ITR
+@router.post("/{itr_id}/link-checklist", response_model=schemas.ITR)
+def link_checklist_to_itr(
+    itr_id: str,
+    checklist_id: str,
+    itr_service: ITRService = Depends(get_itr_service),
+    current_user: schemas.User = Depends(RoleChecker(ITR_UPDATE))
+):
+    """Link a Checklist to an ITR"""
+    db_itr = itr_service.link_checklist(
+        itr_id=itr_id,
+        checklist_id=checklist_id,
+        user_id=current_user.id,
+        username=current_user.username
+    )
+    if db_itr is None:
+        raise HTTPException(status_code=404, detail="ITR not found")
+    return db_itr

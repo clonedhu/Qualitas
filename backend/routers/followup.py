@@ -5,9 +5,10 @@ from sqlalchemy.orm import Session
 
 import crud
 import schemas
-from core.dependencies import RoleChecker
+from core.dependencies import RoleChecker, get_followup_service
 from core.perms import FOLLOWUP_CREATE, FOLLOWUP_DELETE, FOLLOWUP_UPDATE, FOLLOWUP_VIEW
 from database import get_db
+from services.followup_service import FollowUpService
 
 router = APIRouter(
     prefix="/followup",
@@ -17,12 +18,21 @@ router = APIRouter(
 
 # 讀取操作 - 需要 FOLLOWUP_VIEW
 @router.get("/", response_model=list[schemas.FollowUp])
-def read_followups(skip: int = 0, limit: int = 500, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(FOLLOWUP_VIEW))):
-    return crud.get_followups(db, skip=skip, limit=limit)
+def read_followups(
+    skip: int = 0,
+    limit: int = 500,
+    followup_service: FollowUpService = Depends(get_followup_service),
+    current_user: schemas.User = Depends(RoleChecker(FOLLOWUP_VIEW))
+):
+    return followup_service.get_followups(skip=skip, limit=limit)
 
 @router.get("/{followup_id}", response_model=schemas.FollowUp)
-def read_followup(followup_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(FOLLOWUP_VIEW))):
-    db_f = crud.get_followup(db, followup_id=followup_id)
+def read_followup(
+    followup_id: str,
+    followup_service: FollowUpService = Depends(get_followup_service),
+    current_user: schemas.User = Depends(RoleChecker(FOLLOWUP_VIEW))
+):
+    db_f = followup_service.get_followup(followup_id=followup_id)
     if db_f is None:
         raise HTTPException(status_code=404, detail="FollowUp not found")
     return db_f
@@ -31,19 +41,19 @@ def read_followup(followup_id: str, db: Session = Depends(get_db), current_user:
 @router.post("/", response_model=schemas.FollowUp)
 def create_followup(
     followup: schemas.FollowUpCreate,
-    db: Session = Depends(get_db),
+    followup_service: FollowUpService = Depends(get_followup_service),
     current_user: schemas.User = Depends(RoleChecker(FOLLOWUP_CREATE))
 ):
-    return crud.create_followup(db=db, followup=followup, user_id=current_user.id, username=current_user.username)
+    return followup_service.create_followup(followup_create=followup, user_id=current_user.id, username=current_user.username)
 
 @router.put("/{followup_id}", response_model=schemas.FollowUp)
 def update_followup(
     followup_id: str,
     followup: schemas.FollowUpUpdate,
-    db: Session = Depends(get_db),
+    followup_service: FollowUpService = Depends(get_followup_service),
     current_user: schemas.User = Depends(RoleChecker(FOLLOWUP_UPDATE))
 ):
-    db_f = crud.update_followup(db, followup_id=followup_id, followup=followup, user_id=current_user.id, username=current_user.username)
+    db_f = followup_service.update_followup(followup_id=followup_id, followup_update=followup, user_id=current_user.id, username=current_user.username)
     if db_f is None:
         raise HTTPException(status_code=404, detail="FollowUp not found")
     return db_f
@@ -51,9 +61,10 @@ def update_followup(
 @router.delete("/{followup_id}")
 def delete_followup(
     followup_id: str,
-    db: Session = Depends(get_db),
+    followup_service: FollowUpService = Depends(get_followup_service),
     current_user: schemas.User = Depends(RoleChecker(FOLLOWUP_DELETE))
 ):
-    if crud.delete_followup(db, followup_id=followup_id, user_id=current_user.id, username=current_user.username) is None:
+    deleted = followup_service.delete_followup(followup_id=followup_id, user_id=current_user.id, username=current_user.username)
+    if not deleted:
         raise HTTPException(status_code=404, detail="FollowUp not found")
     return {"ok": True}

@@ -3,6 +3,7 @@ import { ChecklistRecord } from "../../store/checklistStore";
 import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataTableColumnHeader } from "@/components/Shared/DataTable/DataTableColumnHeader";
+import { Link } from "react-router-dom";
 import styles from "./Checklist.module.css";
 
 export const createColumns = (
@@ -41,6 +42,25 @@ export const createColumns = (
             header: ({ column }) => (
                 <DataTableColumnHeader column={column} title={t('common.date')} />
             ),
+        },
+        {
+            accessorKey: "itrNumber",
+            header: ({ column }) => (
+                <DataTableColumnHeader column={column} title="ITR Number" />
+            ),
+            cell: ({ row }) => {
+                const itrNumber = row.original.itrNumber;
+                return itrNumber ? (
+                    <Link
+                        to={`/itr?search=${encodeURIComponent(itrNumber)}`}
+                        className="font-mono text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                        {itrNumber}
+                    </Link>
+                ) : (
+                    <span className="text-slate-400 text-xs">-</span>
+                );
+            }
         },
         {
             accessorKey: "status",

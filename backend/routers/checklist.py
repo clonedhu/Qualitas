@@ -2,11 +2,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-import crud
 import schemas
-from core.dependencies import RoleChecker
+from core.dependencies import RoleChecker, get_checklist_service
 from core.perms import CHECKLIST_CREATE, CHECKLIST_DELETE, CHECKLIST_UPDATE, CHECKLIST_VIEW
-from database import get_db
+from services.checklist_service import ChecklistService
 
 router = APIRouter(
     prefix="/checklist",
@@ -17,10 +16,10 @@ router = APIRouter(
 @router.post("/", response_model=schemas.Checklist)
 def create_checklist(
     chk: schemas.ChecklistCreate,
-    db: Session = Depends(get_db),
+    service: ChecklistService = Depends(get_checklist_service),
     current_user: schemas.User = Depends(RoleChecker(CHECKLIST_CREATE))
 ):
-    return crud.create_checklist(db=db, chk=chk, user_id=current_user.id, username=current_user.username)
+    return service.create_checklist(chk, user_id=current_user.id, username=current_user.username)
 
 @router.get("/", response_model=list[schemas.Checklist])
 def read_checklists(
@@ -32,12 +31,10 @@ def read_checklists(
     end_date: str = None,
     itr_id: str = None,
     noi_number: str = None,
-
-    db: Session = Depends(get_db),
+    service: ChecklistService = Depends(get_checklist_service),
     current_user: schemas.User = Depends(RoleChecker(CHECKLIST_VIEW))
 ):
-    return crud.get_checklists(
-        db,
+    return service.get_checklists(
         skip=skip,
         limit=limit,
         search=search,
@@ -49,26 +46,35 @@ def read_checklists(
     )
 
 @router.get("/{checklist_id}/", response_model=schemas.Checklist)
-def read_checklist(checklist_id: str, db: Session = Depends(get_db), current_user: schemas.User = Depends(RoleChecker(CHECKLIST_VIEW))):
-    db_chk = crud.get_checklist(db, checklist_id=checklist_id)
+def read_checklist(
+    checklist_id: str,
+    service: ChecklistService = Depends(get_checklist_service),
+    current_user: schemas.User = Depends(RoleChecker(CHECKLIST_VIEW))
+):
+    db_chk = service.get_checklist(checklist_id)
     if db_chk is None:
         raise HTTPException(status_code=404, detail="Checklist not found")
     return db_chk
 
 @router.put("/{chk_id}/", response_model=schemas.Checklist)
-def update_checklist(chk_id: str, chk: schemas.ChecklistUpdate,
-                     db: Session = Depends(get_db),
-                     current_user: schemas.User = Depends(RoleChecker(CHECKLIST_UPDATE))):
-    db_chk = crud.update_checklist(db, checklist_id=chk_id, chk=chk, user_id=current_user.id, username=current_user.username)
+def update_checklist(
+    chk_id: str,
+    chk: schemas.ChecklistUpdate,
+    service: ChecklistService = Depends(get_checklist_service),
+    current_user: schemas.User = Depends(RoleChecker(CHECKLIST_UPDATE))
+):
+    db_chk = service.update_checklist(chk_id, chk, user_id=current_user.id, username=current_user.username)
     if db_chk is None:
         raise HTTPException(status_code=404, detail="Checklist not found")
     return db_chk
 
 @router.delete("/{chk_id}/", response_model=dict)
-def delete_checklist(chk_id: str,
-                     db: Session = Depends(get_db),
-                     current_user: schemas.User = Depends(RoleChecker(CHECKLIST_DELETE))):
-    db_chk = crud.delete_checklist(db, checklist_id=chk_id, user_id=current_user.id, username=current_user.username)
-    if db_chk is None:
+def delete_checklist(
+    chk_id: str,
+    service: ChecklistService = Depends(get_checklist_service),
+    current_user: schemas.User = Depends(RoleChecker(CHECKLIST_DELETE))
+):
+    deleted = service.delete_checklist(chk_id, user_id=current_user.id, username=current_user.username)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Checklist not found")
     return {"ok": True}
