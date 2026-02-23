@@ -82,6 +82,18 @@ def get_audit_service(db: Session = Depends(get_db)):
     repo = AuditRepository(db)
     return AuditService(repo)
 
+def get_fat_service(db: Session = Depends(get_db)):
+    from repositories.fat_repository import FATRepository
+    from services.fat_service import FATService
+    repo = FATRepository(db)
+    return FATService(repo)
+
+def get_kpi_service(db: Session = Depends(get_db)):
+    from repositories.kpi_repository import KPIRepository
+    from services.kpi_service import KPIService
+    repo = KPIRepository(db)
+    return KPIService(repo)
+
 logger = logging.getLogger(__name__)
 
 class RoleChecker:

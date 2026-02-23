@@ -102,3 +102,5 @@ app.include_router(api)
 @app.get("/")
 def read_root():
     return {"message": f"{settings.PROJECT_NAME} is running"}
+
+# hot reload trigger
