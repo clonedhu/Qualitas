@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-import crud
 import schemas
 from core.dependencies import RoleChecker, get_itr_service
 from core.perms import ITR_CREATE, ITR_DELETE, ITR_UPDATE, ITR_VIEW

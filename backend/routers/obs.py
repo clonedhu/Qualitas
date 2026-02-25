@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-import crud
 import schemas
 from core.dependencies import RoleChecker, get_obs_service
 from core.perms import OBS_CREATE, OBS_DELETE, OBS_UPDATE, OBS_VIEW

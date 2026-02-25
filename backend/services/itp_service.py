@@ -5,10 +5,7 @@ from fastapi import HTTPException
 import models
 import schemas
 from repositories.itp_repository import ITPRepository
-
-# Import shared legacy utilities from crud to prevent breaking other modules.
-# TODO: In future phases, extract these to a dedicated core/utils.py module.
-from crud import _json_serialize, _resolve_vendor_id, generate_reference_no, log_audit, WorkflowEngine
+from core.utils import _json_serialize, _resolve_vendor_id, generate_reference_no, log_audit, WorkflowEngine
 
 logger = logging.getLogger(__name__)
 

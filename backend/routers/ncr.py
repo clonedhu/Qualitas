@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-import crud
 import schemas
 from core.dependencies import RoleChecker, get_ncr_service
 from core.perms import NCR_CREATE, NCR_DELETE, NCR_UPDATE, NCR_VIEW

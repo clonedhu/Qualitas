@@ -1,20 +1,17 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../../context/LanguageContext';
 import { useContractorsStore } from '../../store/contractorsStore';
 import { useAuditStore } from '../../store/auditStore';
-import type { AuditItem } from '../../store/auditStore';
 import ConfirmModal from '../Shared/ConfirmModal';
 import styles from './Audit.module.css';
 import { DataTable } from '@/components/Shared/DataTable/DataTable';
 import { createColumns } from './columns';
-import { AuditEditModal } from './AuditModals';
+import AuditWizard from './AuditWizard';
 import { BackButton } from '@/components/ui/BackButton';
 
 const Audit: React.FC = () => {
-    const navigate = useNavigate();
     const { t } = useLanguage();
-    const { auditList, loading, error, addAudit, updateAudit, deleteAudit } = useAuditStore();
+    const { auditList, deleteAudit, error, clearError, loading } = useAuditStore();
     const [searchQuery, setSearchQuery] = useState<string>('');
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [currentAuditId, setCurrentAuditId] = useState<string | null>(null);
@@ -136,29 +133,6 @@ const Audit: React.FC = () => {
         setIsEditModalOpen(true);
     };
 
-    const handleSaveAudit = async (updates: Partial<AuditItem>) => {
-        if (currentAuditId) {
-            const existingItem = auditList.find(item => item.id === currentAuditId);
-            if (existingItem) {
-                // 更新現有項目
-                await updateAudit(currentAuditId, updates);
-            } else {
-                // 新增項目
-                const newItem: Omit<AuditItem, 'id'> = {
-                    auditNo: updates.auditNo || '', // 讓後端自動依規則產生
-                    title: updates.title || '',
-                    date: updates.date || '',
-                    auditor: updates.auditor || '',
-                    status: updates.status || 'Planned',
-                    location: updates.location || '',
-                    findings: updates.findings || '',
-                    contractor: updates.contractor || '',
-                };
-                await addAudit(newItem);
-            }
-        }
-    };
-
     const handleEdit = (id: string) => {
         setCurrentAuditId(id);
         setIsEditModalOpen(true);
@@ -166,7 +140,6 @@ const Audit: React.FC = () => {
 
     const handleReport = (id: string) => {
         // TODO: Navigate to Audit Report page or open report modal
-        console.log('Open report for audit:', id);
         // For now, you can navigate to a report page:
         // navigate(`/audit/${id}/report`);
         alert(`Audit Report for ID: ${id}`);
@@ -203,6 +176,56 @@ const Audit: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Error Message Display */}
+            {error && (
+                <div style={{
+                    margin: '16px 24px',
+                    padding: '12px 16px',
+                    backgroundColor: '#FEE2E2',
+                    border: '1px solid #FCA5A5',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10 0C4.48 0 0 4.48 0 10s4.48 10 10 10 10-4.48 10-10S15.52 0 10 0zm1 15H9v-2h2v2zm0-4H9V5h2v6z" fill="#DC2626"/>
+                        </svg>
+                        <span style={{ color: '#991B1B', fontWeight: 500 }}>{error}</span>
+                    </div>
+                    <button
+                        onClick={clearError}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: '#DC2626',
+                            cursor: 'pointer',
+                            fontSize: '20px',
+                            padding: '0 4px'
+                        }}
+                    >
+                        ×
+                    </button>
+                </div>
+            )}
+
+            {/* Loading Indicator */}
+            {loading && (
+                <div style={{
+                    margin: '16px 24px',
+                    padding: '12px 16px',
+                    backgroundColor: '#DBEAFE',
+                    border: '1px solid: '#93C5FD',
+                    borderRadius: '8px',
+                    textAlign: 'center',
+                    color: '#1E40AF',
+                    fontWeight: 500
+                }}>
+                    Loading audits...
+                </div>
+            )}
 
             <div className={styles.topSection}>
                 {/* Left: Vendor Statistics (Visual) */}
@@ -370,14 +393,18 @@ const Audit: React.FC = () => {
             </div>
 
             {
-                isEditModalOpen && currentAuditId && (
-                    <AuditEditModal
+                isEditModalOpen && (
+                    <AuditWizard
                         auditId={currentAuditId}
                         existingItem={auditList.find(item => item.id === currentAuditId)}
-                        onSave={handleSaveAudit}
                         onClose={() => {
                             setIsEditModalOpen(false);
                             setCurrentAuditId(null);
+                        }}
+                        onSaveSuccess={() => {
+                            setIsEditModalOpen(false);
+                            setCurrentAuditId(null);
+                            // Refresh audit list might be needed, but store handles reactivity
                         }}
                     />
                 )

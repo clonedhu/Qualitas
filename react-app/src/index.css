@@ -131,3 +131,46 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* --- Print Styles --- */
+@media print {
+  /* Hide unnecessary UI elements */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Force background colors and exact colors to print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Remove typical modal overlay background/shadows for clean print */
+  .print-modal-content {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Reset background for print */
+  body {
+    background-color: white !important;
+  }
+
+  /* Page breaks for tables to avoid cutting rows in half */
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  
+  /* Make sure the checklist overflow container expands fully for print */
+  .print-expand {
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+}

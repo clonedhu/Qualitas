@@ -1,5 +1,6 @@
 import logging
 import os
+from logging.handlers import RotatingFileHandler
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -33,13 +34,22 @@ from routers import (
 from routers import settings as settings_router
 from scheduler import start_scheduler
 
-# Setup Logger
+# Setup Logger with rotation
+# Max 10MB per file, keep 5 backup files
+rotating_handler = RotatingFileHandler(
+    "backend_error.log",
+    mode='a',
+    maxBytes=10*1024*1024,  # 10MB
+    backupCount=5,
+    encoding='utf-8'
+)
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler("backend_error.log", mode='a', encoding='utf-8')
+        rotating_handler
     ]
 )
 logger = logging.getLogger(__name__)

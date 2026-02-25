@@ -2,7 +2,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-import crud
 import schemas
 from core.dependencies import RoleChecker, get_noi_service
 from core.perms import NOI_CREATE, NOI_DELETE, NOI_UPDATE, NOI_VIEW

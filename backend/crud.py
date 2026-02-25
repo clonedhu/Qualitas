@@ -444,3 +444,66 @@ def delete_role(db: Session, role_id: int, current_user_id: int = None, current_
         db.commit()
     return db_role
 
+# ---- Audit ----
+
+def create_audit(db: Session, audit: schemas.AuditCreate, user_id: int = None, username: str = None):
+    db_audit = models.Audit(
+        id=audit.id or str(uuid.uuid4()),
+        auditNo=audit.auditNo,
+        title=audit.title,
+        date=audit.date,
+        end_date=audit.end_date,
+        auditor=audit.auditor,
+        status=audit.status,
+        location=audit.location,
+        findings=audit.findings,
+        contractor=audit.contractor,
+        project_name=audit.project_name,
+        project_director=audit.project_director,
+        support_auditors=audit.support_auditors,
+        tech_lead=audit.tech_lead,
+        scope_description=audit.scope_description,
+        audit_criteria=audit.audit_criteria,
+        selected_templates=json.dumps(audit.selected_templates) if isinstance(audit.selected_templates, list) else audit.selected_templates,
+        custom_check_items=json.dumps(audit.custom_check_items) if isinstance(audit.custom_check_items, list) else audit.custom_check_items
+    )
+    
+    # vendor lookup for consistency
+    if audit.contractor:
+        db_audit.vendor_id = _resolve_vendor_id(db, audit.contractor)
+
+    db.add(db_audit)
+
+    log_audit(db, "CREATE", "Audit", db_audit.id, db_audit.auditNo,
+              new_value=audit.dict(), user_id=user_id, username=username)
+
+    db.commit()
+    db.refresh(db_audit)
+    return db_audit
+
+
+def update_audit(db: Session, audit_id: str, audit: schemas.AuditUpdate, user_id: int = None, username: str = None):
+    db_audit = db.query(models.Audit).filter(models.Audit.id == audit_id).first()
+    if db_audit:
+        old_val = {c.name: getattr(db_audit, c.name) for c in db_audit.__table__.columns}
+        
+        # update basic fields
+        update_data = audit.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            if key in ["selected_templates", "custom_check_items"]:
+                setattr(db_audit, key, json.dumps(value) if isinstance(value, list) else value)
+            else:
+                setattr(db_audit, key, value)
+        
+        # Re-resolve vendor if contractor changed
+        if "contractor" in update_data:
+            db_audit.vendor_id = _resolve_vendor_id(db, update_data["contractor"])
+            
+        log_audit(db, "UPDATE", "Audit", audit_id, db_audit.auditNo,
+                  old_value=old_val, new_value=update_data,
+                  user_id=user_id, username=username)
+
+        db.commit()
+        db.refresh(db_audit)
+    return db_audit
+

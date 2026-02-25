@@ -97,8 +97,9 @@ def _add_missing_columns():
             _add_column_if_missing(conn, "audit_logs", "reason", "TEXT")
             _add_column_if_missing(conn, "audit_logs", "details", "TEXT")
 
-            # Audits - 新增 vendor_id 外鍵欄位
+            # Audits
             _add_column_if_missing(conn, "audits", "vendor_id", "VARCHAR")
+            _add_column_if_missing(conn, "audits", "audit_criteria", "TEXT")
 
             conn.commit()
     except Exception as e:

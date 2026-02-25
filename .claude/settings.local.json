@@ -28,7 +28,9 @@
       "Bash(do python -m py_compile \"$file\")",
       "Bash(echo:*)",
       "Bash(done)",
-      "Bash(for file in services/*.py)"
+      "Bash(for file in services/*.py)",
+      "Bash(alembic --version:*)",
+      "Bash(grep:*)"
     ]
   }
 }

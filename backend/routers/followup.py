@@ -3,7 +3,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-import crud
 import schemas
 from core.dependencies import RoleChecker, get_followup_service
 from core.perms import FOLLOWUP_CREATE, FOLLOWUP_DELETE, FOLLOWUP_UPDATE, FOLLOWUP_VIEW

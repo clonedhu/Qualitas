@@ -3,15 +3,14 @@ import shutil
 import uuid
 
 from fastapi import HTTPException, UploadFile
-from sqlalchemy.orm import Session
 
 import schemas
 from repositories.km_repository import KMRepository
 
 
 class KMService:
-    def __init__(self, db: Session):
-        self.repo = KMRepository(db)
+    def __init__(self, repo: KMRepository):
+        self.repo = repo
 
     def get_articles(self, skip: int = 0, limit: int = 100, category: str | None = None, search: str | None = None):
         return self.repo.get_all(skip=skip, limit=limit, category=category, search=search)

@@ -74,8 +74,7 @@ class ITPUpdate(BaseModel):
 
 class ITP(ITPBase):
     id: str
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # NCR
 class NCRBase(BaseModel):
@@ -154,8 +153,7 @@ class NCRUpdate(BaseModel):
 
 class NCR(NCRBase):
     id: str
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # NOI
@@ -223,8 +221,7 @@ class NOIUpdate(BaseModel):
 
 class NOI(NOIBase):
     id: str
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ITR
@@ -299,8 +296,7 @@ class ITRUpdate(BaseModel):
 
 class ITR(ITRBase):
     id: str
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # PQP
@@ -349,8 +345,7 @@ class PQPUpdate(BaseModel):
 
 class PQP(PQPBase):
     id: str
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # OBS
@@ -419,8 +414,7 @@ class OBSUpdate(BaseModel):
 
 class OBS(OBSBase):
     id: str
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # Contractor
@@ -451,8 +445,7 @@ class ContractorUpdate(BaseModel):
 
 class Contractor(ContractorBase):
     id: str
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # FollowUp
@@ -495,8 +488,7 @@ class FollowUpUpdate(BaseModel):
 
 class FollowUp(FollowUpBase):
     id: str
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # Document Naming Rules
@@ -509,8 +501,7 @@ class NamingRuleBase(BaseModel):
 class NamingRule(NamingRuleBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # --- IAM Schemas ---
 
@@ -544,8 +535,7 @@ class RoleUpdate(BaseModel):
 class Role(RoleBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # Permission
 class PermissionBase(BaseModel):
@@ -555,8 +545,7 @@ class PermissionBase(BaseModel):
 class Permission(PermissionBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # User
 class ChecklistBase(BaseModel):
@@ -602,8 +591,7 @@ class ChecklistUpdate(BaseModel):
 class Checklist(ChecklistBase):
     id: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class UserBase(BaseModel):
     username: str
@@ -630,24 +618,42 @@ class User(UserBase):
     role_name: str | None = None
     created_at: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # --- Audit Schemas ---
 class AuditBase(BaseModel):
     auditNo: str
-    title: str
-    date: str
-    auditor: str
+    title: str | None = None
+    date: str | None = None
+    end_date: str | None = None
+    auditor: str | None = None
     status: str
-    location: str
-    findings: str
+    location: str | None = None
+    findings: str | None = None
     contractor: str | None = None
+    project_name: str | None = None
+    project_director: str | None = None
+    support_auditors: str | None = None
+    tech_lead: str | None = None
+    scope_description: str | None = None
+    audit_criteria: str | None = None
+    selected_templates: list[str] | None = []
+    custom_check_items: Any | None = []
 
-    @field_validator('date', mode='before')
+    @field_validator('date', 'end_date', mode='before')
     @classmethod
     def check_dates(cls, v):
         return validate_date_format(v)
+
+    @field_validator('selected_templates', 'custom_check_items', mode='before')
+    @classmethod
+    def parse_json_fields(cls, v):
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except Exception:
+                return []
+        return v
 
 class AuditCreate(AuditBase):
     id: str | None = None
@@ -656,16 +662,26 @@ class AuditUpdate(BaseModel):
     auditNo: str | None = None
     title: str | None = None
     date: str | None = None
+    end_date: str | None = None
     auditor: str | None = None
     status: str | None = None
     location: str | None = None
     findings: str | None = None
     contractor: str | None = None
+    project_name: str | None = None
+    project_director: str | None = None
+    support_auditors: str | None = None
+    tech_lead: str | None = None
+    scope_description: str | None = None
+    audit_criteria: str | None = None
+    selected_templates: list[str] | None = None
+    custom_check_items: Any | None = None
 
 class Audit(AuditBase):
     id: str
-    class Config:
-        from_attributes = True
+    vendor_id: str | None = None
+
+    model_config = {"from_attributes": True}
 
 
 # --- KPI & Performance Schemas ---
@@ -681,8 +697,7 @@ class KPIWeightUpdate(KPIWeightBase):
 class KPIWeight(KPIWeightBase):
     id: int
     updated_at: str | None = None
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class OwnerPerformanceBase(BaseModel):
     owner_name: str
@@ -702,8 +717,7 @@ class OwnerPerformanceUpdate(BaseModel):
 class OwnerPerformance(OwnerPerformanceBase):
     id: str
     updated_at: str | None = None
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # --- Attachment (File Management) Schemas ---
@@ -721,8 +735,7 @@ class AttachmentResponse(BaseModel):
     uploaded_by: str | None = None
     uploaded_at: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # --- Auth Schemas ---
 class Token(BaseModel):
@@ -802,8 +815,7 @@ class FAT(FATBase):
     created_at: str | None = None
     updated_at: str | None = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 # --- KM Schemas ---
 class KMAttachment(BaseModel):
@@ -855,8 +867,7 @@ class KMArticle(KMArticleBase):
     updated_at: str | None = None
     version_no: int | None = 1
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class KMArticleHistory(BaseModel):
     id: str
@@ -876,5 +887,4 @@ class KMArticleHistory(BaseModel):
 
 
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

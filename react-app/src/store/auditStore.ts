@@ -6,54 +6,22 @@ export interface AuditItem {
     auditNo: string;
     title: string;
     date: string;
+    end_date?: string;
     auditor: string;
     status: string;
     location: string;
     findings: string;
     contractor?: string;
+    vendor_id?: string;
+    project_name?: string;
+    project_director?: string;
+    support_auditors?: string;
+    tech_lead?: string;
+    scope_description?: string;
+    audit_criteria?: string;
+    selected_templates?: string[];
+    custom_check_items?: any[];
 }
-
-// NOTE: 將廠商名稱轉換為縮寫（取前3個字母大寫），用於產生審計編號
-const getVendorAbbrev = (contractor?: string): string => {
-    if (!contractor) return 'XXX';
-    return contractor.replace(/[^a-zA-Z]/g, '').substring(0, 3).toUpperCase() || 'XXX';
-};
-
-// NOTE: 生成符合命名規則的審計編號
-const generateAuditNo = (contractor: string | undefined, sequence: number): string => {
-    const abbrev = getVendorAbbrev(contractor);
-    return `QTS-RKS-${abbrev}-AUD-${String(sequence).padStart(6, '0')}`;
-};
-
-// HACK: 暫時使用 localStorage 作為後端 API 異常時的備用方案
-const STORAGE_KEY = 'qualitas_audit_list';
-
-const loadFromStorage = (): AuditItem[] => {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-            const parsed = JSON.parse(raw) as AuditItem[];
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-    } catch (_) { }
-    return [{
-        id: '1',
-        auditNo: 'QTS-RKS-SAM-AUD-000001',
-        title: 'Internal Quality Audit Q1',
-        date: '2026-03-15',
-        auditor: 'John Doe',
-        status: 'Planned',
-        location: 'Site Office',
-        findings: '',
-        contractor: 'Sample Contractor',
-    }];
-};
-
-const saveToStorage = (list: AuditItem[]) => {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    } catch (_) { }
-};
 
 interface AuditState {
     auditList: AuditItem[];
@@ -84,11 +52,14 @@ export const useAuditStore = create<AuditState>((set, get) => ({
             const response = await api.get('/audit/');
             const list = response.data || [];
             set({ auditList: list, loading: false });
-            // NOTE: 同步到 localStorage 作為備用
-            if (list.length > 0) saveToStorage(list);
         } catch (err: any) {
-            // NOTE: API 不存在（404）或其他錯誤時，使用 localStorage 備援
-            set({ auditList: loadFromStorage(), loading: false });
+            const errorMessage = err.response?.data?.detail || err.message || 'Failed to fetch audits';
+            set({
+                auditList: [],
+                loading: false,
+                error: errorMessage
+            });
+            console.error('Failed to fetch audits:', err);
         }
     },
 
@@ -98,58 +69,48 @@ export const useAuditStore = create<AuditState>((set, get) => ({
 
     addAudit: async (audit) => {
         try {
+            set({ error: null });
             const response = await api.post('/audit/', audit);
             const newAudit = response.data;
-            set((state) => {
-                const updated = [...state.auditList, newAudit];
-                saveToStorage(updated);
-                return { auditList: updated };
-            });
+            set((state) => ({
+                auditList: [...state.auditList, newAudit]
+            }));
             return newAudit;
         } catch (err: any) {
-            // NOTE: API 失敗時使用本地儲存
-            const { auditList } = get();
-            const newAudit: AuditItem = {
-                ...audit,
-                id: String(Date.now()),
-                auditNo: audit.auditNo || generateAuditNo(audit.contractor, auditList.length + 1),
-            };
-            set((state) => {
-                const updated = [...state.auditList, newAudit];
-                saveToStorage(updated);
-                return { auditList: updated };
-            });
-            return newAudit;
+            const errorMessage = err.response?.data?.detail || err.message || 'Failed to create audit';
+            set({ error: errorMessage });
+            console.error('Failed to create audit:', err);
+            throw new Error(errorMessage);
         }
     },
 
     updateAudit: async (id, updates) => {
         try {
+            set({ error: null });
             const response = await api.put(`/audit/${id}/`, updates);
-            set((state) => {
-                const updated = state.auditList.map(a => (a.id === id ? response.data : a));
-                saveToStorage(updated);
-                return { auditList: updated };
-            });
+            set((state) => ({
+                auditList: state.auditList.map(a => (a.id === id ? response.data : a))
+            }));
         } catch (err: any) {
-            // NOTE: API 失敗時使用本地更新
-            set((state) => {
-                const updated = state.auditList.map(a => (a.id === id ? { ...a, ...updates } : a));
-                saveToStorage(updated);
-                return { auditList: updated };
-            });
+            const errorMessage = err.response?.data?.detail || err.message || 'Failed to update audit';
+            set({ error: errorMessage });
+            console.error('Failed to update audit:', err);
+            throw new Error(errorMessage);
         }
     },
 
     deleteAudit: async (id) => {
         try {
+            set({ error: null });
             await api.delete(`/audit/${id}/`);
-        } catch (_) { }
-        // NOTE: 無論 API 成功與否，都從本地移除
-        set((state) => {
-            const updated = state.auditList.filter(a => a.id !== id);
-            saveToStorage(updated);
-            return { auditList: updated };
-        });
+            set((state) => ({
+                auditList: state.auditList.filter(a => a.id !== id)
+            }));
+        } catch (err: any) {
+            const errorMessage = err.response?.data?.detail || err.message || 'Failed to delete audit';
+            set({ error: errorMessage });
+            console.error('Failed to delete audit:', err);
+            throw new Error(errorMessage);
+        }
     },
 }));
